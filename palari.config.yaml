@@ -10,6 +10,7 @@ reports_dir: reports
 human_reports_dir: reports/human
 handoffs_dir: handoffs
 templates_dir: templates
+agent_skills_dir: agent-skills
 
 # Relative paths are resolved from the repository root.
 worktree_base: ../palari-orchestrator-worktrees

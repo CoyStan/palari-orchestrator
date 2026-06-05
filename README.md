@@ -22,6 +22,7 @@ an explicit gate.
 - Acceptance gate that requires `--by NAME` and refuses tickets that have not
   reached `in-review` or are missing required evidence.
 - Config, schema, templates, contracts, skill guidance, and golden tests.
+- Feature-contract skill scaffolding with `palari skill create`.
 
 ## Install In A Repo
 
@@ -58,6 +59,7 @@ git commit -m "Add APP-0001 ticket"
 
 palari worktree APP-0001
 palari packet APP-0001 specialist
+palari skill create auth-workspaces --description "Preserve local auth and workspace isolation contracts."
 ```
 
 The specialist works inside the printed worktree, edits only allowed paths,
@@ -115,6 +117,7 @@ palari worktree ID
 palari packet ID specialist
 palari packet ID reviewer
 palari packet ID product-feel-reviewer
+palari skill create NAME --description "When to use this feature contract."
 palari lint [ID]
 palari report-lint [ID]
 palari scope-check [ID]

@@ -88,6 +88,7 @@ REPORTS_DIR="$(cfg reports_dir "reports")"
 HUMAN_REPORTS_DIR="$(cfg human_reports_dir "reports/human")"
 HANDOFFS_DIR="$(cfg handoffs_dir "handoffs")"
 TEMPLATES_DIR="$(cfg templates_dir "templates")"
+AGENT_SKILLS_DIR="$(cfg agent_skills_dir "agent-skills")"
 DEFAULT_BRANCH="$(cfg default_branch "main")"
 WORKTREE_BASE="$(cfg worktree_base "../$(basename "$ROOT")-worktrees")"
 
@@ -453,6 +454,21 @@ slugify() {
   printf '%s' "$*" |
     tr '[:upper:]' '[:lower:]' |
     sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//; s/-+/-/g'
+}
+
+titleize_slug() {
+  local slug="$1"
+  printf '%s\n' "$slug" | awk -F '-' '{
+    for (i = 1; i <= NF; i++) {
+      if ($i == "") continue
+      printf "%s%s", toupper(substr($i, 1, 1)) substr($i, 2), (i == NF ? ORS : " ")
+    }
+  }'
+}
+
+valid_skill_name() {
+  local name="$1"
+  [[ "$name" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]]
 }
 
 write_yaml_list() {
@@ -1100,6 +1116,71 @@ cmd_accept() {
   printf 'closed: %s\n' "${dest#$ROOT/}"
 }
 
+cmd_skill_create() {
+  local name="${1:-}"
+  shift || true
+  [[ -n "$name" ]] || die "skill create requires a lowercase skill name"
+
+  local description="" dir="$AGENT_SKILLS_DIR" title
+  while (( $# > 0 )); do
+    case "$1" in
+      --description) description="$2"; shift 2 ;;
+      --dir) dir="$2"; shift 2 ;;
+      *) die "unknown skill create option: $1" ;;
+    esac
+  done
+
+  valid_skill_name "$name" ||
+    die "invalid skill name: $name; use lowercase letters, numbers, and hyphens"
+  [[ -n "$description" ]] || die "skill create requires --description TEXT"
+
+  local skill_dir="$ROOT/$dir/$name"
+  local skill_file="$skill_dir/SKILL.md"
+  [[ ! -e "$skill_file" ]] || die "skill already exists: ${skill_file#$ROOT/}"
+
+  mkdir -p "$skill_dir"
+  title="$(titleize_slug "$name")"
+  {
+    printf -- '---\n'
+    printf 'name: %s\n' "$name"
+    printf 'description: %s\n' "$description"
+    printf -- '---\n\n'
+    printf '# %s\n\n' "$title"
+    printf '## When This Applies\n\n'
+    printf 'Use this when touching TODO paths, APIs, workflows, or reviews for this feature.\n\n'
+    printf '## Feature Promise\n\n'
+    printf 'State the user-facing or operator-facing promise this feature must preserve.\n\n'
+    printf '## Invariants\n\n'
+    printf -- '- TODO: invariant that future work must not break.\n'
+    printf -- '- TODO: source-of-truth or data boundary that must remain true.\n\n'
+    printf '## Owned Files And APIs\n\n'
+    printf -- '- TODO: `path/to/file`\n'
+    printf -- '- TODO: API, command, or workflow surface\n\n'
+    printf '## Forbidden Behavior\n\n'
+    printf -- '- Do not move product truth, safety boundaries, or acceptance authority into this skill.\n'
+    printf -- '- Do not add live external writes, secrets, production behavior, or broad framework changes unless a ticket explicitly scopes them.\n\n'
+    printf '## Required Tests And Browser Paths\n\n'
+    printf -- '- TODO: automated check, manual check, or rendered path required when this feature changes.\n\n'
+    printf '## Gotchas\n\n'
+    printf -- '- TODO: project-specific trap learned from prior tickets, reviews, or incidents.\n\n'
+    printf '## Acceptance Checklist\n\n'
+    printf -- '- The feature promise and invariants still hold.\n'
+    printf -- '- Required tests or review paths were run, or a clear not-run reason is recorded.\n'
+    printf -- '- No forbidden behavior was introduced.\n'
+  } > "$skill_file"
+
+  printf 'skill create: %s\n' "${skill_file#$ROOT/}"
+}
+
+cmd_skill() {
+  local sub="${1:-}"
+  shift || true
+  case "$sub" in
+    create|new) cmd_skill_create "$@" ;;
+    *) die "unknown skill command: ${sub:-}; try \`palari skill create NAME --description TEXT\`" ;;
+  esac
+}
+
 usage() {
   cat <<'USAGE'
 usage: palari COMMAND [ARGS]
@@ -1116,6 +1197,8 @@ commands:
   ticket reopen ID             Move in-review ticket to reopened.
   worktree ID                  Prepare and verify ticket branch/worktree.
   packet ID ROLE               Print specialist/reviewer/product-feel/mediator packet.
+  skill create NAME --description TEXT
+                               Create a feature-contract Agent Skill scaffold.
   lint [ID]                    Lint ticket fields and report gates.
   report-lint [ID]             Lint report presence and headings.
   scope-check [ID]             Check changed paths against ticket scope.
@@ -1124,6 +1207,10 @@ commands:
 ticket create options:
   --stream NAME --risk R1 --priority P2 --allowed GLOB --forbidden GLOB
   --verify CHECK --review --human --product-feel required --target-branch main
+
+skill create options:
+  --description TEXT           Required Agent Skills frontmatter description.
+  --dir DIR                    Optional output dir; default agent-skills.
 USAGE
 }
 
@@ -1134,6 +1221,7 @@ case "${1:-}" in
   ticket) shift; cmd_ticket "$@" ;;
   worktree) shift; cmd_worktree "${1:-}" ;;
   packet|agent-packet) shift; cmd_packet "${1:-}" "${2:-}" ;;
+  skill) shift; cmd_skill "$@" ;;
   lint) shift; cmd_lint "${1:-}" ;;
   report-lint) shift; cmd_report_lint "${1:-}" ;;
   scope-check) shift; cmd_scope_check "${1:-}" ;;

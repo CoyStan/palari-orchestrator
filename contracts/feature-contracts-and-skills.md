@@ -25,3 +25,13 @@ Use a skill when a recurring specialist workflow needs stable instructions:
 Keep project taste, product vocabulary, and app-specific preferences in
 adapters or project skills. The core should only define the gates and evidence
 shape.
+
+Scaffold a feature-contract skill with:
+
+```bash
+palari skill create feature-name --description "Preserve the feature contract for ..."
+```
+
+The generated shape follows the PRC-0066 pattern: applicability, promise,
+invariants, owned files/APIs, forbidden behavior, required tests or browser
+paths, gotchas, and acceptance checklist.

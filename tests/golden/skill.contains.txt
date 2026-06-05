@@ -1,0 +1,10 @@
+name: sample-feature
+description: Preserve the sample feature contract for golden tests.
+## When This Applies
+## Feature Promise
+## Invariants
+## Owned Files And APIs
+## Forbidden Behavior
+## Required Tests And Browser Paths
+## Gotchas
+## Acceptance Checklist

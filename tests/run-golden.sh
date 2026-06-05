@@ -17,6 +17,16 @@ git config user.email "golden@example.invalid"
 git config user.name "Golden Test"
 
 ./bin/palari init >/dev/null
+./bin/palari skill create sample-feature \
+  --description "Preserve the sample feature contract for golden tests." > "$TMP_ROOT/skill.out"
+
+test -f agent-skills/sample-feature/SKILL.md
+grep -Fq "skill create: agent-skills/sample-feature/SKILL.md" "$TMP_ROOT/skill.out"
+while IFS= read -r expected; do
+  [[ -n "$expected" ]] || continue
+  grep -Fq "$expected" agent-skills/sample-feature/SKILL.md
+done < "$REPO_ROOT/tests/golden/skill.contains.txt"
+
 git add .
 git commit -m "initial orchestrator package" >/dev/null
 

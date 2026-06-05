@@ -25,6 +25,7 @@
     "human_reports_dir": { "type": "string", "minLength": 1 },
     "handoffs_dir": { "type": "string", "minLength": 1 },
     "templates_dir": { "type": "string", "minLength": 1 },
+    "agent_skills_dir": { "type": "string", "minLength": 1 },
     "worktree_base": { "type": "string", "minLength": 1 },
     "default_forbidden_paths": {
       "type": "array",
