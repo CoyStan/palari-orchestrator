@@ -1,0 +1,28 @@
+# Example Palari Orchestration config.
+# See schemas/palari.config.schema.json for a machine-readable schema.
+
+project_name: Palari Orchestrator
+default_branch: main
+
+tickets_open_dir: tickets/open
+tickets_closed_dir: tickets/closed
+reports_dir: reports
+human_reports_dir: reports/human
+handoffs_dir: handoffs
+templates_dir: templates
+
+# Relative paths are resolved from the repository root.
+worktree_base: ../palari-orchestrator-worktrees
+
+default_forbidden_paths:
+  - .env
+  - .env.*
+  - "**/secrets/**"
+  - "**/*secret*"
+  - "**/*token*"
+  - infra/prod/**
+  - prod/**
+
+acceptance:
+  requires_named_acceptor: true
+  implementation_self_acceptance: forbidden

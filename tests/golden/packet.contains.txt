@@ -1,0 +1,10 @@
+Palari Orchestration mission packet
+Role: specialist
+Ticket: POS-0001 - Golden flow scope review
+Product-feel review: required
+Worker rule:
+Git context:
+Allowed paths:
+Forbidden paths:
+Stop conditions:
+Closeout:

@@ -1,0 +1,1143 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="${PALARI_ROOT:-}"
+if [[ -z "$ROOT" ]]; then
+  if git_root="$(git rev-parse --show-toplevel 2>/dev/null)"; then
+    ROOT="$git_root"
+  else
+    ROOT="$(pwd)"
+  fi
+fi
+ROOT="$(cd "$ROOT" && pwd)"
+CONFIG="$ROOT/palari.config.yaml"
+
+VALID_STATUSES="open claimed blocked needs-human in-review reopened accepted"
+VALID_RISKS="R0 R1 R2 R3 R4"
+VALID_PRIORITIES="P0 P1 P2 P3"
+VALID_PRODUCT_FEEL="required optional not-applicable"
+REQUIRED_FIELDS=(
+  id title stream level parent_id root_id children status risk priority
+  agents_allowed claimed_by claimed_at allowed_paths forbidden_paths
+  requires_human_confirmation requires_review product_feel_review
+  verification target_branch branch worktree accepted_by accepted_at
+  created updated
+)
+DEFAULT_FORBIDDEN_PATHS=(
+  ".env"
+  ".env.*"
+  "**/secrets/**"
+  "**/*secret*"
+  "**/*token*"
+  "infra/prod/**"
+  "prod/**"
+)
+
+die() {
+  printf 'error: %s\n' "$*" >&2
+  exit 2
+}
+
+config_scalar() {
+  local key="$1"
+  [[ -f "$CONFIG" ]] || return 1
+  awk -v key="$key" '
+    $0 ~ "^[[:space:]]*" key ":" {
+      sub("^[[:space:]]*" key ":[[:space:]]*", "", $0)
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", $0)
+      gsub(/^["'\'']|["'\'']$/, "", $0)
+      print
+      exit
+    }
+  ' "$CONFIG"
+}
+
+config_list() {
+  local key="$1"
+  [[ -f "$CONFIG" ]] || return 1
+  awk -v key="$key" '
+    $0 ~ "^[[:space:]]*" key ":" {
+      in_key = 1
+      next
+    }
+    in_key && $0 ~ "^[A-Za-z0-9_]+:" {
+      exit
+    }
+    in_key && $0 ~ "^[[:space:]]*-[[:space:]]+" {
+      value = $0
+      sub("^[[:space:]]*-[[:space:]]+", "", value)
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
+      gsub(/^["'\'']|["'\'']$/, "", value)
+      if (value != "") print value
+    }
+  ' "$CONFIG"
+}
+
+cfg() {
+  local key="$1"
+  local default="$2"
+  local value
+  value="$(config_scalar "$key" || true)"
+  [[ -n "$value" ]] && printf '%s\n' "$value" || printf '%s\n' "$default"
+}
+
+PROJECT_NAME="$(cfg project_name "Palari Orchestration")"
+OPEN_DIR="$(cfg tickets_open_dir "tickets/open")"
+CLOSED_DIR="$(cfg tickets_closed_dir "tickets/closed")"
+REPORTS_DIR="$(cfg reports_dir "reports")"
+HUMAN_REPORTS_DIR="$(cfg human_reports_dir "reports/human")"
+HANDOFFS_DIR="$(cfg handoffs_dir "handoffs")"
+TEMPLATES_DIR="$(cfg templates_dir "templates")"
+DEFAULT_BRANCH="$(cfg default_branch "main")"
+WORKTREE_BASE="$(cfg worktree_base "../$(basename "$ROOT")-worktrees")"
+
+abs_path() {
+  local path="$1"
+  if [[ "$path" == /* ]]; then
+    printf '%s\n' "$path"
+  else
+    printf '%s/%s\n' "$ROOT" "$path"
+  fi
+}
+
+WORKTREE_BASE_ABS="$(abs_path "$WORKTREE_BASE")"
+
+today_utc() {
+  date -u +%F
+}
+
+now_utc() {
+  date -u +%Y-%m-%dT%H:%M:%SZ
+}
+
+require_dir() {
+  local rel="$1"
+  [[ -d "$ROOT/$rel" ]] || die "missing required folder: $rel; run \`palari init\`"
+}
+
+require_base_folders() {
+  require_dir "$OPEN_DIR"
+  require_dir "$CLOSED_DIR"
+  require_dir "$REPORTS_DIR"
+  require_dir "$HUMAN_REPORTS_DIR"
+  require_dir "$HANDOFFS_DIR"
+}
+
+ticket_files() {
+  require_dir "$OPEN_DIR"
+  find "$ROOT/$OPEN_DIR" -maxdepth 1 -type f \( -name '*.md' -o -name '*.markdown' \) ! -name 'README.md' | sort
+}
+
+closed_ticket_files() {
+  require_dir "$CLOSED_DIR"
+  find "$ROOT/$CLOSED_DIR" -maxdepth 1 -type f \( -name '*.md' -o -name '*.markdown' \) ! -name 'README.md' | sort
+}
+
+all_ticket_files() {
+  ticket_files
+  closed_ticket_files
+}
+
+frontmatter_value() {
+  local file="$1"
+  local key="$2"
+  awk -v key="$key" '
+    NR == 1 && $0 == "---" { in_fm = 1; next }
+    in_fm && $0 == "---" { exit }
+    in_fm {
+      split($0, parts, ":")
+      if (parts[1] == key) {
+        sub("^[^:]*:[[:space:]]*", "", $0)
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", $0)
+        gsub(/^["'\'']|["'\'']$/, "", $0)
+        print $0
+        exit
+      }
+    }
+  ' "$file"
+}
+
+has_frontmatter() {
+  local file="$1"
+  awk '
+    NR == 1 && $0 == "---" { start = 1; next }
+    start && $0 == "---" { end = 1; exit }
+    END { exit !(start && end) }
+  ' "$file"
+}
+
+frontmatter_has_key() {
+  local file="$1"
+  local key="$2"
+  awk -v key="$key" '
+    NR == 1 && $0 == "---" { in_fm = 1; next }
+    in_fm && $0 == "---" { exit }
+    in_fm && $0 ~ "^[A-Za-z0-9_]+:" {
+      split($0, parts, ":")
+      if (parts[1] == key) { found = 1; exit }
+    }
+    END { exit !found }
+  ' "$file"
+}
+
+frontmatter_list_items() {
+  local file="$1"
+  local key="$2"
+  awk -v key="$key" '
+    NR == 1 && $0 == "---" { in_fm = 1; next }
+    in_fm && $0 == "---" { exit }
+    in_fm && $0 ~ "^[A-Za-z0-9_]+:" {
+      split($0, parts, ":")
+      if (parts[1] == key) {
+        in_key = 1
+        next
+      }
+      if (in_key) exit
+    }
+    in_fm && in_key && $0 ~ "^[[:space:]]*-[[:space:]]+" {
+      value = $0
+      sub("^[[:space:]]*-[[:space:]]+", "", value)
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
+      gsub(/^["'\'']|["'\'']$/, "", value)
+      if (value != "") print value
+    }
+  ' "$file"
+}
+
+frontmatter_list_count() {
+  local file="$1"
+  local key="$2"
+  frontmatter_list_items "$file" "$key" | wc -l | tr -d ' '
+}
+
+in_words() {
+  local value="$1"
+  local words="$2"
+  local word
+  for word in $words; do
+    [[ "$value" == "$word" ]] && return 0
+  done
+  return 1
+}
+
+valid_ticket_id() {
+  local id="$1"
+  [[ "$id" =~ ^[A-Z][A-Z0-9]{2}-[0-9]{4}(-[A-Z]+){0,2}$ ]]
+}
+
+ticket_title_from_file() {
+  local file="$1"
+  basename "$file" | sed -E 's/\.(md|markdown)$//'
+}
+
+find_ticket_file() {
+  local ticket="$1"
+  local file id base
+  while IFS= read -r file; do
+    [[ -n "$file" ]] || continue
+    id="$(frontmatter_value "$file" id)"
+    base="$(basename "$file")"
+    if [[ "$id" == "$ticket" || "$base" == "$ticket" || "${base%.md}" == "$ticket" ]]; then
+      printf '%s\n' "$file"
+      return 0
+    fi
+  done < <(all_ticket_files)
+  return 1
+}
+
+ticket_default_branch() {
+  local ticket_id="$1"
+  printf 'ticket/%s\n' "$ticket_id"
+}
+
+ticket_default_worktree() {
+  local ticket_id="$1"
+  printf '%s/%s\n' "$WORKTREE_BASE_ABS" "$ticket_id"
+}
+
+ticket_declared_branch() {
+  local file="$1"
+  local ticket_id="$2"
+  local branch
+  branch="$(frontmatter_value "$file" branch)"
+  [[ -n "$branch" ]] || branch="$(ticket_default_branch "$ticket_id")"
+  printf '%s\n' "$branch"
+}
+
+ticket_declared_worktree() {
+  local file="$1"
+  local ticket_id="$2"
+  local worktree
+  worktree="$(frontmatter_value "$file" worktree)"
+  [[ -n "$worktree" ]] || worktree="$(ticket_default_worktree "$ticket_id")"
+  printf '%s\n' "$worktree"
+}
+
+update_frontmatter_scalars() {
+  local file="$1"
+  shift
+  local tmp="${file}.tmp.$$"
+  local pairs="" pair
+  for pair in "$@"; do
+    pairs+="$pair"
+  done
+  awk -v pairs="$pairs" '
+    BEGIN {
+      n = split(pairs, raw, "\034")
+      for (i = 1; i <= n; i++) {
+        if (raw[i] == "") continue
+        split(raw[i], kv, "\035")
+        updates[kv[1]] = kv[2]
+      }
+    }
+    NR == 1 && $0 == "---" { in_fm = 1; print; next }
+    in_fm && $0 == "---" { in_fm = 0; print; next }
+    in_fm && $0 ~ "^[A-Za-z0-9_]+:" {
+      split($0, parts, ":")
+      key = parts[1]
+      if (key in updates) {
+        print key ": " updates[key]
+        next
+      }
+    }
+    { print }
+  ' "$file" > "$tmp"
+  mv "$tmp" "$file"
+}
+
+git_changed_paths() {
+  if ! git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    die "not inside a git worktree: $ROOT"
+  fi
+  (
+    git -C "$ROOT" diff --name-only --relative -- .
+    git -C "$ROOT" diff --name-only --cached --relative -- .
+    git -C "$ROOT" ls-files --others --exclude-standard -- .
+  ) | sed '/^$/d' | sort -u
+}
+
+git_changed_count_at() {
+  local path="$1"
+  git -C "$path" status --short -- . 2>/dev/null | wc -l | tr -d ' '
+}
+
+require_clean_git_at() {
+  local path="$1"
+  local label="$2"
+  local changed
+  changed="$(git_changed_count_at "$path")"
+  [[ "$changed" == "0" ]] || die "$label has $changed changed path(s); commit accepted work or choose a clean worktree first"
+}
+
+branch_contains_ref_at() {
+  local path="$1"
+  local branch="$2"
+  local ref="$3"
+  git -C "$path" merge-base --is-ancestor "$ref" "$branch" >/dev/null 2>&1
+}
+
+require_ticket_worktree_ready() {
+  local ticket_id="$1"
+  local branch="$2"
+  local worktree="$3"
+  local purpose="$4"
+  local target_branch="$5"
+  local actual_branch changed
+  [[ -d "$worktree" ]] || die "$purpose: missing ticket worktree: $worktree; run \`palari worktree $ticket_id\`"
+  git -C "$worktree" rev-parse --is-inside-work-tree >/dev/null 2>&1 ||
+    die "$purpose: not a git worktree: $worktree"
+  actual_branch="$(git -C "$worktree" branch --show-current 2>/dev/null || true)"
+  [[ "$actual_branch" == "$branch" ]] ||
+    die "$purpose: branch mismatch for $worktree; expected $branch, got ${actual_branch:-detached}"
+  if git -C "$ROOT" rev-parse --verify "$target_branch" >/dev/null 2>&1; then
+    branch_contains_ref_at "$ROOT" "$branch" "$target_branch" ||
+      die "$purpose: ticket branch $branch does not contain $target_branch"
+  fi
+  changed="$(git_changed_count_at "$worktree")"
+  [[ "$changed" == "0" ]] || die "$purpose: ticket worktree has $changed changed path(s): $worktree"
+}
+
+path_matches_pattern() {
+  local path="${1#./}"
+  local pattern="${2#./}"
+  [[ "$path" == $pattern ]]
+}
+
+check_path_against_patterns() {
+  local path="$1"
+  shift
+  local pattern
+  for pattern in "$@"; do
+    [[ -n "$pattern" ]] || continue
+    if path_matches_pattern "$path" "$pattern"; then
+      printf '%s\n' "$pattern"
+      return 0
+    fi
+  done
+  return 1
+}
+
+report_candidate_files() {
+  local dir="$1"
+  require_dir "$dir"
+  find "$ROOT/$dir" -maxdepth 1 -type f \( -name '*.md' -o -name '*.markdown' \) ! -name 'README.md' | sort
+}
+
+file_references_ticket() {
+  local file="$1"
+  local ticket_id="$2"
+  local base
+  base="$(basename "$file")"
+  [[ "$base" == *"$ticket_id"* ]] && return 0
+  grep -Eq "(^# ${ticket_id}([[:space:]]|$)|^[[:space:]]*[-*]?[[:space:]]*Ticket:[[:space:]]*${ticket_id}([[:space:]]|$)|^[[:space:]]*ticket:[[:space:]]*${ticket_id}([[:space:]]|$))" "$file"
+}
+
+find_report_file() {
+  local dir="$1"
+  local ticket_id="$2"
+  local marker="${3:-}"
+  local file
+  while IFS= read -r file; do
+    [[ -n "$file" ]] || continue
+    file_references_ticket "$file" "$ticket_id" || continue
+    if [[ -n "$marker" ]] && ! grep -Eq "$marker" "$file"; then
+      continue
+    fi
+    printf '%s\n' "$file"
+    return 0
+  done < <(report_candidate_files "$dir")
+  return 1
+}
+
+print_frontmatter_list_block() {
+  local label="$1"
+  local file="$2"
+  local key="$3"
+  local item count=0
+  printf '%s:\n' "$label"
+  while IFS= read -r item; do
+    [[ -n "$item" ]] || continue
+    printf '  - %s\n' "$item"
+    count=$((count + 1))
+  done < <(frontmatter_list_items "$file" "$key")
+  (( count > 0 )) || printf '  - none detected\n'
+}
+
+render_ticket_line() {
+  local file="$1"
+  local id title status risk priority stream claimed_by
+  id="$(frontmatter_value "$file" id)"
+  title="$(frontmatter_value "$file" title)"
+  status="$(frontmatter_value "$file" status)"
+  risk="$(frontmatter_value "$file" risk)"
+  priority="$(frontmatter_value "$file" priority)"
+  stream="$(frontmatter_value "$file" stream)"
+  claimed_by="$(frontmatter_value "$file" claimed_by)"
+  [[ -n "$id" ]] || id="$(ticket_title_from_file "$file")"
+  [[ -n "$title" ]] || title="$(ticket_title_from_file "$file")"
+  printf '%s | %s | %s | %s | %s | %s | %s\n' \
+    "$id" "${status:-missing}" "${risk:--}" "${priority:--}" "${stream:--}" "${claimed_by:--}" "$title"
+}
+
+count_status() {
+  local wanted="$1"
+  local count=0 file
+  while IFS= read -r file; do
+    [[ -n "$file" ]] || continue
+    [[ "$(frontmatter_value "$file" status)" == "$wanted" ]] && count=$((count + 1))
+  done < <(ticket_files)
+  printf '%s\n' "$count"
+}
+
+slugify() {
+  printf '%s' "$*" |
+    tr '[:upper:]' '[:lower:]' |
+    sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//; s/-+/-/g'
+}
+
+write_yaml_list() {
+  local name="$1"
+  shift
+  local value
+  printf '%s:\n' "$name"
+  if (( $# == 0 )); then
+    printf '  - TODO\n'
+    return
+  fi
+  for value in "$@"; do
+    printf '  - %s\n' "$value"
+  done
+}
+
+cmd_init() {
+  local dir
+  for dir in "$OPEN_DIR" "$CLOSED_DIR" "$REPORTS_DIR" "$HUMAN_REPORTS_DIR" "$HANDOFFS_DIR"; do
+    mkdir -p "$ROOT/$dir"
+    : > "$ROOT/$dir/.gitkeep"
+  done
+  printf 'init: ok\n'
+  printf 'root: %s\n' "$ROOT"
+  printf 'tickets: %s, %s\n' "$OPEN_DIR" "$CLOSED_DIR"
+}
+
+cmd_status() {
+  require_base_folders
+  local active accepted reports human changed
+  active="$(ticket_files | wc -l | tr -d ' ')"
+  accepted="$(closed_ticket_files | wc -l | tr -d ' ')"
+  reports="$(find "$ROOT/$REPORTS_DIR" -maxdepth 1 -type f \( -name '*.md' -o -name '*.markdown' \) ! -name 'README.md' | wc -l | tr -d ' ')"
+  human="$(find "$ROOT/$HUMAN_REPORTS_DIR" -maxdepth 1 -type f \( -name '*.md' -o -name '*.markdown' \) ! -name 'README.md' | wc -l | tr -d ' ')"
+  if git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    changed="$(git_changed_count_at "$ROOT")"
+  else
+    changed="not-a-git-repo"
+  fi
+  printf 'Palari Orchestration status\n'
+  printf 'root: %s\n' "$ROOT"
+  printf 'project: %s\n' "$PROJECT_NAME"
+  printf 'tickets: %s active, %s accepted\n' "$active" "$accepted"
+  printf 'open:%s claimed:%s blocked:%s needs-human:%s in-review:%s reopened:%s\n' \
+    "$(count_status open)" "$(count_status claimed)" "$(count_status blocked)" \
+    "$(count_status needs-human)" "$(count_status in-review)" "$(count_status reopened)"
+  printf 'reports: %s specialist/reviewer, %s human\n' "$reports" "$human"
+  printf 'git: %s changed paths in workspace\n' "$changed"
+}
+
+cmd_tickets() {
+  require_base_folders
+  local total file
+  total="$(ticket_files | wc -l | tr -d ' ')"
+  printf 'Active tickets: %s\n' "$total"
+  (( total > 0 )) || return 0
+  printf 'ID | status | risk | pri | stream | claimed | title\n'
+  while IFS= read -r file; do
+    [[ -n "$file" ]] || continue
+    render_ticket_line "$file"
+  done < <(ticket_files)
+}
+
+cmd_ticket_create() {
+  require_base_folders
+  local id="${1:-}"
+  local title="${2:-}"
+  shift 2 || true
+  [[ -n "$id" && -n "$title" ]] || die "ticket create requires ID and title"
+  valid_ticket_id "$id" || die "invalid ticket id: $id"
+
+  local stream="process" risk="R1" priority="P2" level="1" parent_id="" root_id="$id"
+  local requires_review="false" requires_human="false" product_feel="not-applicable"
+  local target_branch="$DEFAULT_BRANCH"
+  local -a allowed=()
+  local -a forbidden=()
+  local -a verification=()
+  local arg
+  while (( $# > 0 )); do
+    arg="$1"
+    case "$arg" in
+      --stream) stream="$2"; shift 2 ;;
+      --risk) risk="$2"; shift 2 ;;
+      --priority) priority="$2"; shift 2 ;;
+      --level) level="$2"; shift 2 ;;
+      --parent) parent_id="$2"; shift 2 ;;
+      --root) root_id="$2"; shift 2 ;;
+      --allowed) allowed+=("$2"); shift 2 ;;
+      --forbidden) forbidden+=("$2"); shift 2 ;;
+      --verify) verification+=("$2"); shift 2 ;;
+      --review) requires_review="true"; shift ;;
+      --human) requires_human="true"; shift ;;
+      --product-feel) product_feel="$2"; shift 2 ;;
+      --target-branch) target_branch="$2"; shift 2 ;;
+      *) die "unknown ticket create option: $arg" ;;
+    esac
+  done
+
+  (( ${#allowed[@]} > 0 )) || die "ticket create needs at least one --allowed path"
+  (( ${#verification[@]} > 0 )) || die "ticket create needs at least one --verify item"
+  (( ${#forbidden[@]} > 0 )) || forbidden=("${DEFAULT_FORBIDDEN_PATHS[@]}")
+  in_words "$risk" "$VALID_RISKS" || die "invalid risk: $risk"
+  in_words "$priority" "$VALID_PRIORITIES" || die "invalid priority: $priority"
+  in_words "$product_feel" "$VALID_PRODUCT_FEEL" || die "invalid product-feel value: $product_feel"
+
+  local slug file created branch worktree
+  slug="$(slugify "$title")"
+  file="$ROOT/$OPEN_DIR/$id-$slug.md"
+  [[ ! -e "$file" ]] || die "ticket already exists: ${file#$ROOT/}"
+  created="$(today_utc)"
+  branch="$(ticket_default_branch "$id")"
+  worktree="$(ticket_default_worktree "$id")"
+
+  {
+    printf -- '---\n'
+    printf 'id: %s\n' "$id"
+    printf 'title: %s\n' "$title"
+    printf 'stream: %s\n' "$stream"
+    printf 'level: %s\n' "$level"
+    printf 'parent_id: %s\n' "$parent_id"
+    printf 'root_id: %s\n' "$root_id"
+    printf 'children: []\n'
+    printf 'status: open\n'
+    printf 'risk: %s\n' "$risk"
+    printf 'priority: %s\n' "$priority"
+    printf 'agents_allowed: 1\n'
+    printf 'claimed_by:\n'
+    printf 'claimed_at:\n'
+    write_yaml_list allowed_paths "${allowed[@]}"
+    write_yaml_list forbidden_paths "${forbidden[@]}"
+    printf 'requires_human_confirmation: %s\n' "$requires_human"
+    printf 'requires_review: %s\n' "$requires_review"
+    printf 'product_feel_review: %s\n' "$product_feel"
+    write_yaml_list verification "${verification[@]}"
+    printf 'target_branch: %s\n' "$target_branch"
+    printf 'branch: %s\n' "$branch"
+    printf 'worktree: %s\n' "$worktree"
+    printf 'accepted_by:\n'
+    printf 'accepted_at:\n'
+    printf 'created: %s\n' "$created"
+    printf 'updated: %s\n' "$created"
+    printf -- '---\n\n'
+    printf '# %s %s\n\n' "$id" "$title"
+    printf '## Goal\n\nState the result this ticket should produce.\n\n'
+    printf '## Scope\n\nList what may change.\n\n'
+    printf '## Out Of Scope\n\nList nearby work that must not be done.\n\n'
+    printf '## Acceptance Criteria\n\n- The scoped result exists.\n- Path and risk rules are respected.\n\n'
+    printf '## Ticket Completion Contract\n\n'
+    printf '### Goal\n\nRepeat the completion target in one paragraph.\n\n'
+    printf '### Non-Goals\n\n- Nearby work this ticket must not absorb.\n\n'
+    printf '### Definition Of Done\n\n- Concrete done condition.\n\n'
+    printf '### Evidence Required\n\n- Report, command, review, screenshot, or manual check to inspect.\n\n'
+    printf '### Expansion Rules\n\n- Stop if scope, risk, or authority changes.\n\n'
+    printf '### Final Review Gate\n\n- Reviewer checks each done item and recommends accept, reopen, or needs-human.\n\n'
+    printf '## Verification\n\n'
+    for arg in "${verification[@]}"; do printf -- '- %s\n' "$arg"; done
+    printf '\n## Stop Conditions\n\n'
+    printf -- '- Stop if work needs a path outside `allowed_paths`.\n'
+    printf -- '- Stop if work touches `forbidden_paths`.\n'
+    printf -- '- Stop if real risk exceeds ticket risk.\n'
+    printf -- '- Stop if acceptance criteria or authority are unclear.\n'
+  } > "$file"
+
+  printf 'ticket create: %s\n' "${file#$ROOT/}"
+}
+
+cmd_ticket_claim() {
+  require_base_folders
+  local ticket="${1:-}"
+  local by="${2:-${PROCESS_AGENT:-${USER:-agent}}}"
+  [[ -n "$ticket" ]] || die "ticket claim requires ID"
+  local file status
+  file="$(find_ticket_file "$ticket")" || die "ticket not found: $ticket"
+  status="$(frontmatter_value "$file" status)"
+  [[ "${file#$ROOT/}" == "$OPEN_DIR/"* ]] || die "cannot claim closed ticket: $ticket"
+  [[ "$status" == "open" || "$status" == "reopened" ]] || die "ticket $ticket is not open/reopened; current status: ${status:-missing}"
+  update_frontmatter_scalars "$file" \
+    "status"$'\035'"claimed"$'\034' \
+    "claimed_by"$'\035'"$by"$'\034' \
+    "claimed_at"$'\035'"$(now_utc)"$'\034' \
+    "updated"$'\035'"$(today_utc)"$'\034'
+  printf 'ticket claim: %s as %s\n' "$(frontmatter_value "$file" id)" "$by"
+}
+
+set_ticket_status() {
+  local ticket="$1"
+  local new_status="$2"
+  local file status
+  file="$(find_ticket_file "$ticket")" || die "ticket not found: $ticket"
+  status="$(frontmatter_value "$file" status)"
+  [[ "${file#$ROOT/}" == "$OPEN_DIR/"* ]] || die "cannot update closed ticket: $ticket"
+  case "$new_status" in
+    in-review)
+      [[ "$status" == "claimed" || "$status" == "reopened" ]] || die "in-review requires claimed or reopened status; current: ${status:-missing}"
+      ;;
+    blocked|needs-human)
+      [[ "$status" == "claimed" || "$status" == "reopened" || "$status" == "open" ]] || die "$new_status requires open, claimed, or reopened status; current: ${status:-missing}"
+      ;;
+    reopened)
+      [[ "$status" == "in-review" ]] || die "reopened requires in-review status; current: ${status:-missing}"
+      ;;
+    open)
+      [[ "$status" == "blocked" || "$status" == "needs-human" || "$status" == "claimed" ]] || die "open requires blocked, needs-human, or claimed status; current: ${status:-missing}"
+      ;;
+    *)
+      die "unsupported status transition helper: $new_status"
+      ;;
+  esac
+  update_frontmatter_scalars "$file" \
+    "status"$'\035'"$new_status"$'\034' \
+    "claimed_by"$'\035'""$'\034' \
+    "claimed_at"$'\035'""$'\034' \
+    "updated"$'\035'"$(today_utc)"$'\034'
+  printf 'ticket status: %s -> %s\n' "$(frontmatter_value "$file" id)" "$new_status"
+}
+
+cmd_ticket() {
+  local sub="${1:-}"
+  shift || true
+  case "$sub" in
+    create|new) cmd_ticket_create "$@" ;;
+    claim) cmd_ticket_claim "$@" ;;
+    ready) set_ticket_status "${1:-}" in-review ;;
+    block) set_ticket_status "${1:-}" blocked ;;
+    needs-human) set_ticket_status "${1:-}" needs-human ;;
+    reopen) set_ticket_status "${1:-}" reopened ;;
+    open) set_ticket_status "${1:-}" open ;;
+    lint) cmd_lint "${1:-}" ;;
+    list|"") cmd_tickets ;;
+    *) die "unknown ticket command: $sub" ;;
+  esac
+}
+
+cmd_worktree() {
+  require_base_folders
+  local ticket="${1:-}"
+  [[ -n "$ticket" ]] || die "worktree requires ticket ID"
+  local file ticket_id title branch worktree target_branch branch_state target_head actual_branch changed head
+  file="$(find_ticket_file "$ticket")" || die "ticket not found: $ticket"
+  ticket_id="$(frontmatter_value "$file" id)"
+  title="$(frontmatter_value "$file" title)"
+  [[ -n "$ticket_id" ]] || ticket_id="$ticket"
+  branch="$(ticket_declared_branch "$file" "$ticket_id")"
+  worktree="$(ticket_declared_worktree "$file" "$ticket_id")"
+  target_branch="$(frontmatter_value "$file" target_branch)"
+  [[ -n "$target_branch" ]] || target_branch="$DEFAULT_BRANCH"
+
+  git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1 || die "worktree command requires a git repo"
+  git -C "$ROOT" rev-parse --verify "$target_branch" >/dev/null 2>&1 || die "missing target branch: $target_branch"
+  target_head="$(git -C "$ROOT" rev-parse --short "$target_branch")"
+  require_clean_git_at "$ROOT" "canonical repo"
+
+  if git -C "$ROOT" show-ref --verify --quiet "refs/heads/$branch"; then
+    branch_state="exists"
+    branch_contains_ref_at "$ROOT" "$branch" "$target_branch" ||
+      die "ticket branch $branch does not contain $target_branch ($target_head)"
+  else
+    branch_state="created from $target_branch"
+  fi
+
+  if [[ -e "$worktree" ]] && ! git -C "$worktree" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    die "worktree path exists but is not a git worktree: $worktree"
+  fi
+  if [[ ! -e "$worktree" ]]; then
+    mkdir -p "$(dirname "$worktree")"
+    if [[ "$branch_state" == "exists" ]]; then
+      git -C "$ROOT" worktree add "$worktree" "$branch" >/dev/null
+    else
+      git -C "$ROOT" worktree add -b "$branch" "$worktree" "$target_branch" >/dev/null
+    fi
+  fi
+
+  require_ticket_worktree_ready "$ticket_id" "$branch" "$worktree" "worktree" "$target_branch"
+  actual_branch="$(git -C "$worktree" branch --show-current)"
+  changed="$(git_changed_count_at "$worktree")"
+  head="$(git -C "$worktree" rev-parse --short HEAD)"
+
+  printf 'worktree: ok\n'
+  printf 'Ticket: %s - %s\n' "$ticket_id" "${title:-}"
+  printf 'Target branch: %s (%s)\n' "$target_branch" "$target_head"
+  printf 'Ticket branch: %s (%s)\n' "$branch" "$branch_state"
+  printf 'Ticket worktree: %s\n' "$worktree"
+  printf 'Worktree branch: %s\n' "$actual_branch"
+  printf 'Worktree HEAD: %s\n' "$head"
+  printf 'Worktree changed paths: %s\n' "$changed"
+  printf 'Worker cd: cd %s\n' "$worktree"
+}
+
+print_ticket_section_excerpt() {
+  local file="$1"
+  local heading="$2"
+  local limit="${3:-5}"
+  awk -v heading="$heading" -v limit="$limit" '
+    $0 ~ "^##[[:space:]]+" heading "[[:space:]]*$" { in_section = 1; next }
+    in_section && /^##[[:space:]]+/ { exit }
+    in_section && NF {
+      print "  " $0
+      count += 1
+      if (count >= limit) exit
+    }
+  ' "$file"
+}
+
+cmd_packet() {
+  require_base_folders
+  local ticket="${1:-}"
+  local role="${2:-}"
+  [[ -n "$ticket" && -n "$role" ]] || die "packet requires ticket ID and role"
+  case "$role" in
+    specialist|reviewer|product-feel-reviewer|mediator) ;;
+    *) die "role must be specialist, reviewer, product-feel-reviewer, or mediator" ;;
+  esac
+
+  local file rel ticket_id title status risk priority requires_review requires_human product_feel
+  local branch worktree target_branch worktree_head worktree_branch worktree_changed
+  file="$(find_ticket_file "$ticket")" || die "ticket not found: $ticket"
+  rel="${file#$ROOT/}"
+  ticket_id="$(frontmatter_value "$file" id)"
+  title="$(frontmatter_value "$file" title)"
+  status="$(frontmatter_value "$file" status)"
+  risk="$(frontmatter_value "$file" risk)"
+  priority="$(frontmatter_value "$file" priority)"
+  requires_review="$(frontmatter_value "$file" requires_review)"
+  requires_human="$(frontmatter_value "$file" requires_human_confirmation)"
+  product_feel="$(frontmatter_value "$file" product_feel_review)"
+  [[ -n "$ticket_id" ]] || ticket_id="$ticket"
+  branch="$(ticket_declared_branch "$file" "$ticket_id")"
+  worktree="$(ticket_declared_worktree "$file" "$ticket_id")"
+  target_branch="$(frontmatter_value "$file" target_branch)"
+  [[ -n "$target_branch" ]] || target_branch="$DEFAULT_BRANCH"
+
+  if [[ "$role" != "mediator" ]]; then
+    require_ticket_worktree_ready "$ticket_id" "$branch" "$worktree" "packet" "$target_branch"
+  fi
+
+  worktree_head="missing"
+  worktree_branch="missing"
+  worktree_changed="missing"
+  if git -C "$worktree" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    worktree_head="$(git -C "$worktree" rev-parse --short HEAD)"
+    worktree_branch="$(git -C "$worktree" branch --show-current)"
+    worktree_changed="$(git_changed_count_at "$worktree") changed path(s)"
+  fi
+
+  printf 'Palari Orchestration mission packet\n'
+  printf 'Role: %s\n' "$role"
+  printf 'Ticket: %s - %s\n' "$ticket_id" "${title:-}"
+  printf 'Ticket path: %s\n' "$rel"
+  printf 'Status: %s\n' "${status:-missing}"
+  printf 'Risk: %s\n' "${risk:-missing}"
+  printf 'Priority: %s\n' "${priority:-missing}"
+  printf 'Requires review: %s\n' "${requires_review:-missing}"
+  printf 'Requires human confirmation: %s\n' "${requires_human:-missing}"
+  printf 'Product-feel review: %s\n\n' "${product_feel:-not-applicable}"
+
+  printf 'Worker rule:\n'
+  printf '  Read this packet, the ticket, relevant source/tests/diffs/reports, and concrete evidence needed for the task.\n'
+  printf '  Do not self-orient through broad process docs unless this packet names a trigger.\n\n'
+
+  printf 'Git context:\n'
+  printf '  Canonical repo: %s\n' "$ROOT"
+  printf '  Target branch: %s\n' "$target_branch"
+  printf '  Ticket branch: %s\n' "$branch"
+  printf '  Ticket worktree: %s\n' "$worktree"
+  printf '  Worktree branch: %s\n' "$worktree_branch"
+  printf '  Worktree HEAD: %s\n' "$worktree_head"
+  printf '  Worktree changed paths: %s\n' "$worktree_changed"
+  printf '  Worker cd: cd %s\n\n' "$worktree"
+
+  printf 'Mission:\n'
+  print_ticket_section_excerpt "$file" "Goal" 5
+  printf '\nAuthority:\n'
+  case "$role" in
+    specialist)
+      printf '  Implement only inside ticket and packet scope. Move ready work to in-review; do not accept your own work.\n'
+      ;;
+    reviewer)
+      printf '  Fresh-context review mode. Inspect correctness, scope, verification, and completion contract. Do not implement fixes by default.\n'
+      ;;
+    product-feel-reviewer)
+      printf '  Fresh-context product-feel review mode for visible UI, copy, workflow, or capability-boundary changes. Use rendered evidence where possible.\n'
+      ;;
+    mediator)
+      printf '  Mediation mode. Frame options and implications; do not execute the blocked implementation.\n'
+      ;;
+  esac
+  printf '\n'
+  print_frontmatter_list_block 'Allowed paths' "$file" allowed_paths
+  print_frontmatter_list_block 'Forbidden paths' "$file" forbidden_paths
+  print_frontmatter_list_block 'Verification' "$file" verification
+  printf '\nStop conditions:\n'
+  printf '  - needed edit is outside allowed paths\n'
+  printf '  - forbidden path would be touched\n'
+  printf '  - real risk exceeds ticket risk\n'
+  printf '  - secrets, production, live external services, deploys, Docker, database mutation, or destructive commands become necessary without explicit scope\n'
+  printf '  - acceptance criteria, product direction, or authority are unclear\n'
+  printf '  - actor would need to accept its own substantive work\n\n'
+  printf 'Closeout:\n'
+  printf '  - result state\n  - changed paths\n  - verification passed/failed/not run\n  - blockers or scope conflicts\n  - risks/follow-ups\n  - next action for orchestrator/human\n'
+}
+
+lint_one_ticket() {
+  local file="$1"
+  local errors=0 field value
+  if ! has_frontmatter "$file"; then
+    printf 'lint: %s: missing YAML frontmatter\n' "${file#$ROOT/}" >&2
+    return 1
+  fi
+  for field in "${REQUIRED_FIELDS[@]}"; do
+    if ! frontmatter_has_key "$file" "$field"; then
+      printf 'lint: %s: missing required field: %s\n' "${file#$ROOT/}" "$field" >&2
+      errors=$((errors + 1))
+    fi
+  done
+  value="$(frontmatter_value "$file" id)"
+  if [[ -n "$value" ]] && ! valid_ticket_id "$value"; then
+    printf 'lint: %s: invalid id: %s\n' "${file#$ROOT/}" "$value" >&2
+    errors=$((errors + 1))
+  fi
+  value="$(frontmatter_value "$file" status)"
+  if [[ -n "$value" ]] && ! in_words "$value" "$VALID_STATUSES"; then
+    printf 'lint: %s: invalid status: %s\n' "${file#$ROOT/}" "$value" >&2
+    errors=$((errors + 1))
+  fi
+  value="$(frontmatter_value "$file" risk)"
+  if [[ -n "$value" ]] && ! in_words "$value" "$VALID_RISKS"; then
+    printf 'lint: %s: invalid risk: %s\n' "${file#$ROOT/}" "$value" >&2
+    errors=$((errors + 1))
+  fi
+  value="$(frontmatter_value "$file" priority)"
+  if [[ -n "$value" ]] && ! in_words "$value" "$VALID_PRIORITIES"; then
+    printf 'lint: %s: invalid priority: %s\n' "${file#$ROOT/}" "$value" >&2
+    errors=$((errors + 1))
+  fi
+  value="$(frontmatter_value "$file" product_feel_review)"
+  if [[ -n "$value" ]] && ! in_words "$value" "$VALID_PRODUCT_FEEL"; then
+    printf 'lint: %s: product_feel_review must be required, optional, or not-applicable\n' "${file#$ROOT/}" >&2
+    errors=$((errors + 1))
+  fi
+  value="$(frontmatter_value "$file" requires_human_confirmation)"
+  [[ -z "$value" || "$value" == "true" || "$value" == "false" ]] || {
+    printf 'lint: %s: requires_human_confirmation must be true or false\n' "${file#$ROOT/}" >&2
+    errors=$((errors + 1))
+  }
+  value="$(frontmatter_value "$file" requires_review)"
+  [[ -z "$value" || "$value" == "true" || "$value" == "false" ]] || {
+    printf 'lint: %s: requires_review must be true or false\n' "${file#$ROOT/}" >&2
+    errors=$((errors + 1))
+  }
+  if [[ "$(frontmatter_list_count "$file" allowed_paths)" == "0" ]]; then
+    printf 'lint: %s: allowed_paths must contain at least one item\n' "${file#$ROOT/}" >&2
+    errors=$((errors + 1))
+  fi
+  if [[ "$(frontmatter_list_count "$file" forbidden_paths)" == "0" ]]; then
+    printf 'lint: %s: forbidden_paths must contain at least one item\n' "${file#$ROOT/}" >&2
+    errors=$((errors + 1))
+  fi
+  if [[ "$(frontmatter_list_count "$file" verification)" == "0" ]]; then
+    printf 'lint: %s: verification must contain at least one item\n' "${file#$ROOT/}" >&2
+    errors=$((errors + 1))
+  fi
+  return "$errors"
+}
+
+validate_headings() {
+  local label="$1"
+  local file="$2"
+  shift 2
+  local errors=0 heading
+  for heading in "$@"; do
+    if ! grep -Eq "^##[[:space:]]+${heading}[[:space:]]*$" "$file"; then
+      printf 'report-lint: %s: missing heading: ## %s\n' "${file#$ROOT/}" "$heading" >&2
+      errors=$((errors + 1))
+    fi
+  done
+  return "$errors"
+}
+
+cmd_report_lint() {
+  require_base_folders
+  local ticket="${1:-}"
+  local errors=0 file ticket_id risk status requires_review requires_human product_feel technical human reviewer product handoff
+  local -a files=()
+  if [[ -n "$ticket" ]]; then
+    file="$(find_ticket_file "$ticket")" || die "ticket not found: $ticket"
+    files+=("$file")
+  else
+    while IFS= read -r file; do [[ -n "$file" ]] && files+=("$file"); done < <(all_ticket_files)
+  fi
+
+  for file in "${files[@]}"; do
+    ticket_id="$(frontmatter_value "$file" id)"
+    [[ -n "$ticket_id" ]] || ticket_id="$(ticket_title_from_file "$file")"
+    risk="$(frontmatter_value "$file" risk)"
+    status="$(frontmatter_value "$file" status)"
+    requires_review="$(frontmatter_value "$file" requires_review)"
+    requires_human="$(frontmatter_value "$file" requires_human_confirmation)"
+    product_feel="$(frontmatter_value "$file" product_feel_review)"
+    technical="$(find_report_file "$REPORTS_DIR" "$ticket_id" '(^# .*Technical Report$|^## Files Changed$|^## Verification$|^## Risks / Follow-Ups$)' || true)"
+    reviewer="$(find_report_file "$REPORTS_DIR" "$ticket_id" '(^# .*Reviewer Note$|^## Review Result$|^## Required Changes$)' || true)"
+    product="$(find_report_file "$REPORTS_DIR" "$ticket_id" '(^# .*Product Feel Review$|product-feel|Product-feel|Product Feel)' || true)"
+    human="$(find_report_file "$HUMAN_REPORTS_DIR" "$ticket_id" || true)"
+    handoff="$(find_report_file "$HANDOFFS_DIR" "$ticket_id" || true)"
+
+    if [[ "$status" == "in-review" || "$status" == "accepted" ]]; then
+      if [[ "$risk" != "R0" && -z "$technical" ]]; then
+        printf 'report-lint: %s: missing technical/specialist report for %s work\n' "$ticket_id" "$risk" >&2
+        errors=$((errors + 1))
+      fi
+      if [[ "$requires_review" == "true" && -z "$reviewer" ]]; then
+        printf 'report-lint: %s: missing fresh-context reviewer note\n' "$ticket_id" >&2
+        errors=$((errors + 1))
+      fi
+      if [[ "$requires_human" == "true" && -z "$human" ]]; then
+        printf 'report-lint: %s: missing human/founder report for required human gate\n' "$ticket_id" >&2
+        errors=$((errors + 1))
+      fi
+      if [[ "$product_feel" == "required" && -z "$product" ]]; then
+        printf 'report-lint: %s: missing product-feel review\n' "$ticket_id" >&2
+        errors=$((errors + 1))
+      fi
+    fi
+    if [[ "$status" == "blocked" || "$status" == "needs-human" ]] && [[ -z "$handoff" ]]; then
+      printf 'report-lint: %s: %s ticket should have a handoff/mediator packet\n' "$ticket_id" "$status" >&2
+      errors=$((errors + 1))
+    fi
+    [[ -z "$technical" ]] || validate_headings technical "$technical" "Files Changed" "Verification" "Risks / Follow-Ups" || errors=$((errors + 1))
+    [[ -z "$reviewer" ]] || validate_headings reviewer "$reviewer" "Review Result" "Findings" "Verification Reviewed" "Required Changes" "Recommendation" || errors=$((errors + 1))
+    [[ -z "$human" ]] || validate_headings human "$human" "Why This Mattered" "What Changed" "What I Should Know" "What To Check" "Recommended Next Move" || errors=$((errors + 1))
+    [[ -z "$product" ]] || validate_headings product-feel "$product" "Review Result" "Findings" "Verification Reviewed" "Recommendation" || errors=$((errors + 1))
+  done
+  (( errors == 0 )) || {
+    printf 'report-lint: failed with %s issue(s)\n' "$errors" >&2
+    exit 1
+  }
+  [[ -n "$ticket" ]] && printf 'report-lint: ok for %s\n' "$ticket" || printf 'report-lint: ok\n'
+}
+
+cmd_lint() {
+  require_base_folders
+  local ticket="${1:-}"
+  local errors=0 file
+  if [[ -n "$ticket" ]]; then
+    file="$(find_ticket_file "$ticket")" || die "ticket not found: $ticket"
+    lint_one_ticket "$file" || errors=$((errors + 1))
+  else
+    while IFS= read -r file; do
+      [[ -n "$file" ]] || continue
+      lint_one_ticket "$file" || errors=$((errors + 1))
+    done < <(all_ticket_files)
+  fi
+  (( errors == 0 )) || {
+    printf 'lint: failed with %s issue(s)\n' "$errors" >&2
+    exit 1
+  }
+  cmd_report_lint "$ticket"
+  [[ -n "$ticket" ]] && printf 'lint: ok for %s\n' "$ticket" || printf 'lint: ok\n'
+}
+
+select_scope_ticket() {
+  local ticket="${1:-}"
+  local file selected="" count=0
+  if [[ -n "$ticket" ]]; then
+    find_ticket_file "$ticket"
+    return
+  fi
+  while IFS= read -r file; do
+    [[ -n "$file" ]] || continue
+    if [[ "$(frontmatter_value "$file" status)" == "claimed" ]]; then
+      selected="$file"
+      count=$((count + 1))
+    fi
+  done < <(ticket_files)
+  (( count == 1 )) || die "scope-check requires an explicit ticket ID unless exactly one ticket is claimed"
+  printf '%s\n' "$selected"
+}
+
+cmd_scope_check() {
+  require_base_folders
+  local ticket="${1:-}"
+  local file ticket_id path pattern changed_count=0 errors=0
+  local -a allowed=()
+  local -a forbidden=()
+  file="$(select_scope_ticket "$ticket")" || exit $?
+  ticket_id="$(frontmatter_value "$file" id)"
+  [[ -n "$ticket_id" ]] || ticket_id="$(ticket_title_from_file "$file")"
+  while IFS= read -r pattern; do [[ -n "$pattern" ]] && allowed+=("$pattern"); done < <(frontmatter_list_items "$file" allowed_paths)
+  while IFS= read -r pattern; do [[ -n "$pattern" ]] && forbidden+=("$pattern"); done < <(frontmatter_list_items "$file" forbidden_paths)
+  (( ${#allowed[@]} > 0 )) || die "ticket $ticket_id has no allowed_paths"
+  (( ${#forbidden[@]} > 0 )) || die "ticket $ticket_id has no forbidden_paths"
+
+  while IFS= read -r path; do
+    [[ -n "$path" ]] || continue
+    changed_count=$((changed_count + 1))
+    pattern="$(check_path_against_patterns "$path" "${forbidden[@]}" || true)"
+    if [[ -n "$pattern" ]]; then
+      printf 'scope-check: %s forbidden by ticket %s (rule: %s)\n' "$path" "$ticket_id" "$pattern" >&2
+      errors=$((errors + 1))
+      continue
+    fi
+    pattern="$(check_path_against_patterns "$path" "${allowed[@]}" || true)"
+    if [[ -z "$pattern" ]]; then
+      printf 'scope-check: %s outside allowed_paths for ticket %s\n' "$path" "$ticket_id" >&2
+      printf 'scope-check: allowed rules: %s\n' "${allowed[*]}" >&2
+      errors=$((errors + 1))
+    fi
+  done < <(git_changed_paths)
+  (( errors == 0 )) || {
+    printf 'scope-check: failed for %s with %s issue(s)\n' "$ticket_id" "$errors" >&2
+    exit 1
+  }
+  printf 'scope-check: ok for %s (%s changed path(s))\n' "$ticket_id" "$changed_count"
+}
+
+cmd_accept() {
+  require_base_folders
+  local ticket="${1:-}"
+  shift || true
+  local by=""
+  while (( $# > 0 )); do
+    case "$1" in
+      --by) by="$2"; shift 2 ;;
+      *) die "unknown accept option: $1" ;;
+    esac
+  done
+  [[ -n "$ticket" ]] || die "accept requires ticket ID"
+  [[ -n "$by" ]] || die "accept requires --by NAME; acceptance must name the human or authorized reviewer"
+  local file status id dest
+  file="$(find_ticket_file "$ticket")" || die "ticket not found: $ticket"
+  status="$(frontmatter_value "$file" status)"
+  id="$(frontmatter_value "$file" id)"
+  [[ -n "$id" ]] || id="$ticket"
+  [[ "${file#$ROOT/}" == "$OPEN_DIR/"* ]] || die "ticket is already closed: $ticket"
+  [[ "$status" == "in-review" ]] || die "accept requires in-review status; current: ${status:-missing}"
+  lint_one_ticket "$file" >/dev/null
+  cmd_report_lint "$id" >/dev/null
+  update_frontmatter_scalars "$file" \
+    "status"$'\035'"accepted"$'\034' \
+    "accepted_by"$'\035'"$by"$'\034' \
+    "accepted_at"$'\035'"$(now_utc)"$'\034' \
+    "updated"$'\035'"$(today_utc)"$'\034'
+  dest="$ROOT/$CLOSED_DIR/$(basename "$file")"
+  mv "$file" "$dest"
+  printf 'accept: %s accepted by %s\n' "$id" "$by"
+  printf 'closed: %s\n' "${dest#$ROOT/}"
+}
+
+usage() {
+  cat <<'USAGE'
+usage: palari COMMAND [ARGS]
+
+commands:
+  init                         Create configured ticket/report directories.
+  status                       Show compact orchestration status.
+  tickets                      List active tickets.
+  ticket create ID TITLE ...   Create a scoped ticket.
+  ticket claim ID [BY]         Claim an open/reopened ticket.
+  ticket ready ID              Move claimed/reopened ticket to in-review.
+  ticket block ID              Move ticket to blocked.
+  ticket needs-human ID        Move ticket to needs-human.
+  ticket reopen ID             Move in-review ticket to reopened.
+  worktree ID                  Prepare and verify ticket branch/worktree.
+  packet ID ROLE               Print specialist/reviewer/product-feel/mediator packet.
+  lint [ID]                    Lint ticket fields and report gates.
+  report-lint [ID]             Lint report presence and headings.
+  scope-check [ID]             Check changed paths against ticket scope.
+  accept ID --by NAME          Human/authorized-reviewer acceptance gate.
+
+ticket create options:
+  --stream NAME --risk R1 --priority P2 --allowed GLOB --forbidden GLOB
+  --verify CHECK --review --human --product-feel required --target-branch main
+USAGE
+}
+
+case "${1:-}" in
+  init) cmd_init ;;
+  status) cmd_status ;;
+  tickets) cmd_tickets ;;
+  ticket) shift; cmd_ticket "$@" ;;
+  worktree) shift; cmd_worktree "${1:-}" ;;
+  packet|agent-packet) shift; cmd_packet "${1:-}" "${2:-}" ;;
+  lint) shift; cmd_lint "${1:-}" ;;
+  report-lint) shift; cmd_report_lint "${1:-}" ;;
+  scope-check) shift; cmd_scope_check "${1:-}" ;;
+  accept) shift; cmd_accept "${1:-}" "${@:2}" ;;
+  -h|--help|help|"") usage ;;
+  *) usage >&2; die "unknown command: $1" ;;
+esac
