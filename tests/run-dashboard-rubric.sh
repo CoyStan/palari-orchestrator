@@ -11,15 +11,15 @@ TMP="$(mktemp)"
 trap 'rm -f "$TMP"' EXIT
 
 check_contains() {
-  local file="$1"
-  local needle="$2"
-  local label="$3"
-  if ! grep -Fq -- "$needle" "$file"; then
-    printf 'dashboard-rubric: missing %s\n' "$label" >&2
-    printf '  file: %s\n' "$file" >&2
-    printf '  expected: %s\n' "$needle" >&2
-    exit 1
-  fi
+	local file="$1"
+	local needle="$2"
+	local label="$3"
+	if ! grep -Fq -- "$needle" "$file"; then
+		printf 'dashboard-rubric: missing %s\n' "$label" >&2
+		printf '  file: %s\n' "$file" >&2
+		printf '  expected: %s\n' "$needle" >&2
+		exit 1
+	fi
 }
 
 check_contains "$HTML" 'class="skip-link"' "keyboard skip link"
@@ -54,8 +54,8 @@ check_contains "$CSS" 'white-space: nowrap;' "timestamp nowrap/truncation guard"
 check_contains "$JS" 'function formatTimestamp' "compact timestamp formatting"
 
 if grep -Eq '^(nav|nav a|nav a::before)([[:space:]{,:]|$)' "$CSS"; then
-  printf 'dashboard-rubric: broad nav selector found in app-shell.css\n' >&2
-  exit 1
+	printf 'dashboard-rubric: broad nav selector found in app-shell.css\n' >&2
+	exit 1
 fi
 
 python3 - "$CSS" <<'PY'
@@ -88,13 +88,14 @@ check_contains "$JS" 'Dashboard refreshed. Health' "meaningful live refresh anno
 check_contains "$SERVER" 'SNAPSHOT_CACHE_TTL' "short-lived snapshot cache"
 check_contains "$SERVER" 'query.get("fresh") == ["1"]' "fresh snapshot query bypass"
 check_contains "$SERVER" 'target.relative_to(static_root)' "path containment uses Path.relative_to"
-check_contains "$SERVER" 'is_loopback_host(args.host)' "non-loopback bind warning"
+check_contains "$SERVER" 'not is_loopback_host(args.host) and not args.unsafe_bind' "non-loopback bind refusal"
+check_contains "$SERVER" '"--unsafe-bind"' "explicit unsafe bind override"
 check_contains "$SERVER" '"snapshot", "--json"' "server delegates state to palari snapshot"
 check_contains "$README" 'soft app-shell navigation with a canvas workspace and inspector pane' "documented dashboard style"
 
 if grep -Eq 'tickets/open|tickets/closed|frontmatter|palari.config' "$SERVER"; then
-  printf 'dashboard-rubric: web server must not parse ticket/config state directly\n' >&2
-  exit 1
+	printf 'dashboard-rubric: web server must not parse ticket/config state directly\n' >&2
+	exit 1
 fi
 
 python3 - "$CSS" <<'PY'
@@ -149,7 +150,7 @@ import sys
 path = Path(sys.argv[1])
 compile(path.read_text(encoding="utf-8"), str(path), "exec")
 PY
-(cd "$ROOT" && ./bin/palari web --check > "$TMP")
+(cd "$ROOT" && ./bin/palari web --check >"$TMP")
 grep -Fq '"project": "Palari Orchestrator"' "$TMP"
 
 printf 'dashboard-rubric: ok (static layout checks + contrast)\n'

@@ -32,8 +32,8 @@ Options:
 `--check` prints the same JSON produced by `palari snapshot --json`. It is
 useful for tests, CI, and debugging adapter reads.
 
-The server is a local stdlib viewer. It warns when bound outside loopback and is
-not a production web service.
+The server is a local stdlib viewer. It refuses non-loopback hosts unless
+`--unsafe-bind` is set and is not a production web service.
 
 ## What It Shows
 

@@ -41,11 +41,6 @@
       "name": "palari_lint",
       "description": "Validate ticket fields, reports, and acceptance gates.",
       "command": ["lint", "{ticket_id}"]
-    },
-    {
-      "name": "palari_accept",
-      "description": "Run the human or authorized-reviewer acceptance gate.",
-      "command": ["accept", "{ticket_id}", "--by", "{actor}"]
     }
   ]
 }

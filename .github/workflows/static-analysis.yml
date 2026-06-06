@@ -1,0 +1,52 @@
+name: Static Analysis
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Install tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+
+          curl -fsSLo "$RUNNER_TEMP/shfmt" \
+            https://github.com/mvdan/sh/releases/download/v3.13.1/shfmt_v3.13.1_linux_amd64
+          chmod +x "$RUNNER_TEMP/shfmt"
+          sudo install -m 0755 "$RUNNER_TEMP/shfmt" /usr/local/bin/shfmt
+
+          curl -fsSLo "$RUNNER_TEMP/actionlint.tar.gz" \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz
+          tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP"
+          sudo install -m 0755 "$RUNNER_TEMP/actionlint" /usr/local/bin/actionlint
+
+          git clone --depth 1 --branch v1.13.0 https://github.com/bats-core/bats-core.git "$RUNNER_TEMP/bats-core"
+          sudo "$RUNNER_TEMP/bats-core/install.sh" /usr/local
+
+      - name: ShellCheck
+        run: shellcheck bin/palari scripts/palari
+
+      - name: shfmt
+        run: shfmt -d bin/palari scripts/palari
+
+      - name: actionlint
+        run: actionlint
+
+      - name: Bats
+        run: bats tests
+
+      - name: Python compile
+        run: python3 -m py_compile adapters/web/server.py

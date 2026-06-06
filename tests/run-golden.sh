@@ -12,11 +12,14 @@ mkdir -p "$WORK"
 
 cd "$WORK"
 chmod +x bin/palari scripts/palari
+rm -f tickets/open/*.md tickets/open/*.markdown tickets/closed/*.md tickets/closed/*.markdown
+rm -f reports/*.md reports/*.markdown reports/human/*.md reports/human/*.markdown handoffs/*.md handoffs/*.markdown
+rm -rf reports/evidence/*
 git init -b main >/dev/null
 git config user.email "golden@example.invalid"
 git config user.name "Golden Test"
 
-./bin/palari init --ci --hooks > "$TMP_ROOT/init.out"
+./bin/palari init --ci --hooks >"$TMP_ROOT/init.out"
 test -f .github/workflows/palari.yml
 test -f .github/palari-required-checks.ruleset.json
 test -f lefthook.yml
@@ -30,37 +33,41 @@ grep -Fq "workflow alone does not protect merges" "$TMP_ROOT/init.out"
 grep -Fq "gh api --method PATCH repos/OWNER/REPO/rulesets" "$TMP_ROOT/init.out"
 grep -Fq "gh api --method POST repos/OWNER/REPO/rulesets" "$TMP_ROOT/init.out"
 python3 -m py_compile adapters/web/server.py
-./bin/palari snapshot --json > "$TMP_ROOT/snapshot.out"
+./bin/palari snapshot --json >"$TMP_ROOT/snapshot.out"
 grep -Fq '"project": "Palari Orchestrator"' "$TMP_ROOT/snapshot.out"
 grep -Fq '"tickets": []' "$TMP_ROOT/snapshot.out"
-./bin/palari web --check > "$TMP_ROOT/web-snapshot.out"
+./bin/palari web --check >"$TMP_ROOT/web-snapshot.out"
 grep -Fq '"project": "Palari Orchestrator"' "$TMP_ROOT/web-snapshot.out"
 grep -Fq '"tickets": []' "$TMP_ROOT/web-snapshot.out"
 
 ./bin/palari skill create sample-feature \
-  --description "Preserve the sample feature contract for golden tests." > "$TMP_ROOT/skill.out"
+	--description "Preserve the sample feature contract for golden tests." >"$TMP_ROOT/skill.out"
 
 test -f agent-skills/sample-feature/SKILL.md
 grep -Fq "skill create: agent-skills/sample-feature/SKILL.md" "$TMP_ROOT/skill.out"
 while IFS= read -r expected; do
-  [[ -n "$expected" ]] || continue
-  grep -Fq "$expected" agent-skills/sample-feature/SKILL.md
-done < "$REPO_ROOT/tests/golden/skill.contains.txt"
+	[[ -n "$expected" ]] || continue
+	grep -Fq "$expected" agent-skills/sample-feature/SKILL.md
+done <"$REPO_ROOT/tests/golden/skill.contains.txt"
 
-./bin/palari mcp manifest > "$TMP_ROOT/mcp.out"
+./bin/palari mcp manifest >"$TMP_ROOT/mcp.out"
 grep -Fq "palari_ticket_claim" "$TMP_ROOT/mcp.out"
 grep -Fq "palari_scope_check" "$TMP_ROOT/mcp.out"
+if grep -Fq "palari_accept" "$TMP_ROOT/mcp.out"; then
+	printf 'golden: MCP manifest must not expose acceptance\n' >&2
+	exit 1
+fi
 
-./bin/palari github ruleset-command --repo CoyStan/palari-orchestrator > "$TMP_ROOT/ruleset-command.out"
+./bin/palari github ruleset-command --repo CoyStan/palari-orchestrator >"$TMP_ROOT/ruleset-command.out"
 grep -Fq "gh api --method PATCH repos/CoyStan/palari-orchestrator/rulesets" "$TMP_ROOT/ruleset-command.out"
 grep -Fq "gh api --method POST repos/CoyStan/palari-orchestrator/rulesets" "$TMP_ROOT/ruleset-command.out"
 
-if ./bin/palari ci > "$TMP_ROOT/no-ticket-ci.out" 2>&1; then
-  printf 'golden: expected no-ticket ci to fail closed\n' >&2
-  exit 1
+if ./bin/palari ci >"$TMP_ROOT/no-ticket-ci.out" 2>&1; then
+	printf 'golden: expected no-ticket ci to fail closed\n' >&2
+	exit 1
 fi
 grep -Fq "ci requires a ticket ID" "$TMP_ROOT/no-ticket-ci.out"
-./bin/palari ci --repo-only > "$TMP_ROOT/repo-ci.out"
+./bin/palari ci --repo-only >"$TMP_ROOT/repo-ci.out"
 grep -Fq "ci: ok for repo" "$TMP_ROOT/repo-ci.out"
 rm -rf reports/evidence/repo
 
@@ -81,81 +88,81 @@ path.write_text(
 PY
 
 ./bin/palari ticket create POS-0002 "Overlap alpha" \
-  --stream docs \
-  --risk R1 \
-  --allowed "docs/**" \
-  --allowed "tickets/**" \
-  --allowed "reports/**" \
-  --verify "manual overlap check" >/dev/null
+	--stream docs \
+	--risk R1 \
+	--allowed "docs/**" \
+	--allowed "tickets/**" \
+	--allowed "reports/**" \
+	--verify "manual overlap check" >/dev/null
 if grep -Eq '^(level|parent_id|root_id|children|agents_allowed|claim_token|product_feel_review):' tickets/open/POS-0002-overlap-alpha.md; then
-  printf 'golden: lean R1 ticket generated a demoted core field\n' >&2
-  exit 1
+	printf 'golden: lean R1 ticket generated a demoted core field\n' >&2
+	exit 1
 fi
 if grep -Fq "Ticket Completion Contract" tickets/open/POS-0002-overlap-alpha.md; then
-  printf 'golden: lean R1 ticket generated the heavy completion contract\n' >&2
-  exit 1
+	printf 'golden: lean R1 ticket generated the heavy completion contract\n' >&2
+	exit 1
 fi
 grep -Fq "config-only-secret/**" tickets/open/POS-0002-overlap-alpha.md
 if grep -Fq "infra/prod/**" tickets/open/POS-0002-overlap-alpha.md; then
-  printf 'golden: ticket create ignored config default_forbidden_paths\n' >&2
-  exit 1
+	printf 'golden: ticket create ignored config default_forbidden_paths\n' >&2
+	exit 1
 fi
-./bin/palari lint POS-0002 > "$TMP_ROOT/lean-lint.out"
+./bin/palari lint POS-0002 >"$TMP_ROOT/lean-lint.out"
 ./bin/palari ticket create POS-0003 "Overlap beta" \
-  --stream docs \
-  --risk R1 \
-  --allowed "docs/golden/**" \
-  --allowed "tickets/**" \
-  --allowed "reports/**" \
-  --verify "manual overlap check" >/dev/null
-if ./bin/palari scope-overlaps POS-0002 > "$TMP_ROOT/overlap.out" 2>&1; then
-  printf 'golden: expected overlapping scopes to fail\n' >&2
-  exit 1
+	--stream docs \
+	--risk R1 \
+	--allowed "docs/golden/**" \
+	--allowed "tickets/**" \
+	--allowed "reports/**" \
+	--verify "manual overlap check" >/dev/null
+if ./bin/palari scope-overlaps POS-0002 >"$TMP_ROOT/overlap.out" 2>&1; then
+	printf 'golden: expected overlapping scopes to fail\n' >&2
+	exit 1
 fi
 grep -Fq "scope-overlaps: POS-0002 overlaps POS-0003" "$TMP_ROOT/overlap.out"
-if ./bin/palari ticket claim POS-0002 overlap-tester > "$TMP_ROOT/overlap-claim.out" 2>&1; then
-  printf 'golden: expected overlapping claim to fail under block policy\n' >&2
-  exit 1
+if ./bin/palari ticket claim POS-0002 overlap-tester >"$TMP_ROOT/overlap-claim.out" 2>&1; then
+	printf 'golden: expected overlapping claim to fail under block policy\n' >&2
+	exit 1
 fi
 grep -Fq "overlapping allowed_paths" "$TMP_ROOT/overlap-claim.out"
 
-cat > oops.txt <<'DOC'
+cat >oops.txt <<'DOC'
 outside declared ticket scope
 DOC
-if ./bin/palari ci POS-0002 > "$TMP_ROOT/failing-ci.out" 2>&1; then
-  printf 'golden: expected out-of-scope ci to fail\n' >&2
-  exit 1
+if ./bin/palari ci POS-0002 >"$TMP_ROOT/failing-ci.out" 2>&1; then
+	printf 'golden: expected out-of-scope ci to fail\n' >&2
+	exit 1
 fi
 grep -Fq "ci: failed for POS-0002" "$TMP_ROOT/failing-ci.out"
-grep -Fq '"runAutomationDetails": {"id": "palari/POS-0002"}' reports/evidence/POS-0002/palari.sarif
+grep -Fq '"automationDetails": {"id": "palari/POS-0002"}' reports/evidence/POS-0002/palari.sarif
 grep -Fq '"locations"' reports/evidence/POS-0002/palari.sarif
 rm -f oops.txt
 rm -rf reports/evidence/POS-0002
 rm -f tickets/open/POS-0002-*.md tickets/open/POS-0003-*.md
 
 ./bin/palari ticket create POS-0004 "Claim lease check" \
-  --stream docs \
-  --risk R1 \
-  --allowed "lease/**" \
-  --allowed "tickets/**" \
-  --allowed "reports/**" \
-  --verify "manual claim check" >/dev/null
+	--stream docs \
+	--risk R1 \
+	--allowed "lease/**" \
+	--allowed "tickets/**" \
+	--allowed "reports/**" \
+	--verify "manual claim check" >/dev/null
 ./bin/palari ticket claim POS-0004 first-claimant >/dev/null
-if ./bin/palari ticket claim POS-0004 second-claimant > "$TMP_ROOT/second-claim.out" 2>&1; then
-  printf 'golden: expected second active claim to fail\n' >&2
-  exit 1
+if ./bin/palari ticket claim POS-0004 second-claimant >"$TMP_ROOT/second-claim.out" 2>&1; then
+	printf 'golden: expected second active claim to fail\n' >&2
+	exit 1
 fi
 grep -Fq "already claimed" "$TMP_ROOT/second-claim.out"
 git update-ref -d refs/palari/claims/POS-0004 >/dev/null 2>&1 || true
 rm -f tickets/open/POS-0004-*.md
 
 ./bin/palari ticket create POS-0008 "Governed contract" \
-  --stream docs \
-  --risk R2 \
-  --allowed "docs/**" \
-  --allowed "tickets/**" \
-  --allowed "reports/**" \
-  --verify "manual governed check" >/dev/null
+	--stream docs \
+	--risk R2 \
+	--allowed "docs/**" \
+	--allowed "tickets/**" \
+	--allowed "reports/**" \
+	--verify "manual governed check" >/dev/null
 grep -Fq "Ticket Completion Contract" tickets/open/POS-0008-governed-contract.md
 grep -Fq "requires_review: true" tickets/open/POS-0008-governed-contract.md
 rm -f tickets/open/POS-0008-*.md
@@ -164,13 +171,13 @@ git add .
 git commit -m "initial orchestrator package" >/dev/null
 
 ./bin/palari ticket create POS-0005 "Governed missing evidence" \
-  --stream docs \
-  --risk R2 \
-  --allowed "tickets/**" \
-  --allowed "reports/**" \
-  --verify "manual governed evidence check" >/dev/null
+	--stream docs \
+	--risk R2 \
+	--allowed "tickets/**" \
+	--allowed "reports/**" \
+	--verify "manual governed evidence check" >/dev/null
 ./bin/palari ticket claim POS-0005 evidence-specialist >/dev/null
-cat > reports/POS-0005-technical-report.md <<'DOC'
+cat >reports/POS-0005-technical-report.md <<'DOC'
 # POS-0005 Technical Report
 
 ## Files Changed
@@ -191,7 +198,7 @@ tickets/open/POS-0005-governed-missing-evidence.md
 
 - None.
 DOC
-cat > reports/POS-0005-reviewer-note.md <<'DOC'
+cat >reports/POS-0005-reviewer-note.md <<'DOC'
 # POS-0005 Reviewer Note
 
 ## Review Result
@@ -215,65 +222,89 @@ Decision: accept
 Accept.
 DOC
 ./bin/palari ticket ready POS-0005 >/dev/null
-if ./bin/palari accept POS-0005 --by founder > "$TMP_ROOT/missing-evidence-accept.out" 2>&1; then
-  printf 'golden: expected missing evidence acceptance to fail\n' >&2
-  exit 1
+if ./bin/palari accept POS-0005 --by founder >"$TMP_ROOT/missing-evidence-accept.out" 2>&1; then
+	printf 'golden: expected missing evidence acceptance to fail\n' >&2
+	exit 1
 fi
 grep -Fq "missing evidence artifact" "$TMP_ROOT/missing-evidence-accept.out"
 git update-ref -d refs/palari/claims/POS-0005 >/dev/null 2>&1 || true
 rm -f tickets/open/POS-0005-*.md reports/POS-0005-*.md
 
 ./bin/palari ticket create POS-0006 "Self acceptance check" \
-  --stream docs \
-  --risk R1 \
-  --allowed "tickets/**" \
-  --allowed "reports/**" \
-  --verify "manual self acceptance check" >/dev/null
+	--stream docs \
+	--risk R1 \
+	--allowed "tickets/**" \
+	--allowed "reports/**" \
+	--verify "manual self acceptance check" >/dev/null
 ./bin/palari ticket claim POS-0006 implementer >/dev/null
-./bin/palari ci POS-0006 > "$TMP_ROOT/self-ci.out"
+./bin/palari ci POS-0006 >"$TMP_ROOT/self-ci.out"
 test -f reports/evidence/POS-0006/manifest.json
+grep -Fq '"generator": "palari-ci"' reports/evidence/POS-0006/manifest.json
+grep -Fq '"sha256":' reports/evidence/POS-0006/manifest.json
 ./bin/palari ticket ready POS-0006 >/dev/null
-if ./bin/palari accept POS-0006 --by implementer > "$TMP_ROOT/self-accept.out" 2>&1; then
-  printf 'golden: expected self-acceptance to fail\n' >&2
-  exit 1
+if ./bin/palari accept POS-0006 --by implementer >"$TMP_ROOT/self-accept.out" 2>&1; then
+	printf 'golden: expected self-acceptance to fail\n' >&2
+	exit 1
 fi
 grep -Fq "implementation_self_acceptance is forbidden" "$TMP_ROOT/self-accept.out"
 git update-ref -d refs/palari/claims/POS-0006 >/dev/null 2>&1 || true
 rm -f tickets/open/POS-0006-*.md
 rm -rf reports/evidence/POS-0006
 
-./bin/palari ticket create POS-0001 "Golden flow scope review" \
-  --stream docs \
-  --risk R1 \
-  --allowed "docs/**" \
-  --allowed "tickets/**" \
-  --allowed "reports/**" \
-  --verify "manual golden check" \
-  --review \
-  --required-report product-feel >/dev/null
+./bin/palari ticket create POS-0007 "Forged evidence rejection" \
+	--stream docs \
+	--risk R1 \
+	--allowed "tickets/**" \
+	--allowed "reports/**" \
+	--verify "manual forged evidence check" >/dev/null
+./bin/palari ticket claim POS-0007 implementer >/dev/null
+mkdir -p reports/evidence/POS-0007
+printf 'forged log\n' >reports/evidence/POS-0007/verification.log
+printf '<testsuite tests="1" failures="0"></testsuite>\n' >reports/evidence/POS-0007/junit.xml
+printf '{"version":"2.1.0","runs":[]}\n' >reports/evidence/POS-0007/palari.sarif
+printf '{"ticket":"POS-0007","status":"passed","head_sha":"forged"}\n' >reports/evidence/POS-0007/manifest.json
+./bin/palari ticket ready POS-0007 >/dev/null
+if ./bin/palari accept POS-0007 --by reviewer >"$TMP_ROOT/forged-evidence-accept.out" 2>&1; then
+	printf 'golden: expected forged evidence acceptance to fail\n' >&2
+	exit 1
+fi
+grep -Fq "invalid evidence manifest" "$TMP_ROOT/forged-evidence-accept.out"
+git update-ref -d refs/palari/claims/POS-0007 >/dev/null 2>&1 || true
+rm -f tickets/open/POS-0007-*.md
+rm -rf reports/evidence/POS-0007
 
-./bin/palari snapshot --json > "$TMP_ROOT/custom-report-snapshot.out"
+./bin/palari ticket create POS-0001 "Golden flow scope review" \
+	--stream docs \
+	--risk R1 \
+	--allowed "docs/**" \
+	--allowed "tickets/**" \
+	--allowed "reports/**" \
+	--verify "manual golden check" \
+	--review \
+	--required-report product-feel >/dev/null
+
+./bin/palari snapshot --json >"$TMP_ROOT/custom-report-snapshot.out"
 grep -Fq '"name":"product-feel"' "$TMP_ROOT/custom-report-snapshot.out"
 if grep -Fq '"product_feel"' "$TMP_ROOT/custom-report-snapshot.out"; then
-  printf 'golden: snapshot reintroduced a product-specific core report key\n' >&2
-  exit 1
+	printf 'golden: snapshot reintroduced a product-specific core report key\n' >&2
+	exit 1
 fi
 
 git add tickets
 git commit -m "add golden ticket" >/dev/null
 
-./bin/palari worktree POS-0001 > "$TMP_ROOT/worktree.out"
-./bin/palari packet POS-0001 specialist > "$TMP_ROOT/specialist.packet"
+./bin/palari worktree POS-0001 >"$TMP_ROOT/worktree.out"
+./bin/palari packet POS-0001 specialist >"$TMP_ROOT/specialist.packet"
 
 while IFS= read -r expected; do
-  [[ -n "$expected" ]] || continue
-  grep -Fq "$expected" "$TMP_ROOT/specialist.packet"
-done < "$REPO_ROOT/tests/golden/packet.contains.txt"
+	[[ -n "$expected" ]] || continue
+	grep -Fq "$expected" "$TMP_ROOT/specialist.packet"
+done <"$REPO_ROOT/tests/golden/packet.contains.txt"
 
 WT="$(awk -F': ' '/Ticket worktree:/ { print $2 }' "$TMP_ROOT/worktree.out")"
 [[ -n "$WT" && -d "$WT" ]] || {
-  printf 'golden: missing worktree from output\n' >&2
-  exit 1
+	printf 'golden: missing worktree from output\n' >&2
+	exit 1
 }
 
 cd "$WT"
@@ -281,20 +312,20 @@ cd "$WT"
 ./bin/palari ticket heartbeat POS-0001 >/dev/null
 mkdir -p docs reports reports/human
 
-cat > docs/golden.md <<'DOC'
+cat >docs/golden.md <<'DOC'
 # Golden Flow
 
 This document proves a scoped, allowed-path edit.
 DOC
 
-./bin/palari ci POS-0001 > "$TMP_ROOT/ci.out"
+./bin/palari ci POS-0001 >"$TMP_ROOT/ci.out"
 grep -Fq "ci: ok for POS-0001" "$TMP_ROOT/ci.out"
 test -f reports/evidence/POS-0001/verification.log
 test -f reports/evidence/POS-0001/junit.xml
 test -f reports/evidence/POS-0001/palari.sarif
 test -f reports/evidence/POS-0001/manifest.json
 
-cat > reports/POS-0001-technical-report.md <<'DOC'
+cat >reports/POS-0001-technical-report.md <<'DOC'
 # POS-0001 Technical Report
 
 ## Session
@@ -340,7 +371,7 @@ docs/golden.md
 - None.
 DOC
 
-cat > reports/POS-0001-reviewer-note.md <<'DOC'
+cat >reports/POS-0001-reviewer-note.md <<'DOC'
 # POS-0001 Reviewer Note
 
 ## Review Result
@@ -364,7 +395,7 @@ Decision: accept
 Accept.
 DOC
 
-cat > reports/POS-0001-product-feel-review.md <<'DOC'
+cat >reports/POS-0001-product-feel-review.md <<'DOC'
 # POS-0001 Product Feel Review
 
 ## Review Result
@@ -388,7 +419,7 @@ Decision: accept
 Accept from the product-feel axis.
 DOC
 
-cat > reports/human/POS-0001-human-report.md <<'DOC'
+cat >reports/human/POS-0001-human-report.md <<'DOC'
 # POS-0001 Human Report
 
 ## Why This Mattered
@@ -413,28 +444,28 @@ This proves the portable orchestration flow can carry evidence to acceptance.
 Use this as the smoke test for v1 changes.
 DOC
 
-./bin/palari scope-check POS-0001 > "$TMP_ROOT/scope.out"
+./bin/palari scope-check POS-0001 >"$TMP_ROOT/scope.out"
 ./bin/palari ticket ready POS-0001 >/dev/null
 ./bin/palari ticket heartbeat POS-0001 0 >/dev/null
 sleep 1
-if ./bin/palari accept POS-0001 --by founder > "$TMP_ROOT/expired-accept.out" 2>&1; then
-  printf 'golden: expected expired claim acceptance to fail\n' >&2
-  exit 1
+if ./bin/palari accept POS-0001 --by founder >"$TMP_ROOT/expired-accept.out" 2>&1; then
+	printf 'golden: expected expired claim acceptance to fail\n' >&2
+	exit 1
 fi
 grep -Fq "claim lease is expired" "$TMP_ROOT/expired-accept.out"
 ./bin/palari ticket heartbeat POS-0001 >/dev/null
-./bin/palari lint POS-0001 > "$TMP_ROOT/lint.out"
-./bin/palari accept POS-0001 --by founder > "$TMP_ROOT/accept.out"
-./bin/palari status > "$TMP_ROOT/status.out"
+./bin/palari lint POS-0001 >"$TMP_ROOT/lint.out"
+./bin/palari accept POS-0001 --by founder >"$TMP_ROOT/accept.out"
+./bin/palari status >"$TMP_ROOT/status.out"
 
 grep -Fq "scope-check: ok for POS-0001" "$TMP_ROOT/scope.out"
 grep -Fq "lint: ok for POS-0001" "$TMP_ROOT/lint.out"
 grep -Fq "accept: POS-0001 accepted by founder" "$TMP_ROOT/accept.out"
 
 while IFS= read -r expected; do
-  [[ -n "$expected" ]] || continue
-  grep -Fq "$expected" "$TMP_ROOT/status.out"
-done < "$REPO_ROOT/tests/golden/status.contains.txt"
+	[[ -n "$expected" ]] || continue
+	grep -Fq "$expected" "$TMP_ROOT/status.out"
+done <"$REPO_ROOT/tests/golden/status.contains.txt"
 
 test -f tickets/closed/POS-0001-golden-flow-scope-review.md
 test ! -f tickets/open/POS-0001-golden-flow-scope-review.md

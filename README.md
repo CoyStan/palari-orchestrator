@@ -13,6 +13,7 @@
   <img alt="scope checked" src="https://img.shields.io/badge/scope-checked-2B9968?style=flat-square">
   <img alt="fresh context review" src="https://img.shields.io/badge/review-fresh--context-5B4DFF?style=flat-square">
   <img alt="golden tests" src="https://img.shields.io/badge/tests-golden-F4B433?style=flat-square">
+  <img alt="license: MIT" src="https://img.shields.io/badge/license-MIT-111111?style=flat-square">
 </p>
 
 <p align="center">
@@ -67,8 +68,8 @@ review and evidence gates. R3/R4 work requires human confirmation.
 | Worktree-first execution | Each ticket gets isolated from the main checkout. |
 | Agent packets | Specialists, reviewers, and acceptors get the right context. |
 | Scope checks | Changed files are compared against allowed and forbidden paths. |
-| CI evidence | Logs, JUnit, SARIF, and a manifest are written for the ticket. |
-| Human acceptance | `palari accept` refuses missing gates and records who accepted. |
+| CI evidence | Logs, JUnit, SARIF, and an integrity manifest are written for the ticket. |
+| Human acceptance | `palari accept` refuses missing, failed, or stale evidence and records who accepted. |
 
 ## Quick Start
 
@@ -212,7 +213,8 @@ ship as adapters:
 - GitHub Actions: `palari init --ci` writes `.github/workflows/palari.yml`.
 - GitHub rulesets: `palari init --ci` writes `.github/palari-required-checks.ruleset.json`.
 - Local hooks: `palari init --hooks` writes `lefthook.yml` for fast advisory checks.
-- Trusted evidence: `palari ci` writes `reports/evidence/<ticket>/verification.log`, `junit.xml`, `palari.sarif`, and `manifest.json`; the GitHub adapter uploads and attests `palari-evidence.tgz`.
+- Evidence integrity: `palari ci` writes `reports/evidence/<ticket>/verification.log`, `junit.xml`, `palari.sarif`, and `manifest.json`; `accept` validates manifest status, current commit, and artifact hashes before closing a ticket.
+- Trusted merge evidence: the GitHub adapter uploads and attests `palari-evidence.tgz` on trusted repository runs. GitHub rulesets must be installed before this protects merges.
 - Concurrency: `ticket claim` records lease metadata, `ticket heartbeat` renews it, and `scope-overlaps` blocks path-scope collisions by default.
 - MCP: `palari mcp manifest` exposes a thin command manifest for optional MCP wrappers.
 - Web console: `palari web` starts a local dashboard that renders `palari snapshot --json` and shows tickets, claims, evidence, scope overlaps, workflow health, and copyable next commands.
@@ -262,6 +264,13 @@ tests/golden/                     Fixtures that prove the flow works
 
 ```bash
 tests/run-golden.sh
+tests/run-dashboard-rubric.sh
+./bin/palari lint
+shellcheck bin/palari scripts/palari
+shfmt -d bin/palari scripts/palari
+actionlint
+python3 -m py_compile adapters/web/server.py
+bats tests
 ```
 
 The golden test creates a temporary repository, initializes the orchestrator, creates a ticket, prepares a worktree, checks packet output, simulates specialist and review evidence, runs scope/lint checks, and exercises the acceptance gate.
