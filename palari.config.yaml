@@ -11,9 +11,20 @@ human_reports_dir: reports/human
 handoffs_dir: handoffs
 templates_dir: templates
 agent_skills_dir: agent-skills
+state_dir: .palari
+evidence_dir: reports/evidence
 
 # Relative paths are resolved from the repository root.
 worktree_base: ../palari-orchestrator-worktrees
+
+claim_lease_seconds: 300
+scope_overlap_policy: warn
+concurrency_ignored_overlap_paths:
+  - tickets/**
+  - reports/**
+  - reports/human/**
+  - handoffs/**
+  - .palari/**
 
 default_forbidden_paths:
   - .env

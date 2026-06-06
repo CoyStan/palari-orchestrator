@@ -18,6 +18,7 @@ Allowed transitions:
 open -> claimed
 claimed -> blocked
 claimed -> needs-human
+claimed -> claimed via heartbeat renewal
 claimed -> in-review
 blocked -> open
 needs-human -> open
@@ -29,6 +30,17 @@ accepted -> reopened only by explicit human/founder direction
 
 Implementation agents may move tickets to `in-review`, `blocked`, or
 `needs-human`. They must not accept their own substantive work.
+
+`palari ticket claim` records `claim_token`, `claim_ref`,
+`claim_heartbeat_at`, and `claim_expires_at`. The default lease is 300 seconds.
+Long-running work should renew with:
+
+```bash
+palari ticket heartbeat TICKET-ID
+```
+
+Expired claims may be reclaimed. Acceptance rejects stale claim leases when a
+ticket carries claim metadata.
 
 Acceptance requires:
 

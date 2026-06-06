@@ -29,6 +29,14 @@ Compact specialist outcome ledger for future agents and reviewers.
 - Failed:
 - Not run:
 
+## CI Evidence
+
+- CI run:
+- Evidence bundle:
+- JUnit:
+- SARIF:
+- Attestation:
+
 ## Review Status
 
 - Review status: not required | pending | passed | reopened | needs-human

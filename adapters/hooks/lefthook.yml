@@ -1,0 +1,13 @@
+pre-commit:
+  parallel: true
+  commands:
+    palari-lint:
+      run: ./bin/palari lint
+    palari-overlap:
+      run: ./bin/palari scope-overlaps
+
+pre-push:
+  parallel: true
+  commands:
+    palari-lint:
+      run: ./bin/palari lint

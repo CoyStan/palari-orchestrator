@@ -28,3 +28,21 @@ palari scope-check TICKET-ID
 
 Scope checks inspect changed, staged, and untracked paths in the current git
 worktree.
+
+In CI, run the same gate against a PR diff:
+
+```bash
+palari scope-check TICKET-ID --base origin/main
+```
+
+When multiple tickets are active, `allowed_paths` also act as a concurrency
+control primitive. Use:
+
+```bash
+palari scope-overlaps TICKET-ID
+```
+
+The check ignores orchestration evidence paths such as `tickets/**`,
+`reports/**`, `handoffs/**`, and `.palari/**` by default. Configure
+`concurrency_ignored_overlap_paths` and `scope_overlap_policy` in
+`palari.config.yaml` for stricter repos.

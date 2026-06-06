@@ -12,6 +12,10 @@ priority: P2
 agents_allowed: 1
 claimed_by:
 claimed_at:
+claim_token:
+claim_ref:
+claim_heartbeat_at:
+claim_expires_at:
 allowed_paths:
   - path/or/glob/**
 forbidden_paths:

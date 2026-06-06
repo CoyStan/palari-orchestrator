@@ -45,9 +45,23 @@ they conflict with repo files.
 6. Execute only inside ticket scope. Stop on missing authority, forbidden paths,
    higher real risk, secrets, production, live services, deploys, Docker,
    database mutation, destructive commands, or unclear acceptance criteria.
-7. Record evidence in reports and run `palari scope-check TICKET-ID`.
-8. Move implementation to `in-review`. Acceptance remains a separate human or
+7. Record evidence in reports and run `palari scope-check TICKET-ID`. In CI,
+   use `palari ci TICKET-ID --base BASE_REF` so the evidence bundle is produced
+   by the trusted executor under `reports/evidence/`.
+8. Use `palari scope-overlaps TICKET-ID` before parallel work when write scopes
+   may collide. Renew long-running work with `palari ticket heartbeat TICKET-ID`.
+9. Move implementation to `in-review`. Acceptance remains a separate human or
    authorized-reviewer gate.
+
+## Integrations
+
+- `palari init --ci` generates the GitHub Actions governance workflow and an
+  importable ruleset template. CI is the authoritative gate.
+- `palari init --hooks` generates `lefthook.yml` for fast local feedback. Hooks
+  are advisory and can be skipped.
+- `palari mcp manifest` prints optional MCP tool metadata for adapter wrappers.
+- Repo-specific app preferences, browser scripts, screenshots, founder taste,
+  and private connectors belong in adapters, not in the Palari core.
 
 ## Fast Lane And Governed Lane
 

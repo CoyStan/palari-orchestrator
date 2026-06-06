@@ -1,0 +1,53 @@
+name: Palari Governance
+
+on:
+  pull_request:
+  merge_group:
+
+permissions:
+  contents: read
+  actions: read
+  security-events: write
+
+jobs:
+  palari:
+    name: palari
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Palari gates
+        shell: bash
+        env:
+          GITHUB_HEAD_REF: ${{ github.head_ref }}
+          GITHUB_BASE_REF: ${{ github.base_ref || 'main' }}
+          PALARI_TICKET_ID: ${{ vars.PALARI_TICKET_ID }}
+        run: |
+          set -euo pipefail
+          git fetch origin "${GITHUB_BASE_REF}:${GITHUB_BASE_REF}" || true
+          ticket="${PALARI_TICKET_ID:-}"
+          if [[ -z "$ticket" && "${GITHUB_HEAD_REF:-}" == ticket/* ]]; then
+            ticket="${GITHUB_HEAD_REF#ticket/}"
+          fi
+          if [[ -n "$ticket" ]]; then
+            ./bin/palari ci "$ticket" --base "$GITHUB_BASE_REF"
+          else
+            ./bin/palari ci
+          fi
+
+      - name: Upload Palari evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: palari-evidence
+          path: reports/evidence/**
+          if-no-files-found: ignore
+
+      - name: Upload Palari SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: reports/evidence

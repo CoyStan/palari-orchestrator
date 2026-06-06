@@ -21,6 +21,7 @@ REQUIRED_FIELDS=(
   agents_allowed claimed_by claimed_at allowed_paths forbidden_paths
   requires_human_confirmation requires_review product_feel_review
   verification target_branch branch worktree accepted_by accepted_at
+  claim_token claim_ref claim_heartbeat_at claim_expires_at
   created updated
 )
 DEFAULT_FORBIDDEN_PATHS=(
@@ -89,8 +90,12 @@ HUMAN_REPORTS_DIR="$(cfg human_reports_dir "reports/human")"
 HANDOFFS_DIR="$(cfg handoffs_dir "handoffs")"
 TEMPLATES_DIR="$(cfg templates_dir "templates")"
 AGENT_SKILLS_DIR="$(cfg agent_skills_dir "agent-skills")"
+STATE_DIR="$(cfg state_dir ".palari")"
+EVIDENCE_DIR="$(cfg evidence_dir "reports/evidence")"
 DEFAULT_BRANCH="$(cfg default_branch "main")"
 WORKTREE_BASE="$(cfg worktree_base "../$(basename "$ROOT")-worktrees")"
+CLAIM_LEASE_SECONDS="$(cfg claim_lease_seconds "300")"
+SCOPE_OVERLAP_POLICY="$(cfg scope_overlap_policy "warn")"
 
 abs_path() {
   local path="$1"
@@ -111,6 +116,31 @@ now_utc() {
   date -u +%Y-%m-%dT%H:%M:%SZ
 }
 
+epoch_utc() {
+  date -u +%s
+}
+
+iso_from_epoch() {
+  local epoch="$1"
+  date -u -d "@$epoch" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null ||
+    date -u -r "$epoch" +%Y-%m-%dT%H:%M:%SZ
+}
+
+epoch_from_iso() {
+  local iso="$1"
+  date -u -d "$iso" +%s 2>/dev/null ||
+    date -u -j -f "%Y-%m-%dT%H:%M:%SZ" "$iso" +%s 2>/dev/null ||
+    printf '0\n'
+}
+
+xml_escape() {
+  sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/\&quot;/g' -e "s/'/\&apos;/g"
+}
+
+json_escape() {
+  sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e ':a;N;$!ba;s/\n/\\n/g'
+}
+
 require_dir() {
   local rel="$1"
   [[ -d "$ROOT/$rel" ]] || die "missing required folder: $rel; run \`palari init\`"
@@ -121,6 +151,7 @@ require_base_folders() {
   require_dir "$CLOSED_DIR"
   require_dir "$REPORTS_DIR"
   require_dir "$HUMAN_REPORTS_DIR"
+  require_dir "$EVIDENCE_DIR"
   require_dir "$HANDOFFS_DIR"
 }
 
@@ -307,14 +338,21 @@ update_frontmatter_scalars() {
 }
 
 git_changed_paths() {
+  local base_ref="${1:-}"
   if ! git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     die "not inside a git worktree: $ROOT"
   fi
-  (
-    git -C "$ROOT" diff --name-only --relative -- .
-    git -C "$ROOT" diff --name-only --cached --relative -- .
-    git -C "$ROOT" ls-files --others --exclude-standard -- .
-  ) | sed '/^$/d' | sort -u
+  if [[ -n "$base_ref" ]]; then
+    git -C "$ROOT" rev-parse --verify "$base_ref" >/dev/null 2>&1 ||
+      die "scope-check base ref not found: $base_ref"
+    git -C "$ROOT" diff --name-only --relative "$base_ref"...HEAD -- . | sed '/^$/d' | sort -u
+  else
+    (
+      git -C "$ROOT" diff --name-only --relative -- .
+      git -C "$ROOT" diff --name-only --cached --relative -- .
+      git -C "$ROOT" ls-files --others --exclude-standard -- .
+    ) | sed '/^$/d' | sort -u
+  fi
 }
 
 git_changed_count_at() {
@@ -485,24 +523,168 @@ write_yaml_list() {
   done
 }
 
+install_template_file() {
+  local src="$1"
+  local dest="$2"
+  local force="${3:-false}"
+  [[ -f "$ROOT/$src" ]] || die "missing adapter template: $src"
+  mkdir -p "$(dirname "$ROOT/$dest")"
+  if [[ -e "$ROOT/$dest" && "$force" != "true" ]]; then
+    printf 'init: kept existing %s\n' "$dest"
+    return 0
+  fi
+  cp "$ROOT/$src" "$ROOT/$dest"
+  printf 'init: wrote %s\n' "$dest"
+}
+
+claim_ref_for_ticket() {
+  local ticket_id="$1"
+  printf 'refs/palari/claims/%s\n' "$ticket_id"
+}
+
+ticket_claim_expired() {
+  local file="$1"
+  local expires now_epoch expires_epoch
+  expires="$(frontmatter_value "$file" claim_expires_at)"
+  [[ -n "$expires" ]] || return 1
+  now_epoch="$(epoch_utc)"
+  expires_epoch="$(epoch_from_iso "$expires")"
+  [[ "$expires_epoch" != "0" && "$now_epoch" -gt "$expires_epoch" ]]
+}
+
+next_claim_token() {
+  mkdir -p "$ROOT/$STATE_DIR"
+  local counter_file="$ROOT/$STATE_DIR/claim-counter"
+  local current="0"
+  [[ -f "$counter_file" ]] && read -r current < "$counter_file" || true
+  [[ "$current" =~ ^[0-9]+$ ]] || current="0"
+  current=$((current + 1))
+  printf '%s\n' "$current" > "$counter_file"
+  printf '%s\n' "$current"
+}
+
+create_git_claim_ref() {
+  local ticket_id="$1"
+  local ref="$2"
+  local head zeros
+  zeros="0000000000000000000000000000000000000000"
+  git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 0
+  head="$(git -C "$ROOT" rev-parse HEAD)"
+  if git -C "$ROOT" update-ref "$ref" "$head" "$zeros" 2>/dev/null; then
+    printf '%s\n' "$head"
+    return 0
+  fi
+  die "ticket $ticket_id already has a git claim ref: $ref"
+}
+
+ignored_overlap_patterns() {
+  local item count=0
+  while IFS= read -r item; do
+    [[ -n "$item" ]] || continue
+    printf '%s\n' "$item"
+    count=$((count + 1))
+  done < <(config_list concurrency_ignored_overlap_paths || true)
+  if (( count == 0 )); then
+    printf 'tickets/**\nreports/**\nreports/human/**\nhandoffs/**\n.palari/**\n'
+  fi
+}
+
+pattern_prefix() {
+  local pattern="${1#./}"
+  pattern="${pattern%/**}"
+  pattern="${pattern%/*}"
+  printf '%s\n' "$pattern"
+}
+
+pattern_ignored_for_overlap() {
+  local pattern="$1"
+  local ignored
+  while IFS= read -r ignored; do
+    [[ -n "$ignored" ]] || continue
+    [[ "$pattern" == "$ignored" ]] && return 0
+    [[ "$(pattern_prefix "$pattern")" == "$(pattern_prefix "$ignored")" ]] && return 0
+  done < <(ignored_overlap_patterns)
+  return 1
+}
+
+patterns_overlap() {
+  local left="$1"
+  local right="$2"
+  local lp rp
+  pattern_ignored_for_overlap "$left" && return 1
+  pattern_ignored_for_overlap "$right" && return 1
+  [[ "$left" == "$right" ]] && return 0
+  lp="$(pattern_prefix "$left")"
+  rp="$(pattern_prefix "$right")"
+  [[ -n "$lp" && -n "$rp" ]] || return 1
+  [[ "$lp" == "$rp" ]] && return 0
+  [[ "$lp" == "$rp/"* || "$rp" == "$lp/"* ]]
+}
+
+scope_overlap_errors() {
+  local focus_file="$1"
+  local focus_id other_file other_id focus_pattern other_pattern other_status errors=0
+  focus_id="$(frontmatter_value "$focus_file" id)"
+  while IFS= read -r other_file; do
+    [[ -n "$other_file" && "$other_file" != "$focus_file" ]] || continue
+    other_status="$(frontmatter_value "$other_file" status)"
+    case "$other_status" in
+      open|claimed|reopened|in-review) ;;
+      *) continue ;;
+    esac
+    other_id="$(frontmatter_value "$other_file" id)"
+    while IFS= read -r focus_pattern; do
+      [[ -n "$focus_pattern" ]] || continue
+      while IFS= read -r other_pattern; do
+        [[ -n "$other_pattern" ]] || continue
+        if patterns_overlap "$focus_pattern" "$other_pattern"; then
+          printf 'scope-overlaps: %s overlaps %s (%s <> %s)\n' \
+            "$focus_id" "$other_id" "$focus_pattern" "$other_pattern" >&2
+          errors=$((errors + 1))
+        fi
+      done < <(frontmatter_list_items "$other_file" allowed_paths)
+    done < <(frontmatter_list_items "$focus_file" allowed_paths)
+  done < <(ticket_files)
+  return "$errors"
+}
+
 cmd_init() {
-  local dir
-  for dir in "$OPEN_DIR" "$CLOSED_DIR" "$REPORTS_DIR" "$HUMAN_REPORTS_DIR" "$HANDOFFS_DIR"; do
+  local dir force="false" with_ci="false" with_hooks="false"
+  while (( $# > 0 )); do
+    case "$1" in
+      --ci) with_ci="true"; shift ;;
+      --hooks) with_hooks="true"; shift ;;
+      --all) with_ci="true"; with_hooks="true"; shift ;;
+      --force) force="true"; shift ;;
+      *) die "unknown init option: $1" ;;
+    esac
+  done
+  for dir in "$OPEN_DIR" "$CLOSED_DIR" "$REPORTS_DIR" "$HUMAN_REPORTS_DIR" "$EVIDENCE_DIR" "$HANDOFFS_DIR"; do
     mkdir -p "$ROOT/$dir"
     : > "$ROOT/$dir/.gitkeep"
   done
+  mkdir -p "$ROOT/$STATE_DIR/locks"
   printf 'init: ok\n'
   printf 'root: %s\n' "$ROOT"
   printf 'tickets: %s, %s\n' "$OPEN_DIR" "$CLOSED_DIR"
+  printf 'evidence: %s\n' "$EVIDENCE_DIR"
+  if [[ "$with_ci" == "true" ]]; then
+    install_template_file "adapters/github/workflows/palari.yml" ".github/workflows/palari.yml" "$force"
+    install_template_file "adapters/github/rulesets/palari-required-checks.json" ".github/palari-required-checks.ruleset.json" "$force"
+  fi
+  if [[ "$with_hooks" == "true" ]]; then
+    install_template_file "adapters/hooks/lefthook.yml" "lefthook.yml" "$force"
+  fi
 }
 
 cmd_status() {
   require_base_folders
-  local active accepted reports human changed
+  local active accepted reports human evidence changed
   active="$(ticket_files | wc -l | tr -d ' ')"
   accepted="$(closed_ticket_files | wc -l | tr -d ' ')"
   reports="$(find "$ROOT/$REPORTS_DIR" -maxdepth 1 -type f \( -name '*.md' -o -name '*.markdown' \) ! -name 'README.md' | wc -l | tr -d ' ')"
   human="$(find "$ROOT/$HUMAN_REPORTS_DIR" -maxdepth 1 -type f \( -name '*.md' -o -name '*.markdown' \) ! -name 'README.md' | wc -l | tr -d ' ')"
+  evidence="$(find "$ROOT/$EVIDENCE_DIR" -type f ! -name '.gitkeep' 2>/dev/null | wc -l | tr -d ' ')"
   if git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     changed="$(git_changed_count_at "$ROOT")"
   else
@@ -516,6 +698,7 @@ cmd_status() {
     "$(count_status open)" "$(count_status claimed)" "$(count_status blocked)" \
     "$(count_status needs-human)" "$(count_status in-review)" "$(count_status reopened)"
   printf 'reports: %s specialist/reviewer, %s human\n' "$reports" "$human"
+  printf 'evidence: %s files\n' "$evidence"
   printf 'git: %s changed paths in workspace\n' "$changed"
 }
 
@@ -597,6 +780,10 @@ cmd_ticket_create() {
     printf 'agents_allowed: 1\n'
     printf 'claimed_by:\n'
     printf 'claimed_at:\n'
+    printf 'claim_token:\n'
+    printf 'claim_ref:\n'
+    printf 'claim_heartbeat_at:\n'
+    printf 'claim_expires_at:\n'
     write_yaml_list allowed_paths "${allowed[@]}"
     write_yaml_list forbidden_paths "${forbidden[@]}"
     printf 'requires_human_confirmation: %s\n' "$requires_human"
@@ -638,27 +825,94 @@ cmd_ticket_create() {
 cmd_ticket_claim() {
   require_base_folders
   local ticket="${1:-}"
-  local by="${2:-${PROCESS_AGENT:-${USER:-agent}}}"
+  shift || true
+  local by="${PROCESS_AGENT:-${USER:-agent}}"
+  local ttl="$CLAIM_LEASE_SECONDS" allow_overlap="false" arg
+  while (( $# > 0 )); do
+    arg="$1"
+    case "$arg" in
+      --ttl) ttl="$2"; shift 2 ;;
+      --allow-overlap) allow_overlap="true"; shift ;;
+      --by) by="$2"; shift 2 ;;
+      --*) die "unknown ticket claim option: $arg" ;;
+      *) by="$arg"; shift ;;
+    esac
+  done
   [[ -n "$ticket" ]] || die "ticket claim requires ID"
-  local file status
+  [[ "$ttl" =~ ^[0-9]+$ ]] || die "claim ttl must be seconds"
+  local lock_file file status ticket_id now expires token claim_ref claim_head
+  mkdir -p "$ROOT/$STATE_DIR/locks"
+  lock_file="$ROOT/$STATE_DIR/locks/ticket-$ticket.lock"
+  if command -v flock >/dev/null 2>&1; then
+    exec 9>"$lock_file"
+    flock -n 9 || die "ticket claim is locked by another process: $ticket"
+  fi
   file="$(find_ticket_file "$ticket")" || die "ticket not found: $ticket"
   status="$(frontmatter_value "$file" status)"
+  ticket_id="$(frontmatter_value "$file" id)"
+  [[ -n "$ticket_id" ]] || ticket_id="$ticket"
   [[ "${file#$ROOT/}" == "$OPEN_DIR/"* ]] || die "cannot claim closed ticket: $ticket"
-  [[ "$status" == "open" || "$status" == "reopened" ]] || die "ticket $ticket is not open/reopened; current status: ${status:-missing}"
+  if [[ "$status" == "claimed" ]]; then
+    ticket_claim_expired "$file" || die "ticket $ticket is already claimed and lease is still active"
+  else
+    [[ "$status" == "open" || "$status" == "reopened" ]] || die "ticket $ticket is not open/reopened; current status: ${status:-missing}"
+  fi
+  if [[ "$allow_overlap" != "true" ]] && ! scope_overlap_errors "$file"; then
+    if [[ "$SCOPE_OVERLAP_POLICY" == "block" ]]; then
+      die "ticket $ticket has overlapping allowed_paths; pass --allow-overlap to acknowledge"
+    fi
+    printf 'ticket claim: warning: overlapping allowed_paths detected for %s\n' "$ticket_id" >&2
+  fi
+  claim_ref="$(claim_ref_for_ticket "$ticket_id")"
+  if [[ "$status" == "claimed" ]] && ticket_claim_expired "$file"; then
+    git -C "$ROOT" update-ref -d "$claim_ref" >/dev/null 2>&1 || true
+  fi
+  claim_head="$(create_git_claim_ref "$ticket_id" "$claim_ref")"
+  token="$(next_claim_token)"
+  now="$(now_utc)"
+  expires="$(iso_from_epoch "$(( $(epoch_utc) + ttl ))")"
   update_frontmatter_scalars "$file" \
     "status"$'\035'"claimed"$'\034' \
     "claimed_by"$'\035'"$by"$'\034' \
-    "claimed_at"$'\035'"$(now_utc)"$'\034' \
+    "claimed_at"$'\035'"$now"$'\034' \
+    "claim_token"$'\035'"$token"$'\034' \
+    "claim_ref"$'\035'"$claim_ref"$'\034' \
+    "claim_heartbeat_at"$'\035'"$now"$'\034' \
+    "claim_expires_at"$'\035'"$expires"$'\034' \
     "updated"$'\035'"$(today_utc)"$'\034'
-  printf 'ticket claim: %s as %s\n' "$(frontmatter_value "$file" id)" "$by"
+  printf 'ticket claim: %s as %s\n' "$ticket_id" "$by"
+  printf 'claim token: %s\n' "$token"
+  printf 'claim lease: %ss, expires %s\n' "$ttl" "$expires"
+  [[ -n "$claim_head" ]] && printf 'claim ref: %s\n' "$claim_ref"
+}
+
+cmd_ticket_heartbeat() {
+  require_base_folders
+  local ticket="${1:-}"
+  local ttl="${2:-$CLAIM_LEASE_SECONDS}"
+  [[ -n "$ticket" ]] || die "ticket heartbeat requires ID"
+  [[ "$ttl" =~ ^[0-9]+$ ]] || die "heartbeat ttl must be seconds"
+  local file status now expires
+  file="$(find_ticket_file "$ticket")" || die "ticket not found: $ticket"
+  status="$(frontmatter_value "$file" status)"
+  [[ "$status" == "claimed" || "$status" == "in-review" ]] || die "heartbeat requires claimed or in-review status; current: ${status:-missing}"
+  [[ -n "$(frontmatter_value "$file" claim_token)" ]] || die "ticket $ticket has no claim token; claim it first"
+  now="$(now_utc)"
+  expires="$(iso_from_epoch "$(( $(epoch_utc) + ttl ))")"
+  update_frontmatter_scalars "$file" \
+    "claim_heartbeat_at"$'\035'"$now"$'\034' \
+    "claim_expires_at"$'\035'"$expires"$'\034' \
+    "updated"$'\035'"$(today_utc)"$'\034'
+  printf 'ticket heartbeat: %s renewed until %s\n' "$(frontmatter_value "$file" id)" "$expires"
 }
 
 set_ticket_status() {
   local ticket="$1"
   local new_status="$2"
-  local file status
+  local file status claim_ref
   file="$(find_ticket_file "$ticket")" || die "ticket not found: $ticket"
   status="$(frontmatter_value "$file" status)"
+  claim_ref="$(frontmatter_value "$file" claim_ref)"
   [[ "${file#$ROOT/}" == "$OPEN_DIR/"* ]] || die "cannot update closed ticket: $ticket"
   case "$new_status" in
     in-review)
@@ -677,11 +931,22 @@ set_ticket_status() {
       die "unsupported status transition helper: $new_status"
       ;;
   esac
-  update_frontmatter_scalars "$file" \
-    "status"$'\035'"$new_status"$'\034' \
-    "claimed_by"$'\035'""$'\034' \
-    "claimed_at"$'\035'""$'\034' \
-    "updated"$'\035'"$(today_utc)"$'\034'
+  if [[ "$new_status" == "in-review" ]]; then
+    update_frontmatter_scalars "$file" \
+      "status"$'\035'"$new_status"$'\034' \
+      "updated"$'\035'"$(today_utc)"$'\034'
+  else
+    update_frontmatter_scalars "$file" \
+      "status"$'\035'"$new_status"$'\034' \
+      "claimed_by"$'\035'""$'\034' \
+      "claimed_at"$'\035'""$'\034' \
+      "claim_token"$'\035'""$'\034' \
+      "claim_ref"$'\035'""$'\034' \
+      "claim_heartbeat_at"$'\035'""$'\034' \
+      "claim_expires_at"$'\035'""$'\034' \
+      "updated"$'\035'"$(today_utc)"$'\034'
+    [[ -n "$claim_ref" ]] && git -C "$ROOT" update-ref -d "$claim_ref" >/dev/null 2>&1 || true
+  fi
   printf 'ticket status: %s -> %s\n' "$(frontmatter_value "$file" id)" "$new_status"
 }
 
@@ -691,6 +956,7 @@ cmd_ticket() {
   case "$sub" in
     create|new) cmd_ticket_create "$@" ;;
     claim) cmd_ticket_claim "$@" ;;
+    heartbeat) cmd_ticket_heartbeat "$@" ;;
     ready) set_ticket_status "${1:-}" in-review ;;
     block) set_ticket_status "${1:-}" blocked ;;
     needs-human) set_ticket_status "${1:-}" needs-human ;;
@@ -995,7 +1261,7 @@ cmd_report_lint() {
       printf 'report-lint: %s: %s ticket should have a handoff/mediator packet\n' "$ticket_id" "$status" >&2
       errors=$((errors + 1))
     fi
-    [[ -z "$technical" ]] || validate_headings technical "$technical" "Files Changed" "Verification" "Risks / Follow-Ups" || errors=$((errors + 1))
+    [[ -z "$technical" ]] || validate_headings technical "$technical" "Files Changed" "Verification" "CI Evidence" "Risks / Follow-Ups" || errors=$((errors + 1))
     [[ -z "$reviewer" ]] || validate_headings reviewer "$reviewer" "Review Result" "Findings" "Verification Reviewed" "Required Changes" "Recommendation" || errors=$((errors + 1))
     [[ -z "$human" ]] || validate_headings human "$human" "Why This Mattered" "What Changed" "What I Should Know" "What To Check" "Recommended Next Move" || errors=$((errors + 1))
     [[ -z "$product" ]] || validate_headings product-feel "$product" "Review Result" "Findings" "Verification Reviewed" "Recommendation" || errors=$((errors + 1))
@@ -1048,7 +1314,15 @@ select_scope_ticket() {
 
 cmd_scope_check() {
   require_base_folders
-  local ticket="${1:-}"
+  local ticket="" base_ref="" arg
+  while (( $# > 0 )); do
+    arg="$1"
+    case "$arg" in
+      --base) base_ref="$2"; shift 2 ;;
+      --*) die "unknown scope-check option: $arg" ;;
+      *) ticket="$arg"; shift ;;
+    esac
+  done
   local file ticket_id path pattern changed_count=0 errors=0
   local -a allowed=()
   local -a forbidden=()
@@ -1075,12 +1349,226 @@ cmd_scope_check() {
       printf 'scope-check: allowed rules: %s\n' "${allowed[*]}" >&2
       errors=$((errors + 1))
     fi
-  done < <(git_changed_paths)
+  done < <(git_changed_paths "$base_ref")
   (( errors == 0 )) || {
     printf 'scope-check: failed for %s with %s issue(s)\n' "$ticket_id" "$errors" >&2
     exit 1
   }
   printf 'scope-check: ok for %s (%s changed path(s))\n' "$ticket_id" "$changed_count"
+}
+
+cmd_scope_overlaps() {
+  require_base_folders
+  local ticket="${1:-}"
+  local file errors=0
+  if [[ -n "$ticket" ]]; then
+    file="$(find_ticket_file "$ticket")" || die "ticket not found: $ticket"
+    if scope_overlap_errors "$file"; then
+      printf 'scope-overlaps: ok for %s\n' "$(frontmatter_value "$file" id)"
+    else
+      exit 1
+    fi
+  else
+    while IFS= read -r file; do
+      [[ -n "$file" ]] || continue
+      if ! scope_overlap_errors "$file"; then
+        errors=$((errors + 1))
+      fi
+    done < <(ticket_files)
+    (( errors == 0 )) || exit 1
+    printf 'scope-overlaps: ok\n'
+  fi
+}
+
+infer_ticket_from_branch() {
+  local branch id
+  branch="$(git -C "$ROOT" branch --show-current 2>/dev/null || true)"
+  case "$branch" in
+    ticket/*)
+      id="${branch#ticket/}"
+      [[ -n "$id" ]] && printf '%s\n' "$id" && return 0
+      ;;
+  esac
+  return 1
+}
+
+ci_add_junit_case() {
+  local name="$1"
+  local state="$2"
+  local body="${3:-}"
+  local name_xml body_xml
+  name_xml="$(printf '%s' "$name" | xml_escape)"
+  body_xml="$(printf '%s' "$body" | xml_escape)"
+  CI_TESTS=$((CI_TESTS + 1))
+  case "$state" in
+    pass)
+      printf '    <testcase classname="palari" name="%s"/>\n' "$name_xml" >> "$CI_JUNIT_CASES"
+      ;;
+    skip)
+      CI_SKIPPED=$((CI_SKIPPED + 1))
+      printf '    <testcase classname="palari" name="%s"><skipped message="%s"/></testcase>\n' "$name_xml" "$body_xml" >> "$CI_JUNIT_CASES"
+      ;;
+    fail)
+      CI_FAILURES=$((CI_FAILURES + 1))
+      printf '    <testcase classname="palari" name="%s"><failure message="failed"><![CDATA[%s]]></failure></testcase>\n' "$name_xml" "$body" >> "$CI_JUNIT_CASES"
+      ;;
+  esac
+}
+
+ci_add_sarif_failure() {
+  local rule="$1"
+  local message="$2"
+  local rule_json message_json
+  rule_json="$(printf '%s' "$rule" | json_escape)"
+  message_json="$(printf '%s' "$message" | json_escape)"
+  [[ ! -s "$CI_SARIF_RESULTS" ]] || printf ',\n' >> "$CI_SARIF_RESULTS"
+  printf '        {"ruleId":"%s","level":"error","message":{"text":"%s"}}' "$rule_json" "$message_json" >> "$CI_SARIF_RESULTS"
+}
+
+ci_run_step() {
+  local label="$1"
+  shift
+  local output code
+  {
+    printf '\n## %s\n\n' "$label"
+    printf '```text\n'
+  } >> "$CI_LOG"
+  set +e
+  output="$("$@" 2>&1)"
+  code=$?
+  set -e
+  printf '%s\n' "$output" >> "$CI_LOG"
+  printf '```\n' >> "$CI_LOG"
+  if (( code == 0 )); then
+    ci_add_junit_case "$label" pass
+  else
+    ci_add_junit_case "$label" fail "$output"
+    ci_add_sarif_failure "$label" "$output"
+  fi
+  return "$code"
+}
+
+ci_run_shell_step() {
+  local label="$1"
+  local command="$2"
+  local output code
+  {
+    printf '\n## %s\n\n' "$label"
+    printf 'Command: `%s`\n\n' "$command"
+    printf '```text\n'
+  } >> "$CI_LOG"
+  set +e
+  output="$(bash -lc "$command" 2>&1)"
+  code=$?
+  set -e
+  printf '%s\n' "$output" >> "$CI_LOG"
+  printf '```\n' >> "$CI_LOG"
+  if (( code == 0 )); then
+    ci_add_junit_case "$label" pass
+  else
+    ci_add_junit_case "$label" fail "$output"
+    ci_add_sarif_failure "$label" "$output"
+  fi
+  return "$code"
+}
+
+ci_write_artifacts() {
+  local junit="$1"
+  local sarif="$2"
+  {
+    printf '<?xml version="1.0" encoding="UTF-8"?>\n'
+    printf '<testsuite name="palari" tests="%s" failures="%s" skipped="%s">\n' "$CI_TESTS" "$CI_FAILURES" "$CI_SKIPPED"
+    cat "$CI_JUNIT_CASES"
+    printf '</testsuite>\n'
+  } > "$junit"
+  {
+    printf '{\n'
+    printf '  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",\n'
+    printf '  "version": "2.1.0",\n'
+    printf '  "runs": [\n'
+    printf '    {\n'
+    printf '      "tool": {"driver": {"name": "palari-ci", "informationUri": "https://github.com/CoyStan/palari-orchestrator"}},\n'
+    printf '      "results": [\n'
+    cat "$CI_SARIF_RESULTS"
+    printf '\n      ]\n'
+    printf '    }\n'
+    printf '  ]\n'
+    printf '}\n'
+  } > "$sarif"
+}
+
+cmd_ci() {
+  require_base_folders
+  local ticket="" base_ref="" evidence_dir="$EVIDENCE_DIR" arg
+  while (( $# > 0 )); do
+    arg="$1"
+    case "$arg" in
+      --base) base_ref="$2"; shift 2 ;;
+      --evidence-dir) evidence_dir="$2"; shift 2 ;;
+      --ticket) ticket="$2"; shift 2 ;;
+      --*) die "unknown ci option: $arg" ;;
+      *) ticket="$arg"; shift ;;
+    esac
+  done
+  [[ -n "$ticket" ]] || ticket="$(infer_ticket_from_branch || true)"
+
+  local ticket_label="${ticket:-repo}"
+  local out_dir="$ROOT/$evidence_dir/$ticket_label"
+  local log="$out_dir/verification.log"
+  local junit="$out_dir/junit.xml"
+  local sarif="$out_dir/palari.sarif"
+  mkdir -p "$out_dir"
+  CI_LOG="$log"
+  CI_JUNIT_CASES="$out_dir/.junit-cases.tmp"
+  CI_SARIF_RESULTS="$out_dir/.sarif-results.tmp"
+  CI_TESTS=0
+  CI_FAILURES=0
+  CI_SKIPPED=0
+  : > "$CI_JUNIT_CASES"
+  : > "$CI_SARIF_RESULTS"
+  {
+    printf '# Palari CI Evidence\n\n'
+    printf -- '- Ticket: %s\n' "$ticket_label"
+    printf -- '- Base ref: %s\n' "${base_ref:-local working tree}"
+    printf -- '- Created: %s\n' "$(now_utc)"
+  } > "$log"
+
+  local failed=0 file check index=0
+  if [[ -n "$ticket" ]]; then
+    if [[ -n "$base_ref" ]]; then
+      ci_run_step "scope-check" cmd_scope_check "$ticket" --base "$base_ref" || failed=1
+    else
+      ci_run_step "scope-check" cmd_scope_check "$ticket" || failed=1
+    fi
+    ci_run_step "lint" cmd_lint "$ticket" || failed=1
+    file="$(find_ticket_file "$ticket")" || die "ticket not found: $ticket"
+    while IFS= read -r check; do
+      [[ -n "$check" ]] || continue
+      index=$((index + 1))
+      case "$check" in
+        manual*|Manual*|describe\ *|Describe\ *)
+          ci_add_junit_case "verification $index" skip "manual or descriptive check: $check"
+          printf '\n## verification %s\n\nSkipped manual/descriptive check: `%s`\n' "$index" "$check" >> "$log"
+          ;;
+        *)
+          ci_run_shell_step "verification $index" "$check" || failed=1
+          ;;
+      esac
+    done < <(frontmatter_list_items "$file" verification)
+  else
+    ci_run_step "lint" cmd_lint || failed=1
+  fi
+
+  ci_write_artifacts "$junit" "$sarif"
+  rm -f "$CI_JUNIT_CASES" "$CI_SARIF_RESULTS"
+  printf 'ci evidence: %s\n' "${out_dir#$ROOT/}"
+  printf 'ci junit: %s\n' "${junit#$ROOT/}"
+  printf 'ci sarif: %s\n' "${sarif#$ROOT/}"
+  if (( failed != 0 || CI_FAILURES != 0 )); then
+    printf 'ci: failed for %s\n' "$ticket_label" >&2
+    exit 1
+  fi
+  printf 'ci: ok for %s\n' "$ticket_label"
 }
 
 cmd_accept() {
@@ -1096,13 +1584,21 @@ cmd_accept() {
   done
   [[ -n "$ticket" ]] || die "accept requires ticket ID"
   [[ -n "$by" ]] || die "accept requires --by NAME; acceptance must name the human or authorized reviewer"
-  local file status id dest
+  local file status id dest claim_ref
   file="$(find_ticket_file "$ticket")" || die "ticket not found: $ticket"
   status="$(frontmatter_value "$file" status)"
   id="$(frontmatter_value "$file" id)"
   [[ -n "$id" ]] || id="$ticket"
   [[ "${file#$ROOT/}" == "$OPEN_DIR/"* ]] || die "ticket is already closed: $ticket"
   [[ "$status" == "in-review" ]] || die "accept requires in-review status; current: ${status:-missing}"
+  claim_ref="$(frontmatter_value "$file" claim_ref)"
+  if [[ -n "$(frontmatter_value "$file" claim_token)" ]]; then
+    ticket_claim_expired "$file" && die "accept refused: claim lease is expired for $id; renew with \`palari ticket heartbeat $id\`"
+  fi
+  if [[ -n "$claim_ref" ]] && git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    git -C "$ROOT" show-ref --verify --quiet "$claim_ref" ||
+      die "accept refused: missing claim ref $claim_ref for $id"
+  fi
   lint_one_ticket "$file" >/dev/null
   cmd_report_lint "$id" >/dev/null
   update_frontmatter_scalars "$file" \
@@ -1112,6 +1608,7 @@ cmd_accept() {
     "updated"$'\035'"$(today_utc)"$'\034'
   dest="$ROOT/$CLOSED_DIR/$(basename "$file")"
   mv "$file" "$dest"
+  [[ -n "$claim_ref" ]] && git -C "$ROOT" update-ref -d "$claim_ref" >/dev/null 2>&1 || true
   printf 'accept: %s accepted by %s\n' "$id" "$by"
   printf 'closed: %s\n' "${dest#$ROOT/}"
 }
@@ -1181,16 +1678,29 @@ cmd_skill() {
   esac
 }
 
+cmd_mcp() {
+  local sub="${1:-manifest}"
+  case "$sub" in
+    manifest|tools)
+      cat "$ROOT/adapters/mcp/tools.json"
+      ;;
+    *)
+      die "unknown mcp command: $sub"
+      ;;
+  esac
+}
+
 usage() {
   cat <<'USAGE'
 usage: palari COMMAND [ARGS]
 
 commands:
-  init                         Create configured ticket/report directories.
+  init [--ci] [--hooks]        Create configured directories and optional adapters.
   status                       Show compact orchestration status.
   tickets                      List active tickets.
   ticket create ID TITLE ...   Create a scoped ticket.
   ticket claim ID [BY]         Claim an open/reopened ticket.
+  ticket heartbeat ID [TTL]    Renew a claimed ticket lease.
   ticket ready ID              Move claimed/reopened ticket to in-review.
   ticket block ID              Move ticket to blocked.
   ticket needs-human ID        Move ticket to needs-human.
@@ -1199,14 +1709,28 @@ commands:
   packet ID ROLE               Print specialist/reviewer/product-feel/mediator packet.
   skill create NAME --description TEXT
                                Create a feature-contract Agent Skill scaffold.
+  ci [ID] [--base REF]         Run structural gates and write evidence artifacts.
   lint [ID]                    Lint ticket fields and report gates.
   report-lint [ID]             Lint report presence and headings.
-  scope-check [ID]             Check changed paths against ticket scope.
+  scope-check [ID] [--base REF]
+                               Check local or PR-diff paths against ticket scope.
+  scope-overlaps [ID]          Detect overlapping active ticket write scopes.
+  mcp manifest                 Print optional MCP tool metadata.
   accept ID --by NAME          Human/authorized-reviewer acceptance gate.
+
+init options:
+  --ci                         Generate GitHub workflow and ruleset templates.
+  --hooks                      Generate local lefthook config.
+  --all                        Generate all optional adapters.
+  --force                      Overwrite generated adapter files.
 
 ticket create options:
   --stream NAME --risk R1 --priority P2 --allowed GLOB --forbidden GLOB
   --verify CHECK --review --human --product-feel required --target-branch main
+
+ticket claim options:
+  --ttl SECONDS                Lease duration; default from claim_lease_seconds.
+  --allow-overlap              Acknowledge overlapping allowed_paths.
 
 skill create options:
   --description TEXT           Required Agent Skills frontmatter description.
@@ -1215,16 +1739,19 @@ USAGE
 }
 
 case "${1:-}" in
-  init) cmd_init ;;
+  init) shift; cmd_init "$@" ;;
   status) cmd_status ;;
   tickets) cmd_tickets ;;
   ticket) shift; cmd_ticket "$@" ;;
   worktree) shift; cmd_worktree "${1:-}" ;;
   packet|agent-packet) shift; cmd_packet "${1:-}" "${2:-}" ;;
   skill) shift; cmd_skill "$@" ;;
+  ci) shift; cmd_ci "$@" ;;
   lint) shift; cmd_lint "${1:-}" ;;
   report-lint) shift; cmd_report_lint "${1:-}" ;;
-  scope-check) shift; cmd_scope_check "${1:-}" ;;
+  scope-check) shift; cmd_scope_check "$@" ;;
+  scope-overlaps) shift; cmd_scope_overlaps "${1:-}" ;;
+  mcp) shift; cmd_mcp "${1:-manifest}" ;;
   accept) shift; cmd_accept "${1:-}" "${@:2}" ;;
   -h|--help|help|"") usage ;;
   *) usage >&2; die "unknown command: $1" ;;

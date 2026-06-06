@@ -16,7 +16,12 @@ git init -b main >/dev/null
 git config user.email "golden@example.invalid"
 git config user.name "Golden Test"
 
-./bin/palari init >/dev/null
+./bin/palari init --ci --hooks > "$TMP_ROOT/init.out"
+test -f .github/workflows/palari.yml
+test -f .github/palari-required-checks.ruleset.json
+test -f lefthook.yml
+test -f reports/evidence/.gitkeep
+
 ./bin/palari skill create sample-feature \
   --description "Preserve the sample feature contract for golden tests." > "$TMP_ROOT/skill.out"
 
@@ -26,6 +31,31 @@ while IFS= read -r expected; do
   [[ -n "$expected" ]] || continue
   grep -Fq "$expected" agent-skills/sample-feature/SKILL.md
 done < "$REPO_ROOT/tests/golden/skill.contains.txt"
+
+./bin/palari mcp manifest > "$TMP_ROOT/mcp.out"
+grep -Fq "palari_ticket_claim" "$TMP_ROOT/mcp.out"
+grep -Fq "palari_scope_check" "$TMP_ROOT/mcp.out"
+
+./bin/palari ticket create POS-0002 "Overlap alpha" \
+  --stream docs \
+  --risk R1 \
+  --allowed "docs/**" \
+  --allowed "tickets/**" \
+  --allowed "reports/**" \
+  --verify "manual overlap check" >/dev/null
+./bin/palari ticket create POS-0003 "Overlap beta" \
+  --stream docs \
+  --risk R1 \
+  --allowed "docs/golden/**" \
+  --allowed "tickets/**" \
+  --allowed "reports/**" \
+  --verify "manual overlap check" >/dev/null
+if ./bin/palari scope-overlaps POS-0002 > "$TMP_ROOT/overlap.out" 2>&1; then
+  printf 'golden: expected overlapping scopes to fail\n' >&2
+  exit 1
+fi
+grep -Fq "scope-overlaps: POS-0002 overlaps POS-0003" "$TMP_ROOT/overlap.out"
+rm -f tickets/open/POS-0002-*.md tickets/open/POS-0003-*.md
 
 git add .
 git commit -m "initial orchestrator package" >/dev/null
@@ -59,6 +89,7 @@ WT="$(awk -F': ' '/Ticket worktree:/ { print $2 }' "$TMP_ROOT/worktree.out")"
 
 cd "$WT"
 ./bin/palari ticket claim POS-0001 test-specialist >/dev/null
+./bin/palari ticket heartbeat POS-0001 >/dev/null
 mkdir -p docs reports reports/human
 
 cat > docs/golden.md <<'DOC'
@@ -66,6 +97,12 @@ cat > docs/golden.md <<'DOC'
 
 This document proves a scoped, allowed-path edit.
 DOC
+
+./bin/palari ci POS-0001 > "$TMP_ROOT/ci.out"
+grep -Fq "ci: ok for POS-0001" "$TMP_ROOT/ci.out"
+test -f reports/evidence/POS-0001/verification.log
+test -f reports/evidence/POS-0001/junit.xml
+test -f reports/evidence/POS-0001/palari.sarif
 
 cat > reports/POS-0001-technical-report.md <<'DOC'
 # POS-0001 Technical Report
@@ -94,6 +131,14 @@ docs/golden.md
 - Passed: manual golden check
 - Failed: none
 - Not run: none
+
+## CI Evidence
+
+- CI run: local golden flow
+- Evidence bundle: reports/evidence/POS-0001
+- JUnit: reports/evidence/POS-0001/junit.xml
+- SARIF: reports/evidence/POS-0001/palari.sarif
+- Attestation: not configured for golden flow
 
 ## Review Status
 

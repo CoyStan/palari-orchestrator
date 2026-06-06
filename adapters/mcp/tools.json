@@ -1,0 +1,51 @@
+{
+  "name": "palari-orchestrator",
+  "description": "Optional MCP-facing manifest for Palari Orchestrator CLI tools.",
+  "transport": "stdio-wrapper",
+  "command": "./bin/palari",
+  "tools": [
+    {
+      "name": "palari_status",
+      "description": "Show compact orchestration status.",
+      "command": ["status"]
+    },
+    {
+      "name": "palari_ticket_claim",
+      "description": "Claim a ticket with Palari lease/fencing metadata.",
+      "command": ["ticket", "claim", "{ticket_id}", "--by", "{actor}"],
+      "input_schema": {
+        "type": "object",
+        "required": ["ticket_id", "actor"],
+        "properties": {
+          "ticket_id": { "type": "string" },
+          "actor": { "type": "string" }
+        }
+      }
+    },
+    {
+      "name": "palari_ticket_ready",
+      "description": "Move a claimed ticket to fresh-context review.",
+      "command": ["ticket", "ready", "{ticket_id}"]
+    },
+    {
+      "name": "palari_packet",
+      "description": "Generate a role mission packet.",
+      "command": ["packet", "{ticket_id}", "{role}"]
+    },
+    {
+      "name": "palari_scope_check",
+      "description": "Check changed paths against a ticket's allowed and forbidden scope.",
+      "command": ["scope-check", "{ticket_id}"]
+    },
+    {
+      "name": "palari_lint",
+      "description": "Validate ticket fields, reports, and acceptance gates.",
+      "command": ["lint", "{ticket_id}"]
+    },
+    {
+      "name": "palari_accept",
+      "description": "Run the human or authorized-reviewer acceptance gate.",
+      "command": ["accept", "{ticket_id}", "--by", "{actor}"]
+    }
+  ]
+}

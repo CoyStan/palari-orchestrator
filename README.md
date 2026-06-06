@@ -33,7 +33,10 @@ The useful unit is a ticket. Every ticket has allowed paths, verification comman
 - Allowed and forbidden path checks against changed files.
 - Specialist reports, reviewer notes, product-feel review templates, human reports, and handoffs.
 - Fresh-context review and human/founder acceptance gates.
-- Config schema, templates, contracts, orchestrator skill guidance, and golden fixtures.
+- Generated GitHub CI/ruleset and local hook adapters for structural gates.
+- CI evidence bundles with logs, JUnit XML, and SARIF output.
+- Claim leases, heartbeat renewal, git claim refs, and path-overlap checks.
+- Config schema, templates, contracts, adapter guidance, orchestrator skill guidance, and golden fixtures.
 - Feature-contract skill scaffolding with `palari skill create`.
 
 ## Quick Start
@@ -49,11 +52,20 @@ tests/run-golden.sh
 To adopt the orchestrator in another repository, copy the portable package files into that repo:
 
 ```bash
-cp -R bin scripts templates contracts skills schemas AGENTS.md palari.config.yaml /path/to/repo/
+cp -R bin scripts templates contracts skills schemas adapters AGENTS.md palari.config.yaml /path/to/repo/
 cd /path/to/repo
 ./bin/palari init
 ./bin/palari status
 ```
+
+To also install optional governance adapters:
+
+```bash
+./bin/palari init --ci --hooks
+```
+
+This generates a GitHub Actions governance workflow, an importable ruleset
+template, and a `lefthook.yml` for local advisory checks.
 
 Optional shell alias:
 
@@ -108,14 +120,30 @@ palari accept APP-0001 --by founder
 | `palari tickets` | List active tickets by lifecycle state. |
 | `palari ticket create ID TITLE` | Create a scoped ticket with allowed paths, risk, checks, and review requirements. |
 | `palari ticket claim ID` | Mark a ticket as claimed before implementation work starts. |
+| `palari ticket heartbeat ID` | Renew the ticket claim lease. |
 | `palari ticket ready ID` | Move a ticket into review once implementation evidence exists. |
 | `palari worktree ID` | Create or locate the ticket-specific git worktree. |
 | `palari packet ID ROLE` | Generate the mission packet for a specialist, reviewer, product-feel reviewer, or mediator. |
+| `palari ci [ID] --base REF` | Run scope/lint/report gates and write evidence artifacts. |
 | `palari scope-check [ID]` | Compare changed files against allowed and forbidden path rules. |
+| `palari scope-overlaps [ID]` | Detect overlapping active ticket write scopes. |
 | `palari lint [ID]` | Validate ticket state, evidence, config, templates, and required reports. |
 | `palari report-lint [ID]` | Validate specialist and reviewer report structure. |
 | `palari skill create NAME` | Scaffold a portable feature-contract skill. |
+| `palari mcp manifest` | Print optional MCP tool metadata for wrapper adapters. |
 | `palari accept ID --by NAME` | Close the ticket only after the acceptance gate is satisfied. |
+
+## Governance Integrations
+
+Palari's core remains Bash, Markdown, and git. The heavier governance features
+ship as adapters:
+
+- GitHub Actions: `palari init --ci` writes `.github/workflows/palari.yml`.
+- GitHub rulesets: `palari init --ci` writes `.github/palari-required-checks.ruleset.json`.
+- Local hooks: `palari init --hooks` writes `lefthook.yml` for fast advisory checks.
+- Trusted evidence: `palari ci` writes `reports/evidence/<ticket>/verification.log`, `junit.xml`, and `palari.sarif`.
+- Concurrency: `ticket claim` records lease metadata, `ticket heartbeat` renews it, and `scope-overlaps` detects path-scope collisions.
+- MCP: `palari mcp manifest` exposes a thin command manifest for optional MCP wrappers.
 
 ## Portable Core
 
@@ -147,6 +175,7 @@ palari.config.yaml                Example config for lifecycle, paths, roles, an
 schemas/palari.config.schema.json Config schema
 templates/                        Ticket, packet, report, handoff, and skill templates
 contracts/                        Portable workflow contracts
+adapters/                         Optional GitHub, hooks, and MCP integration templates
 skills/orchestrator/SKILL.md      Orchestrator usage guidance
 tests/golden/                     Fixtures that prove the flow works
 ```

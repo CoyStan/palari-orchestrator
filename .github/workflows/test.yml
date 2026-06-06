@@ -1,0 +1,28 @@
+name: Test
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  golden:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Syntax check
+        run: |
+          bash -n bin/palari
+          bash -n tests/run-golden.sh
+
+      - name: Golden flow
+        run: tests/run-golden.sh
+
+      - name: Palari lint
+        run: ./bin/palari lint
