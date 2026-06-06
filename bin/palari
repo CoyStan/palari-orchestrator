@@ -1796,9 +1796,9 @@ WEBUSAGE
   [[ "$port" =~ ^[0-9]+$ ]] || die "web port must be numeric"
   command -v python3 >/dev/null 2>&1 || die "palari web requires python3"
   if [[ "$check" == "true" ]]; then
-    python3 "$ROOT/adapters/web/server.py" --root "$ROOT" --check
+    python3 -B "$ROOT/adapters/web/server.py" --root "$ROOT" --check
   else
-    python3 "$ROOT/adapters/web/server.py" --root "$ROOT" --host "$host" --port "$port"
+    python3 -B "$ROOT/adapters/web/server.py" --root "$ROOT" --host "$host" --port "$port"
   fi
 }
 
