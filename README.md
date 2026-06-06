@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="assets/readme/palari-orchestrator-hero-general.png" alt="A calm operator workspace showing an AI coding workflow moving through ticket intake, isolated work, evidence, review, and human acceptance." width="100%">
+  <img src="assets/readme/palari-orchestrator-hero-general.png" alt="A calm Palari workflow moving from ticket intake through scoped work, evidence, review, and human acceptance." width="100%">
 </p>
 
 <h1 align="center">Palari Orchestrator</h1>
 
 <p align="center">
-  A small safety layer for letting AI coding agents work in your repo without losing the thread, the scope, or the final human say.
+  Repo-native governance for AI coding agents: scoped tickets, isolated work, evidence, fresh review, and explicit human acceptance.
 </p>
 
 <p align="center">
@@ -24,15 +24,28 @@
   <a href="#command-reference">Commands</a>
 </p>
 
-Palari turns "let the agent handle it" into a visible, reviewable workflow:
+Palari Orchestrator is the portable software-repo version of the Palari idea:
+give an AI coworker a named job, approved sources, visible records, and a
+permission moment before anything important moves.
 
 ```text
 ticket -> worktree -> packet -> scope-check -> ci evidence -> review -> accept
 ```
 
-It is built for founders, operators, product people, and small teams who want
-AI-assisted coding to feel controlled instead of mysterious. The repo stays the
-source of truth. Agents get clear boundaries. Humans keep acceptance authority.
+It is built for founders, operators, product people, and small technical teams
+who want AI-assisted coding to feel controlled instead of mysterious. The repo
+stays the source of truth. Agents get clear boundaries. Humans keep acceptance
+authority.
+
+## At a Glance
+
+| Question | Answer |
+| --- | --- |
+| Who is it for? | Teams delegating coding work to agents while keeping human review and repository control. |
+| What is the core? | Bash, Markdown, git, templates, and checks that can move into almost any repo. |
+| What does it enforce? | Ticket lifecycle, allowed/forbidden paths, evidence bundles, fresh-context review, and acceptance gates. |
+| What is optional? | GitHub rulesets, hooks, MCP wrappers, the local console, and repo-memory adapters. |
+| What is it not? | A hosted agent platform, product-specific Palari app code, or a replacement for human judgment. |
 
 ## Why Palari
 
