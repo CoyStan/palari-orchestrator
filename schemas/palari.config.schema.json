@@ -43,6 +43,23 @@
       "type": "array",
       "items": { "type": "string", "minLength": 1 }
     },
+    "required_reports": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "review_profiles": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "required_reports": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    },
     "acceptance": {
       "type": "object",
       "additionalProperties": true,

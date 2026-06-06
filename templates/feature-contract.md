@@ -27,7 +27,7 @@ What nearby work is deliberately excluded?
 ## Review Contract
 
 - Code/scope review required:
-- Product-feel review required:
+- Custom review reports required:
 - Human/founder gate required:
 
 ## Verification

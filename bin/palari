@@ -17,12 +17,10 @@ VALID_RISKS="R0 R1 R2 R3 R4"
 VALID_PRIORITIES="P0 P1 P2 P3"
 VALID_PRODUCT_FEEL="required optional not-applicable"
 REQUIRED_FIELDS=(
-  id title stream level parent_id root_id children status risk priority
-  agents_allowed claimed_by claimed_at allowed_paths forbidden_paths
-  requires_human_confirmation requires_review product_feel_review
-  verification target_branch branch worktree accepted_by accepted_at
-  claim_token claim_ref claim_heartbeat_at claim_expires_at
-  created updated
+  id title status risk priority stream allowed_paths forbidden_paths
+  verification requires_review requires_human_confirmation target_branch
+  branch worktree claimed_by claimed_at claim_ref claim_heartbeat_at claim_expires_at
+  accepted_by accepted_at created updated
 )
 DEFAULT_FORBIDDEN_PATHS=(
   ".env"
@@ -144,6 +142,50 @@ json_escape() {
 shell_quote() {
   local value="$1"
   printf "'%s'" "$(printf '%s' "$value" | sed "s/'/'\\\\''/g")"
+}
+
+json_string() {
+  local value="${1:-}"
+  printf '"%s"' "$(printf '%s' "$value" | json_escape)"
+}
+
+json_bool() {
+  [[ "${1:-}" == "true" ]] && printf 'true' || printf 'false'
+}
+
+json_nonempty_bool() {
+  [[ -n "${1:-}" ]] && printf 'true' || printf 'false'
+}
+
+json_frontmatter_list() {
+  local file="$1"
+  local key="$2"
+  local item first="true"
+  printf '['
+  while IFS= read -r item; do
+    [[ -n "$item" ]] || continue
+    [[ "$first" == "true" ]] || printf ','
+    json_string "$item"
+    first="false"
+  done < <(frontmatter_list_items "$file" "$key")
+  printf ']'
+}
+
+json_file_list() {
+  local dir="$1"
+  local file first="true"
+  printf '['
+  [[ -d "$dir" ]] || {
+    printf ']'
+    return 0
+  }
+  while IFS= read -r file; do
+    [[ -n "$file" ]] || continue
+    [[ "$first" == "true" ]] || printf ','
+    json_string "$(basename "$file")"
+    first="false"
+  done < <(find "$dir" -maxdepth 1 -type f ! -name '.gitkeep' | sort)
+  printf ']'
 }
 
 require_dir() {
@@ -453,6 +495,51 @@ find_report_file() {
   return 1
 }
 
+frontmatter_list_contains() {
+  local file="$1"
+  local key="$2"
+  local wanted="$3"
+  local item
+  while IFS= read -r item; do
+    [[ "$item" == "$wanted" ]] && return 0
+  done < <(frontmatter_list_items "$file" "$key")
+  return 1
+}
+
+ticket_required_reports() {
+  local file="$1"
+  local item product_feel
+  while IFS= read -r item; do
+    [[ -n "$item" ]] && printf '%s\n' "$item"
+  done < <(config_list required_reports || true)
+  while IFS= read -r item; do
+    [[ -n "$item" ]] && printf '%s\n' "$item"
+  done < <(frontmatter_list_items "$file" required_reports)
+  product_feel="$(frontmatter_value "$file" product_feel_review)"
+  [[ "$product_feel" == "required" ]] && printf 'product-feel\n'
+  return 0
+}
+
+find_named_report_file() {
+  local ticket_id="$1"
+  local report_name="$2"
+  local slug="${report_name,,}"
+  local file base text
+  slug="${slug//_/-}"
+  while IFS= read -r file; do
+    [[ -n "$file" ]] || continue
+    file_references_ticket "$file" "$ticket_id" || continue
+    base="$(basename "$file")"
+    base="${base,,}"
+    text="$(awk 'NR <= 40 { print tolower($0) }' "$file")"
+    if [[ "$base" == *"$slug"* || "$text" == *"$slug"* || "$text" == *"${slug//-/ }"* ]]; then
+      printf '%s\n' "$file"
+      return 0
+    fi
+  done < <(report_candidate_files "$REPORTS_DIR")
+  return 1
+}
+
 print_frontmatter_list_block() {
   local label="$1"
   local file="$2"
@@ -555,17 +642,6 @@ ticket_claim_expired() {
   now_epoch="$(epoch_utc)"
   expires_epoch="$(epoch_from_iso "$expires")"
   [[ "$expires_epoch" != "0" && "$now_epoch" -gt "$expires_epoch" ]]
-}
-
-next_claim_token() {
-  mkdir -p "$ROOT/$STATE_DIR"
-  local counter_file="$ROOT/$STATE_DIR/claim-counter"
-  local current="0"
-  [[ -f "$counter_file" ]] && read -r current < "$counter_file" || true
-  [[ "$current" =~ ^[0-9]+$ ]] || current="0"
-  current=$((current + 1))
-  printf '%s\n' "$current" > "$counter_file"
-  printf '%s\n' "$current"
 }
 
 create_git_claim_ref() {
@@ -759,12 +835,13 @@ cmd_ticket_create() {
   [[ -n "$id" && -n "$title" ]] || die "ticket create requires ID and title"
   valid_ticket_id "$id" || die "invalid ticket id: $id"
 
-  local stream="process" risk="R1" priority="P2" level="1" parent_id="" root_id="$id"
+  local stream="process" risk="R1" priority="P2" with_contract="false"
   local requires_review="false" requires_human="false" product_feel="not-applicable"
   local target_branch="$DEFAULT_BRANCH"
   local -a allowed=()
   local -a forbidden=()
   local -a verification=()
+  local -a required_reports=()
   local arg
   while (( $# > 0 )); do
     arg="$1"
@@ -772,14 +849,14 @@ cmd_ticket_create() {
       --stream) stream="$2"; shift 2 ;;
       --risk) risk="$2"; shift 2 ;;
       --priority) priority="$2"; shift 2 ;;
-      --level) level="$2"; shift 2 ;;
-      --parent) parent_id="$2"; shift 2 ;;
-      --root) root_id="$2"; shift 2 ;;
+      --level|--parent|--root) shift 2 ;;
       --allowed) allowed+=("$2"); shift 2 ;;
       --forbidden) forbidden+=("$2"); shift 2 ;;
       --verify) verification+=("$2"); shift 2 ;;
       --review) requires_review="true"; shift ;;
       --human) requires_human="true"; shift ;;
+      --contract) with_contract="true"; shift ;;
+      --required-report) required_reports+=("$2"); shift 2 ;;
       --product-feel) product_feel="$2"; shift 2 ;;
       --target-branch) target_branch="$2"; shift 2 ;;
       *) die "unknown ticket create option: $arg" ;;
@@ -792,6 +869,10 @@ cmd_ticket_create() {
   in_words "$risk" "$VALID_RISKS" || die "invalid risk: $risk"
   in_words "$priority" "$VALID_PRIORITIES" || die "invalid priority: $priority"
   in_words "$product_feel" "$VALID_PRODUCT_FEEL" || die "invalid product-feel value: $product_feel"
+  [[ "$product_feel" == "required" ]] && required_reports+=("product-feel")
+  case "$risk" in
+    R2|R3|R4) with_contract="true" ;;
+  esac
 
   local slug file created branch worktree
   slug="$(slugify "$title")"
@@ -805,18 +886,12 @@ cmd_ticket_create() {
     printf -- '---\n'
     printf 'id: %s\n' "$id"
     printf 'title: %s\n' "$title"
-    printf 'stream: %s\n' "$stream"
-    printf 'level: %s\n' "$level"
-    printf 'parent_id: %s\n' "$parent_id"
-    printf 'root_id: %s\n' "$root_id"
-    printf 'children: []\n'
     printf 'status: open\n'
     printf 'risk: %s\n' "$risk"
     printf 'priority: %s\n' "$priority"
-    printf 'agents_allowed: 1\n'
+    printf 'stream: %s\n' "$stream"
     printf 'claimed_by:\n'
     printf 'claimed_at:\n'
-    printf 'claim_token:\n'
     printf 'claim_ref:\n'
     printf 'claim_heartbeat_at:\n'
     printf 'claim_expires_at:\n'
@@ -824,7 +899,9 @@ cmd_ticket_create() {
     write_yaml_list forbidden_paths "${forbidden[@]}"
     printf 'requires_human_confirmation: %s\n' "$requires_human"
     printf 'requires_review: %s\n' "$requires_review"
-    printf 'product_feel_review: %s\n' "$product_feel"
+    if (( ${#required_reports[@]} > 0 )); then
+      write_yaml_list required_reports "${required_reports[@]}"
+    fi
     write_yaml_list verification "${verification[@]}"
     printf 'target_branch: %s\n' "$target_branch"
     printf 'branch: %s\n' "$branch"
@@ -837,22 +914,17 @@ cmd_ticket_create() {
     printf '# %s %s\n\n' "$id" "$title"
     printf '## Goal\n\nState the result this ticket should produce.\n\n'
     printf '## Scope\n\nList what may change.\n\n'
-    printf '## Out Of Scope\n\nList nearby work that must not be done.\n\n'
-    printf '## Acceptance Criteria\n\n- The scoped result exists.\n- Path and risk rules are respected.\n\n'
-    printf '## Ticket Completion Contract\n\n'
-    printf '### Goal\n\nRepeat the completion target in one paragraph.\n\n'
-    printf '### Non-Goals\n\n- Nearby work this ticket must not absorb.\n\n'
-    printf '### Definition Of Done\n\n- Concrete done condition.\n\n'
-    printf '### Evidence Required\n\n- Report, command, review, screenshot, or manual check to inspect.\n\n'
-    printf '### Expansion Rules\n\n- Stop if scope, risk, or authority changes.\n\n'
-    printf '### Final Review Gate\n\n- Reviewer checks each done item and recommends accept, reopen, or needs-human.\n\n'
+    printf '## Acceptance\n\n- The scoped result exists.\n- Path and risk rules are respected.\n\n'
     printf '## Verification\n\n'
     for arg in "${verification[@]}"; do printf -- '- %s\n' "$arg"; done
-    printf '\n## Stop Conditions\n\n'
-    printf -- '- Stop if work needs a path outside `allowed_paths`.\n'
-    printf -- '- Stop if work touches `forbidden_paths`.\n'
-    printf -- '- Stop if real risk exceeds ticket risk.\n'
-    printf -- '- Stop if acceptance criteria or authority are unclear.\n'
+    if [[ "$with_contract" == "true" ]]; then
+      printf '\n## Ticket Completion Contract\n\n'
+      printf '### Non-Goals\n\n- Nearby work this ticket must not absorb.\n\n'
+      printf '### Definition Of Done\n\n- Concrete done condition.\n\n'
+      printf '### Evidence Required\n\n- Report, command, review, screenshot, or manual check to inspect.\n\n'
+      printf '### Expansion Rules\n\n- Stop if scope, risk, or authority changes.\n\n'
+      printf '### Final Review Gate\n\n- Reviewer checks each done item and recommends accept, reopen, or needs-human.\n'
+    fi
   } > "$file"
 
   printf 'ticket create: %s\n' "${file#$ROOT/}"
@@ -876,7 +948,7 @@ cmd_ticket_claim() {
   done
   [[ -n "$ticket" ]] || die "ticket claim requires ID"
   [[ "$ttl" =~ ^[0-9]+$ ]] || die "claim ttl must be seconds"
-  local lock_file file status ticket_id now expires token claim_ref claim_head
+  local lock_file file status ticket_id now expires claim_ref claim_head
   mkdir -p "$ROOT/$STATE_DIR/locks"
   lock_file="$ROOT/$STATE_DIR/locks/ticket-$ticket.lock"
   if command -v flock >/dev/null 2>&1; then
@@ -904,20 +976,17 @@ cmd_ticket_claim() {
     git -C "$ROOT" update-ref -d "$claim_ref" >/dev/null 2>&1 || true
   fi
   claim_head="$(create_git_claim_ref "$ticket_id" "$claim_ref")"
-  token="$(next_claim_token)"
   now="$(now_utc)"
   expires="$(iso_from_epoch "$(( $(epoch_utc) + ttl ))")"
   update_frontmatter_scalars "$file" \
     "status"$'\035'"claimed"$'\034' \
     "claimed_by"$'\035'"$by"$'\034' \
     "claimed_at"$'\035'"$now"$'\034' \
-    "claim_token"$'\035'"$token"$'\034' \
     "claim_ref"$'\035'"$claim_ref"$'\034' \
     "claim_heartbeat_at"$'\035'"$now"$'\034' \
     "claim_expires_at"$'\035'"$expires"$'\034' \
     "updated"$'\035'"$(today_utc)"$'\034'
   printf 'ticket claim: %s as %s\n' "$ticket_id" "$by"
-  printf 'claim token: %s\n' "$token"
   printf 'claim lease: %ss, expires %s\n' "$ttl" "$expires"
   if [[ -n "$claim_head" ]]; then
     printf 'claim ref: %s\n' "$claim_ref"
@@ -934,7 +1003,8 @@ cmd_ticket_heartbeat() {
   file="$(find_ticket_file "$ticket")" || die "ticket not found: $ticket"
   status="$(frontmatter_value "$file" status)"
   [[ "$status" == "claimed" || "$status" == "in-review" ]] || die "heartbeat requires claimed or in-review status; current: ${status:-missing}"
-  [[ -n "$(frontmatter_value "$file" claim_token)" ]] || die "ticket $ticket has no claim token; claim it first"
+  [[ -n "$(frontmatter_value "$file" claim_ref)" || -n "$(frontmatter_value "$file" claim_expires_at)" ]] ||
+    die "ticket $ticket has no active claim lease; claim it first"
   now="$(now_utc)"
   expires="$(iso_from_epoch "$(( $(epoch_utc) + ttl ))")"
   update_frontmatter_scalars "$file" \
@@ -1082,11 +1152,11 @@ cmd_packet() {
   local role="${2:-}"
   [[ -n "$ticket" && -n "$role" ]] || die "packet requires ticket ID and role"
   case "$role" in
-    specialist|reviewer|product-feel-reviewer|mediator) ;;
-    *) die "role must be specialist, reviewer, product-feel-reviewer, or mediator" ;;
+    specialist|reviewer|acceptor|human) ;;
+    *[!a-z0-9-]*|"") die "role must be specialist, reviewer, acceptor, human, or a lowercase custom review profile" ;;
   esac
 
-  local file rel ticket_id title status risk priority requires_review requires_human product_feel
+  local file rel ticket_id title status risk priority requires_review requires_human required_reports
   local branch worktree target_branch worktree_head worktree_branch worktree_changed
   file="$(find_ticket_file "$ticket")" || die "ticket not found: $ticket"
   rel="${file#$ROOT/}"
@@ -1097,16 +1167,14 @@ cmd_packet() {
   priority="$(frontmatter_value "$file" priority)"
   requires_review="$(frontmatter_value "$file" requires_review)"
   requires_human="$(frontmatter_value "$file" requires_human_confirmation)"
-  product_feel="$(frontmatter_value "$file" product_feel_review)"
+  required_reports="$(ticket_required_reports "$file" | paste -sd ', ' -)"
   [[ -n "$ticket_id" ]] || ticket_id="$ticket"
   branch="$(ticket_declared_branch "$file" "$ticket_id")"
   worktree="$(ticket_declared_worktree "$file" "$ticket_id")"
   target_branch="$(frontmatter_value "$file" target_branch)"
   [[ -n "$target_branch" ]] || target_branch="$DEFAULT_BRANCH"
 
-  if [[ "$role" != "mediator" ]]; then
-    require_ticket_worktree_ready "$ticket_id" "$branch" "$worktree" "packet" "$target_branch"
-  fi
+  require_ticket_worktree_ready "$ticket_id" "$branch" "$worktree" "packet" "$target_branch"
 
   worktree_head="missing"
   worktree_branch="missing"
@@ -1126,7 +1194,7 @@ cmd_packet() {
   printf 'Priority: %s\n' "${priority:-missing}"
   printf 'Requires review: %s\n' "${requires_review:-missing}"
   printf 'Requires human confirmation: %s\n' "${requires_human:-missing}"
-  printf 'Product-feel review: %s\n\n' "${product_feel:-not-applicable}"
+  printf 'Required reports: %s\n\n' "${required_reports:-none}"
 
   printf 'Worker rule:\n'
   printf '  Read this packet, the ticket, relevant source/tests/diffs/reports, and concrete evidence needed for the task.\n'
@@ -1152,11 +1220,11 @@ cmd_packet() {
     reviewer)
       printf '  Fresh-context review mode. Inspect correctness, scope, verification, and completion contract. Do not implement fixes by default.\n'
       ;;
-    product-feel-reviewer)
-      printf '  Fresh-context product-feel review mode for visible UI, copy, workflow, or capability-boundary changes. Use rendered evidence where possible.\n'
+    acceptor|human)
+      printf '  Acceptance gate mode. Verify evidence, review state, scope, and authority before accepting. Do not accept missing gates.\n'
       ;;
-    mediator)
-      printf '  Mediation mode. Frame options and implications; do not execute the blocked implementation.\n'
+    *)
+      printf '  Custom review profile mode. Inspect the ticket through the `%s` lens and produce the matching required report if applicable.\n' "$role"
       ;;
   esac
   printf '\n'
@@ -1207,11 +1275,6 @@ lint_one_ticket() {
     printf 'lint: %s: invalid priority: %s\n' "${file#$ROOT/}" "$value" >&2
     errors=$((errors + 1))
   fi
-  value="$(frontmatter_value "$file" product_feel_review)"
-  if [[ -n "$value" ]] && ! in_words "$value" "$VALID_PRODUCT_FEEL"; then
-    printf 'lint: %s: product_feel_review must be required, optional, or not-applicable\n' "${file#$ROOT/}" >&2
-    errors=$((errors + 1))
-  fi
   value="$(frontmatter_value "$file" requires_human_confirmation)"
   [[ -z "$value" || "$value" == "true" || "$value" == "false" ]] || {
     printf 'lint: %s: requires_human_confirmation must be true or false\n' "${file#$ROOT/}" >&2
@@ -1254,7 +1317,7 @@ validate_headings() {
 cmd_report_lint() {
   require_base_folders
   local ticket="${1:-}"
-  local errors=0 file ticket_id risk status requires_review requires_human product_feel technical human reviewer product handoff
+  local errors=0 file ticket_id risk status requires_review requires_human technical human reviewer handoff required_report custom_report
   local -a files=()
   if [[ -n "$ticket" ]]; then
     file="$(find_ticket_file "$ticket")" || die "ticket not found: $ticket"
@@ -1270,10 +1333,8 @@ cmd_report_lint() {
     status="$(frontmatter_value "$file" status)"
     requires_review="$(frontmatter_value "$file" requires_review)"
     requires_human="$(frontmatter_value "$file" requires_human_confirmation)"
-    product_feel="$(frontmatter_value "$file" product_feel_review)"
     technical="$(find_report_file "$REPORTS_DIR" "$ticket_id" '(^# .*Technical Report$|^## Files Changed$|^## Verification$|^## Risks / Follow-Ups$)' || true)"
     reviewer="$(find_report_file "$REPORTS_DIR" "$ticket_id" '(^# .*Reviewer Note$|^## Review Result$|^## Required Changes$)' || true)"
-    product="$(find_report_file "$REPORTS_DIR" "$ticket_id" '(^# .*Product Feel Review$|product-feel|Product-feel|Product Feel)' || true)"
     human="$(find_report_file "$HUMAN_REPORTS_DIR" "$ticket_id" || true)"
     handoff="$(find_report_file "$HANDOFFS_DIR" "$ticket_id" || true)"
 
@@ -1290,19 +1351,44 @@ cmd_report_lint() {
         printf 'report-lint: %s: missing human/founder report for required human gate\n' "$ticket_id" >&2
         errors=$((errors + 1))
       fi
-      if [[ "$product_feel" == "required" && -z "$product" ]]; then
-        printf 'report-lint: %s: missing product-feel review\n' "$ticket_id" >&2
-        errors=$((errors + 1))
-      fi
+      while IFS= read -r required_report; do
+        [[ -n "$required_report" ]] || continue
+        case "$required_report" in
+          specialist|technical)
+            if [[ -z "$technical" ]]; then
+              printf 'report-lint: %s: missing required report: %s\n' "$ticket_id" "$required_report" >&2
+              errors=$((errors + 1))
+            fi
+            ;;
+          reviewer)
+            if [[ -z "$reviewer" ]]; then
+              printf 'report-lint: %s: missing required report: reviewer\n' "$ticket_id" >&2
+              errors=$((errors + 1))
+            fi
+            ;;
+          human|founder)
+            if [[ -z "$human" ]]; then
+              printf 'report-lint: %s: missing required report: %s\n' "$ticket_id" "$required_report" >&2
+              errors=$((errors + 1))
+            fi
+            ;;
+          *)
+            custom_report="$(find_named_report_file "$ticket_id" "$required_report" || true)"
+            if [[ -z "$custom_report" ]]; then
+              printf 'report-lint: %s: missing required report: %s\n' "$ticket_id" "$required_report" >&2
+              errors=$((errors + 1))
+            fi
+            ;;
+        esac
+      done < <(ticket_required_reports "$file" | awk '!seen[$0]++')
     fi
     if [[ "$status" == "blocked" || "$status" == "needs-human" ]] && [[ -z "$handoff" ]]; then
-      printf 'report-lint: %s: %s ticket should have a handoff/mediator packet\n' "$ticket_id" "$status" >&2
+      printf 'report-lint: %s: %s ticket should have a handoff note\n' "$ticket_id" "$status" >&2
       errors=$((errors + 1))
     fi
     [[ -z "$technical" ]] || validate_headings technical "$technical" "Files Changed" "Verification" "CI Evidence" "Risks / Follow-Ups" || errors=$((errors + 1))
     [[ -z "$reviewer" ]] || validate_headings reviewer "$reviewer" "Review Result" "Findings" "Verification Reviewed" "Required Changes" "Recommendation" || errors=$((errors + 1))
     [[ -z "$human" ]] || validate_headings human "$human" "Why This Mattered" "What Changed" "What I Should Know" "What To Check" "Recommended Next Move" || errors=$((errors + 1))
-    [[ -z "$product" ]] || validate_headings product-feel "$product" "Review Result" "Findings" "Verification Reviewed" "Recommendation" || errors=$((errors + 1))
   done
   (( errors == 0 )) || {
     printf 'report-lint: failed with %s issue(s)\n' "$errors" >&2
@@ -1641,7 +1727,7 @@ cmd_accept() {
   [[ "${file#$ROOT/}" == "$OPEN_DIR/"* ]] || die "ticket is already closed: $ticket"
   [[ "$status" == "in-review" ]] || die "accept requires in-review status; current: ${status:-missing}"
   claim_ref="$(frontmatter_value "$file" claim_ref)"
-  if [[ -n "$(frontmatter_value "$file" claim_token)" ]]; then
+  if [[ -n "$claim_ref" || -n "$(frontmatter_value "$file" claim_expires_at)" ]]; then
     ticket_claim_expired "$file" && die "accept refused: claim lease is expired for $id; renew with \`palari ticket heartbeat $id\`"
   fi
   if [[ -n "$claim_ref" ]] && git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -1769,6 +1855,318 @@ cmd_github() {
   esac
 }
 
+capture_command_json() {
+  local out err code
+  out="$(mktemp)"
+  err="$(mktemp)"
+  set +e
+  "$@" >"$out" 2>"$err"
+  code=$?
+  set -e
+  printf '{"ok":'
+  [[ "$code" == "0" ]] && printf 'true' || printf 'false'
+  printf ',"code":%s,"stdout":' "$code"
+  json_string "$(cat "$out")"
+  printf ',"stderr":'
+  json_string "$(cat "$err")"
+  printf '}'
+  rm -f "$out" "$err"
+}
+
+ticket_lease_status() {
+  local file="$1"
+  local claim_ref expires now_epoch expires_epoch remaining
+  claim_ref="$(frontmatter_value "$file" claim_ref)"
+  expires="$(frontmatter_value "$file" claim_expires_at)"
+  if [[ -z "$claim_ref" && -z "$expires" ]]; then
+    printf 'none\n'
+    return 0
+  fi
+  now_epoch="$(epoch_utc)"
+  expires_epoch="$(epoch_from_iso "$expires")"
+  if [[ "$expires_epoch" == "0" ]]; then
+    printf 'active\n'
+    return 0
+  fi
+  remaining=$((expires_epoch - now_epoch))
+  if (( remaining < 0 )); then
+    printf 'expired\n'
+  elif (( remaining < 90 )); then
+    printf 'expiring\n'
+  else
+    printf 'active\n'
+  fi
+}
+
+ticket_lease_remaining() {
+  local file="$1"
+  local expires now_epoch expires_epoch remaining
+  expires="$(frontmatter_value "$file" claim_expires_at)"
+  expires_epoch="$(epoch_from_iso "$expires")"
+  [[ "$expires_epoch" != "0" ]] || {
+    printf 'null'
+    return 0
+  }
+  now_epoch="$(epoch_utc)"
+  remaining=$((expires_epoch - now_epoch))
+  (( remaining < 0 )) && remaining=0
+  printf '%s' "$remaining"
+}
+
+evidence_json() {
+  local ticket_id="$1"
+  local dir="$ROOT/$EVIDENCE_DIR/$ticket_id"
+  local rel="" files has_log="false" has_junit="false" has_sarif="false" count=0
+  [[ -d "$dir" ]] && rel="${dir#$ROOT/}"
+  files="$(json_file_list "$dir")"
+  [[ -f "$dir/verification.log" ]] && has_log="true"
+  [[ -f "$dir/junit.xml" ]] && has_junit="true"
+  [[ -f "$dir/palari.sarif" ]] && has_sarif="true"
+  if [[ -d "$dir" ]]; then
+    count="$(find "$dir" -maxdepth 1 -type f ! -name '.gitkeep' | wc -l | tr -d ' ')"
+  fi
+  printf '{"path":'
+  json_string "$rel"
+  printf ',"files":%s,"has_log":%s,"has_junit":%s,"has_sarif":%s,"file_count":%s}' \
+    "$files" "$has_log" "$has_junit" "$has_sarif" "$count"
+}
+
+reports_json() {
+  local ticket_id="$1"
+  local technical reviewer product human
+  technical="$(find_report_file "$REPORTS_DIR" "$ticket_id" '(^# .*Technical Report$|^## Files Changed$|^## Verification$|^## Risks / Follow-Ups$)' || true)"
+  reviewer="$(find_report_file "$REPORTS_DIR" "$ticket_id" '(^# .*Reviewer Note$|^## Review Result$|^## Required Changes$)' || true)"
+  product="$(find_named_report_file "$ticket_id" "product-feel" || true)"
+  human="$(find_report_file "$HUMAN_REPORTS_DIR" "$ticket_id" || true)"
+  printf '{"technical":%s,"reviewer":%s,"product_feel":%s,"human":%s}' \
+    "$(json_nonempty_bool "$technical")" \
+    "$(json_nonempty_bool "$reviewer")" \
+    "$(json_nonempty_bool "$product")" \
+    "$(json_nonempty_bool "$human")"
+}
+
+ticket_required_reports_json() {
+  local file="$1"
+  local item first="true"
+  printf '['
+  while IFS= read -r item; do
+    [[ -n "$item" ]] || continue
+    [[ "$first" == "true" ]] || printf ','
+    json_string "$item"
+    first="false"
+  done < <(ticket_required_reports "$file" | awk '!seen[$0]++')
+  printf ']'
+}
+
+snapshot_ticket_json() {
+  local file="$1"
+  local state="$2"
+  local ticket_id title status risk priority stream rel claimed_by claim_ref expires heartbeat branch worktree lease_status
+  ticket_id="$(frontmatter_value "$file" id)"
+  [[ -n "$ticket_id" ]] || ticket_id="$(ticket_title_from_file "$file")"
+  title="$(frontmatter_value "$file" title)"
+  [[ -n "$title" ]] || title="$ticket_id"
+  status="$(frontmatter_value "$file" status)"
+  [[ -n "$status" ]] || status="$([[ "$state" == "accepted" ]] && printf accepted || printf open)"
+  risk="$(frontmatter_value "$file" risk)"
+  priority="$(frontmatter_value "$file" priority)"
+  stream="$(frontmatter_value "$file" stream)"
+  rel="${file#$ROOT/}"
+  claimed_by="$(frontmatter_value "$file" claimed_by)"
+  claim_ref="$(frontmatter_value "$file" claim_ref)"
+  expires="$(frontmatter_value "$file" claim_expires_at)"
+  heartbeat="$(frontmatter_value "$file" claim_heartbeat_at)"
+  branch="$(ticket_declared_branch "$file" "$ticket_id")"
+  worktree="$(ticket_declared_worktree "$file" "$ticket_id")"
+  lease_status="$(ticket_lease_status "$file")"
+  printf '{"id":'
+  json_string "$ticket_id"
+  printf ',"title":'
+  json_string "$title"
+  printf ',"status":'
+  json_string "$status"
+  printf ',"risk":'
+  json_string "${risk:-R1}"
+  printf ',"priority":'
+  json_string "${priority:-P2}"
+  printf ',"stream":'
+  json_string "${stream:-process}"
+  printf ',"state":'
+  json_string "$state"
+  printf ',"path":'
+  json_string "$rel"
+  printf ',"allowed_paths":'
+  json_frontmatter_list "$file" allowed_paths
+  printf ',"forbidden_paths":'
+  json_frontmatter_list "$file" forbidden_paths
+  printf ',"verification":'
+  json_frontmatter_list "$file" verification
+  printf ',"required_reports":'
+  ticket_required_reports_json "$file"
+  printf ',"claimed_by":'
+  json_string "$claimed_by"
+  printf ',"claim_ref":'
+  json_string "$claim_ref"
+  printf ',"claim_expires_at":'
+  json_string "$expires"
+  printf ',"claim_heartbeat_at":'
+  json_string "$heartbeat"
+  printf ',"requires_review":%s,"requires_human_confirmation":%s' \
+    "$(json_bool "$(frontmatter_value "$file" requires_review)")" \
+    "$(json_bool "$(frontmatter_value "$file" requires_human_confirmation)")"
+  printf ',"branch":'
+  json_string "$branch"
+  printf ',"worktree":'
+  json_string "$worktree"
+  printf ',"evidence":'
+  evidence_json "$ticket_id"
+  printf ',"reports":'
+  reports_json "$ticket_id"
+  printf ',"lease":{"status":'
+  json_string "$lease_status"
+  printf ',"expires_at":'
+  json_string "$expires"
+  printf ',"seconds_remaining":'
+  ticket_lease_remaining "$file"
+  printf '}}'
+}
+
+snapshot_tickets_json() {
+  local file first="true"
+  printf '['
+  while IFS= read -r file; do
+    [[ -n "$file" ]] || continue
+    [[ "$first" == "true" ]] || printf ','
+    snapshot_ticket_json "$file" "active"
+    first="false"
+  done < <(ticket_files)
+  while IFS= read -r file; do
+    [[ -n "$file" ]] || continue
+    [[ "$first" == "true" ]] || printf ','
+    snapshot_ticket_json "$file" "accepted"
+    first="false"
+  done < <(closed_ticket_files)
+  printf ']'
+}
+
+snapshot_overlaps_json() {
+  local left_file right_file left_id right_id left_pattern right_pattern right_status first="true"
+  printf '['
+  while IFS= read -r left_file; do
+    [[ -n "$left_file" ]] || continue
+    left_id="$(frontmatter_value "$left_file" id)"
+    while IFS= read -r right_file; do
+      [[ -n "$right_file" && "$right_file" != "$left_file" ]] || continue
+      right_status="$(frontmatter_value "$right_file" status)"
+      case "$right_status" in
+        open|claimed|reopened|in-review) ;;
+        *) continue ;;
+      esac
+      right_id="$(frontmatter_value "$right_file" id)"
+      [[ "$left_id" < "$right_id" ]] || continue
+      while IFS= read -r left_pattern; do
+        [[ -n "$left_pattern" ]] || continue
+        while IFS= read -r right_pattern; do
+          [[ -n "$right_pattern" ]] || continue
+          if patterns_overlap "$left_pattern" "$right_pattern"; then
+            [[ "$first" == "true" ]] || printf ','
+            printf '{"left":'
+            json_string "$left_id"
+            printf ',"right":'
+            json_string "$right_id"
+            printf ',"left_pattern":'
+            json_string "$left_pattern"
+            printf ',"right_pattern":'
+            json_string "$right_pattern"
+            printf '}'
+            first="false"
+          fi
+        done < <(frontmatter_list_items "$right_file" allowed_paths)
+      done < <(frontmatter_list_items "$left_file" allowed_paths)
+    done < <(ticket_files)
+  done < <(ticket_files)
+  printf ']'
+}
+
+snapshot_workflow_json() {
+  local workflow="$ROOT/.github/workflows/palari.yml"
+  local ruleset="$ROOT/.github/palari-required-checks.ruleset.json"
+  local workflow_text="" workflow_exists="" ruleset_exists=""
+  [[ -f "$workflow" ]] && workflow_text="$(cat "$workflow")"
+  [[ -f "$workflow" ]] && workflow_exists="true"
+  [[ -f "$ruleset" ]] && ruleset_exists="true"
+  printf '{"workflow_installed":%s,"ruleset_template":%s,"merge_group":%s,"attestation":%s,"sarif":%s,"workflow_path":".github/workflows/palari.yml","ruleset_path":".github/palari-required-checks.ruleset.json"}' \
+    "$(json_nonempty_bool "$workflow_exists")" \
+    "$(json_nonempty_bool "$ruleset_exists")" \
+    "$(json_bool "$([[ "$workflow_text" == *merge_group* ]] && printf true || printf false)")" \
+    "$(json_bool "$([[ "$workflow_text" == *actions/attest* ]] && printf true || printf false)")" \
+    "$(json_bool "$([[ "$workflow_text" == *upload-sarif* ]] && printf true || printf false)")"
+}
+
+cmd_snapshot() {
+  require_base_folders
+  local format="${1:-}"
+  [[ "$format" == "--json" || -z "$format" ]] || die "snapshot supports only --json"
+  local active accepted reports human evidence git_status git_branch palari_status dirty stale overlaps_json overlap_count missing_evidence=0 file status lease
+  active="$(ticket_files | wc -l | tr -d ' ')"
+  accepted="$(closed_ticket_files | wc -l | tr -d ' ')"
+  reports="$(find "$ROOT/$REPORTS_DIR" -maxdepth 1 -type f \( -name '*.md' -o -name '*.markdown' \) ! -name 'README.md' | wc -l | tr -d ' ')"
+  human="$(find "$ROOT/$HUMAN_REPORTS_DIR" -maxdepth 1 -type f \( -name '*.md' -o -name '*.markdown' \) ! -name 'README.md' | wc -l | tr -d ' ')"
+  evidence="$(find "$ROOT/$EVIDENCE_DIR" -type f ! -name '.gitkeep' 2>/dev/null | wc -l | tr -d ' ')"
+  git_status="$(capture_command_json git -C "$ROOT" status --short --branch)"
+  git_branch="$(git -C "$ROOT" branch --show-current 2>/dev/null || printf 'detached')"
+  palari_status="$(capture_command_json cmd_status)"
+  dirty="$(git -C "$ROOT" status --short -- . 2>/dev/null | awk 'END { print NR }')"
+  stale=0
+  while IFS= read -r file; do
+    [[ -n "$file" ]] || continue
+    lease="$(ticket_lease_status "$file")"
+    [[ "$lease" == "expired" ]] && stale=$((stale + 1))
+    status="$(frontmatter_value "$file" status)"
+    if [[ "$status" == "in-review" || "$status" == "accepted" ]]; then
+      [[ -f "$ROOT/$EVIDENCE_DIR/$(frontmatter_value "$file" id)/verification.log" ]] || missing_evidence=$((missing_evidence + 1))
+    fi
+  done < <(all_ticket_files)
+  overlaps_json="$(snapshot_overlaps_json)"
+  overlap_count="$(awk -v text="$overlaps_json" 'BEGIN { print gsub(/"left"/, "", text) }')"
+
+  printf '{\n'
+  printf '  "project": '
+  json_string "$PROJECT_NAME"
+  printf ',\n  "root": '
+  json_string "$ROOT"
+  printf ',\n  "generated_at": '
+  json_string "$(now_utc)"
+  printf ',\n  "config": {"default_branch":'
+  json_string "$DEFAULT_BRANCH"
+  printf ',"scope_overlap_policy":'
+  json_string "$SCOPE_OVERLAP_POLICY"
+  printf ',"claim_lease_seconds":'
+  json_string "$CLAIM_LEASE_SECONDS"
+  printf ',"evidence_dir":'
+  json_string "$EVIDENCE_DIR"
+  printf '},\n'
+  printf '  "counts": {"open":%s,"claimed":%s,"blocked":%s,"needs-human":%s,"in-review":%s,"reopened":%s,"accepted":%s},\n' \
+    "$(count_status open)" "$(count_status claimed)" "$(count_status blocked)" \
+    "$(count_status needs-human)" "$(count_status in-review)" "$(count_status reopened)" "$accepted"
+  printf '  "tickets": '
+  snapshot_tickets_json
+  printf ',\n  "overlaps": %s,\n' "$overlaps_json"
+  printf '  "workflow": '
+  snapshot_workflow_json
+  printf ',\n  "health": {"status_ok":true,"dirty_paths":%s,"stale_claims":%s,"missing_evidence":%s,"overlaps":%s},\n' \
+    "$dirty" "$stale" "$missing_evidence" "$overlap_count"
+  printf '  "git": {"branch":'
+  json_string "$git_branch"
+  printf ',"status":'
+  json_string "$(git -C "$ROOT" status --short --branch 2>/dev/null || true)"
+  printf '},\n'
+  printf '  "palari_status": %s,\n' "$palari_status"
+  printf '  "commands": {"status":"./bin/palari status","lint":"./bin/palari lint","scope_overlaps":"./bin/palari scope-overlaps","ruleset":"./bin/palari github ruleset-command --repo OWNER/REPO"}\n'
+  printf '}\n'
+  : "$active" "$reports" "$human" "$evidence"
+}
+
 cmd_web() {
   local host="127.0.0.1" port="8765" check="false" arg
   while (( $# > 0 )); do
@@ -1796,7 +2194,7 @@ WEBUSAGE
   [[ "$port" =~ ^[0-9]+$ ]] || die "web port must be numeric"
   command -v python3 >/dev/null 2>&1 || die "palari web requires python3"
   if [[ "$check" == "true" ]]; then
-    python3 -B "$ROOT/adapters/web/server.py" --root "$ROOT" --check
+    cmd_snapshot --json
   else
     python3 -B "$ROOT/adapters/web/server.py" --root "$ROOT" --host "$host" --port "$port"
   fi
@@ -1809,6 +2207,7 @@ usage: palari COMMAND [ARGS]
 commands:
   init [--ci] [--hooks]        Create configured directories and optional adapters.
   status                       Show compact orchestration status.
+  snapshot --json              Print the repo-native JSON state model.
   tickets                      List active tickets.
   ticket create ID TITLE ...   Create a scoped ticket.
   ticket claim ID [BY]         Claim an open/reopened ticket.
@@ -1818,9 +2217,9 @@ commands:
   ticket needs-human ID        Move ticket to needs-human.
   ticket reopen ID             Move in-review ticket to reopened.
   worktree ID                  Prepare and verify ticket branch/worktree.
-  packet ID ROLE               Print specialist/reviewer/product-feel/mediator packet.
+  packet ID ROLE               Print specialist/reviewer/acceptor or custom-profile packet.
   skill create NAME --description TEXT
-                               Create a feature-contract Agent Skill scaffold.
+                               Adapter scaffold for feature-contract Agent Skills.
   ci ID [--base REF]           Run ticket gates and write evidence artifacts.
   ci --repo-only               Run non-merge-gate repository lint evidence.
   lint [ID]                    Lint ticket fields and report gates.
@@ -1851,7 +2250,9 @@ ci options:
 
 ticket create options:
   --stream NAME --risk R1 --priority P2 --allowed GLOB --forbidden GLOB
-  --verify CHECK --review --human --product-feel required --target-branch main
+  --verify CHECK --review --human --contract --required-report NAME
+  --product-feel required      Compatibility alias for --required-report product-feel.
+  --target-branch main
 
 ticket claim options:
   --ttl SECONDS                Lease duration; default from claim_lease_seconds.
@@ -1866,6 +2267,7 @@ USAGE
 case "${1:-}" in
   init) shift; cmd_init "$@" ;;
   status) cmd_status ;;
+  snapshot) shift; cmd_snapshot "${1:-"--json"}" ;;
   tickets) cmd_tickets ;;
   ticket) shift; cmd_ticket "$@" ;;
   worktree) shift; cmd_worktree "${1:-}" ;;

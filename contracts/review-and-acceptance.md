@@ -21,9 +21,10 @@ an artifact, and uses `actions/attest` when permissions allow it. This binds the
 evidence bundle to the workflow run instead of treating committed evidence files
 as inherently trustworthy.
 
-Product-feel reviewers are used when a ticket changes visible UI, user-facing
-copy, workflow order, capability boundaries, or product vocabulary. They should
-ground findings in rendered evidence where possible.
+Custom review profiles are used when a repo wants an extra named lens such as
+`product-feel`, `security`, `docs`, or `platform`. These profiles are declared
+through `required_reports`; core Palari only enforces that the named report
+exists.
 
 `palari accept TICKET-ID --by NAME` is the acceptance gate. It requires:
 
@@ -31,7 +32,7 @@ ground findings in rendered evidence where possible.
 - the acceptor is named
 - ticket lint passes
 - report gates pass
-- required reviewer, product-feel, and human reports exist
+- required reviewer, human, and custom reports exist
 - non-expired claim lease and claim ref are present when the ticket was claimed
 
 The command records `accepted_by`, records `accepted_at`, moves the ticket to

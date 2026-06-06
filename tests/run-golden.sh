@@ -28,6 +28,9 @@ test -f reports/evidence/.gitkeep
 grep -Fq "workflow alone does not protect merges" "$TMP_ROOT/init.out"
 grep -Fq "gh api --method POST repos/OWNER/REPO/rulesets" "$TMP_ROOT/init.out"
 python3 -m py_compile adapters/web/server.py
+./bin/palari snapshot --json > "$TMP_ROOT/snapshot.out"
+grep -Fq '"project": "Palari Orchestrator"' "$TMP_ROOT/snapshot.out"
+grep -Fq '"tickets": []' "$TMP_ROOT/snapshot.out"
 ./bin/palari web --check > "$TMP_ROOT/web-snapshot.out"
 grep -Fq '"project": "Palari Orchestrator"' "$TMP_ROOT/web-snapshot.out"
 grep -Fq '"tickets": []' "$TMP_ROOT/web-snapshot.out"
@@ -65,6 +68,14 @@ rm -rf reports/evidence/repo
   --allowed "tickets/**" \
   --allowed "reports/**" \
   --verify "manual overlap check" >/dev/null
+if grep -Eq '^(level|parent_id|root_id|children|agents_allowed|claim_token|product_feel_review):' tickets/open/POS-0002-overlap-alpha.md; then
+  printf 'golden: lean R1 ticket generated a demoted core field\n' >&2
+  exit 1
+fi
+if grep -Fq "Ticket Completion Contract" tickets/open/POS-0002-overlap-alpha.md; then
+  printf 'golden: lean R1 ticket generated the heavy completion contract\n' >&2
+  exit 1
+fi
 ./bin/palari ticket create POS-0003 "Overlap beta" \
   --stream docs \
   --risk R1 \
@@ -239,7 +250,7 @@ Decision: accept
 
 ## Findings
 
-- Not applicable to rendered UI; the required product-feel gate is explicitly satisfied as documentation-only.
+- Not applicable to rendered UI; the custom product-feel report is explicitly satisfied as documentation-only.
 
 ## Verification Reviewed
 

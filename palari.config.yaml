@@ -35,6 +35,16 @@ default_forbidden_paths:
   - infra/prod/**
   - prod/**
 
+# Optional repo-wide custom report gates. Tickets can also declare
+# `required_reports` directly in frontmatter. Product-feel belongs here or in a
+# profile, not in the core ticket schema.
+required_reports: []
+
+review_profiles:
+  ui:
+    required_reports:
+      - product-feel
+
 acceptance:
   requires_named_acceptor: true
   implementation_self_acceptance: forbidden

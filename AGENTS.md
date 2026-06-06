@@ -28,9 +28,13 @@ they conflict with repo files.
 - Reviewer: reviews with fresh context. Checks correctness, scope,
   verification, completion contract, and regression risk. Does not implement
   fixes by default.
-- Product-feel reviewer: where applicable, reviews rendered UI, copy, workflow
-  clarity, and capability-boundary honesty from fresh context.
-- Mediator: frames options when scope, access, authority, or risk blocks work.
+- Acceptor/human: verifies evidence, review state, scope, and authority before
+  accepting. Does not accept missing gates.
+- Custom review profile: where configured, reviews through a named lens such as
+  product-feel, security, docs, or platform constraints and writes the matching
+  required report.
+- Handoff author: frames options when scope, access, authority, or risk blocks
+  work. This is a handoff pattern, not a separate core role.
 
 ## Ticket Workflow
 
@@ -65,8 +69,8 @@ they conflict with repo files.
   permissions allow it.
 - `palari mcp manifest` prints optional MCP tool metadata for adapter wrappers.
 - `palari web` starts the optional local Palari Console. Use it for monitoring
-  and command discovery; do not treat it as a replacement for ticket files,
-  reports, packets, or `accept`.
+  and command discovery. It renders `palari snapshot --json`; do not treat it as
+  a replacement for ticket files, reports, packets, or `accept`.
 - Repo-specific app preferences, browser scripts, screenshots, founder taste,
   and private connectors belong in adapters, not in the Palari core.
 

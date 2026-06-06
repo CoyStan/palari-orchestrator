@@ -13,20 +13,21 @@ Use a feature contract when work changes:
 - external integrations
 - visible UI, copy, or workflow order
 
-Use a skill when a recurring specialist workflow needs stable instructions:
+Use an optional skill adapter when a recurring specialist workflow needs stable
+instructions:
 
 - browser review
 - accessibility review
 - migration review
 - API contract review
-- product-feel review
+- product-feel review profile
 - release-readiness review
 
 Keep project taste, product vocabulary, and app-specific preferences in
 adapters or project skills. The core should only define the gates and evidence
 shape.
 
-Scaffold a feature-contract skill with:
+Scaffold a feature-contract skill adapter with:
 
 ```bash
 palari skill create feature-name --description "Preserve the feature contract for ..."

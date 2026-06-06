@@ -31,8 +31,8 @@ accepted -> reopened only by explicit human/founder direction
 Implementation agents may move tickets to `in-review`, `blocked`, or
 `needs-human`. They must not accept their own substantive work.
 
-`palari ticket claim` records `claim_token`, `claim_ref`,
-`claim_heartbeat_at`, and `claim_expires_at`. The default lease is 300 seconds.
+`palari ticket claim` records `claim_ref`, `claim_heartbeat_at`, and
+`claim_expires_at`. The default lease is 300 seconds.
 Long-running work should renew with:
 
 ```bash
@@ -44,8 +44,8 @@ ticket carries claim metadata.
 
 Acceptance requires:
 
-- acceptance criteria satisfied or explicitly narrowed
-- Ticket Completion Contract satisfied or explicitly narrowed
+- acceptance section satisfied or explicitly narrowed
+- Ticket Completion Contract satisfied or explicitly narrowed when present
 - verification run or a clear not-run reason
 - required reports present
 - no out-of-scope files changed

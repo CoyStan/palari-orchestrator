@@ -8,7 +8,7 @@ repository.
 1. Start from repository facts: `git status --short --branch`,
    `palari status`, and the active ticket.
 2. Confirm role authority. If implementing, use a specialist packet. If
-   reviewing, use a reviewer or product-feel reviewer packet.
+   reviewing, use a reviewer packet or a named custom review-profile packet.
 3. For meaningful edits, run `palari worktree TICKET-ID` before work starts.
 4. Read the mission packet, ticket, relevant code/tests/diffs/reports, and
    evidence. Avoid broad process-doc self-orientation unless triggered.
@@ -35,8 +35,9 @@ repository.
   or the printed `gh api` command installs the ruleset.
 - Local hooks are generated with `palari init --hooks` and are advisory only.
 - MCP wrappers should use `palari mcp manifest`; the CLI remains authoritative.
-- The local web console runs with `palari web`; use it to monitor tickets,
-  claims, evidence, and scope, not to replace ticket/report authority.
+- The local web console runs with `palari web`; it renders
+  `palari snapshot --json`. Use it to monitor tickets, claims, evidence, and
+  scope, not to replace ticket/report authority.
 - Product-specific behavior belongs in an adopter adapter, not in the portable
   core.
 

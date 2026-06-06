@@ -5,7 +5,7 @@ Palari Console is an optional local web dashboard for Palari Orchestrator.
 It is intentionally an adapter:
 
 - the repository remains the source of truth
-- tickets, reports, evidence, config, and git state are read from disk
+- dashboard state comes from `palari snapshot --json`
 - commands are shown as copyable CLI actions
 - acceptance authority stays in `palari accept`
 - no database, package manager, or frontend build step is required
@@ -29,8 +29,8 @@ Options:
 ./bin/palari web --check
 ```
 
-`--check` prints the JSON snapshot used by the dashboard and exits. It is useful
-for tests, CI, and debugging adapter reads.
+`--check` prints the same JSON produced by `palari snapshot --json`. It is
+useful for tests, CI, and debugging adapter reads.
 
 ## What It Shows
 

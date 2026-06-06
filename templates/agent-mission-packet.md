@@ -29,6 +29,9 @@ unless the packet names a trigger.
   `in-review`, never `accepted`.
 - Reviewer: inspect with fresh context; do not implement fixes unless
   reassigned; recommend accept, reopen, or needs-human.
-- Product-feel reviewer: inspect rendered UI/copy/workflow/capability boundary
-  evidence when the ticket marks product-feel review as required or useful.
-- Mediator: frame options and implications; do not execute blocked work.
+- Acceptor/human: verify evidence, scope, report gates, and authority before
+  acceptance.
+- Custom review profile: inspect through the named profile lens and produce the
+  matching required report when applicable.
+- Handoff author: frame options and implications for blocked work; do not
+  execute the blocked implementation.

@@ -1,7 +1,7 @@
 Palari Orchestration mission packet
 Role: specialist
 Ticket: POS-0001 - Golden flow scope review
-Product-feel review: required
+Required reports: product-feel
 Worker rule:
 Git context:
 Allowed paths:

@@ -62,12 +62,13 @@ authorized-reviewer gate.
 
 ## Web Adapter
 
-The web adapter is an operator console. It may read tickets, reports, evidence,
-config, and git state, then present copyable CLI commands and health signals.
+The web adapter is an operator console. It should render `palari snapshot
+--json`, then present copyable CLI commands and health signals.
 
 It must not become a separate source of truth:
 
 - no separate ticket database
+- no duplicate ticket/report/scope parser
 - no acceptance bypass
 - no hidden mutation path around `palari`
 - no product-specific Palari app assumptions in the portable console

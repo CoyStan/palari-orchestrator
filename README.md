@@ -5,7 +5,7 @@
 <h1 align="center">Palari Orchestrator</h1>
 
 <p align="center">
-  A portable operating layer for agent-led repository work: scoped tickets, isolated worktrees, mission packets, review evidence, and explicit human acceptance.
+  A small repo-native control layer for agent-led coding: tickets define scope, worktrees isolate execution, CI records evidence, and review plus acceptance closes the loop.
 </p>
 
 <p align="center">
@@ -15,7 +15,7 @@
   <img alt="golden tests" src="https://img.shields.io/badge/tests-golden-F4B433?style=flat-square">
 </p>
 
-Palari Orchestrator turns an agent task from "please go change things" into a traceable workflow any repository can adopt. It is Markdown-led and tool-checked: tickets define the scope, agents work in per-ticket worktrees, packets tell each role what matters, reports preserve evidence, reviewers inspect from fresh context, and acceptance stays an explicit gate.
+Palari Orchestrator turns an agent task from "please go change things" into a set of small primitives any repository can adopt. A ticket defines allowed paths and verification. A worktree isolates execution. A scope check blocks drift. CI records evidence. Review and accept close the loop.
 
 The core is deliberately portable. Palari product preferences, founder taste, app routes, private screenshots, and live-workbench assumptions belong in adapters or examples, not in the reusable orchestration package.
 
@@ -23,22 +23,22 @@ The core is deliberately portable. Palari product preferences, founder taste, ap
 
 ![Palari Orchestrator workflow](assets/readme/orchestration-flow.svg)
 
-The useful unit is a ticket. Every ticket has allowed paths, verification commands, lifecycle state, generated role packets, and required evidence. The result is simple enough to adopt in a small repo, but structured enough to keep multi-agent work from becoming folklore.
+The useful unit is a ticket. Every ticket has allowed paths, verification checks, lifecycle state, generated role packets, and required evidence. Ceremony scales with risk: R0/R1 tickets stay small, while R2+ work can carry the fuller completion contract and stricter report gates.
 
 ## Included In V1
 
 - Ticket lifecycle: `open`, `claimed`, `blocked`, `needs-human`, `in-review`, `reopened`, `accepted`.
 - Worktree-first execution with one branch and one worktree per ticket.
-- Agent packet generation for specialists, reviewers, product-feel reviewers, and mediators.
+- Agent packet generation for specialists, reviewers, acceptors/humans, and custom review profiles.
 - Allowed and forbidden path checks against changed files.
-- Specialist reports, reviewer notes, product-feel review templates, human reports, and handoffs.
+- Specialist reports, reviewer notes, custom required reports, human reports, and handoffs.
 - Fresh-context review and human/founder acceptance gates.
 - Generated GitHub CI/ruleset and local hook adapters for structural gates.
 - CI evidence bundles with logs, JUnit XML, and SARIF output.
 - Claim leases, heartbeat renewal, git claim refs, and path-overlap checks.
-- Optional local Palari Console web dashboard for monitoring tickets, evidence, claims, and scope.
+- Optional local Palari Console web dashboard backed by `palari snapshot --json`.
 - Config schema, templates, contracts, adapter guidance, orchestrator skill guidance, and golden fixtures.
-- Feature-contract skill scaffolding with `palari skill create`.
+- Optional feature-contract skill scaffolding with `palari skill create`.
 
 ## Quick Start
 
@@ -98,7 +98,6 @@ git commit -m "Add APP-0001 ticket"
 
 palari worktree APP-0001
 palari packet APP-0001 specialist
-palari skill create auth-workspaces --description "Preserve local auth and workspace isolation contracts."
 ```
 
 The specialist works inside the printed worktree, edits only allowed paths, runs verification, and writes a technical report.
@@ -124,20 +123,21 @@ palari accept APP-0001 --by founder
 | --- | --- |
 | `palari init` | Create the ticket, report, and handoff directories expected by the workflow. |
 | `palari status` | Show current tickets and workflow health at a glance. |
+| `palari snapshot --json` | Print the repo-native JSON state model used by adapters. |
 | `palari tickets` | List active tickets by lifecycle state. |
 | `palari ticket create ID TITLE` | Create a scoped ticket with allowed paths, risk, checks, and review requirements. |
 | `palari ticket claim ID` | Mark a ticket as claimed before implementation work starts. |
 | `palari ticket heartbeat ID` | Renew the ticket claim lease. |
 | `palari ticket ready ID` | Move a ticket into review once implementation evidence exists. |
 | `palari worktree ID` | Create or locate the ticket-specific git worktree. |
-| `palari packet ID ROLE` | Generate the mission packet for a specialist, reviewer, product-feel reviewer, or mediator. |
+| `palari packet ID ROLE` | Generate the mission packet for a specialist, reviewer, acceptor/human, or custom review profile. |
 | `palari ci ID --base REF` | Run scope/lint/report gates and write evidence artifacts. Fails closed without a ticket. |
 | `palari ci --repo-only` | Run explicit non-merge-gate repository lint evidence. |
 | `palari scope-check [ID]` | Compare changed files against allowed and forbidden path rules. |
 | `palari scope-overlaps [ID]` | Detect overlapping active ticket write scopes. |
 | `palari lint [ID]` | Validate ticket state, evidence, config, templates, and required reports. |
 | `palari report-lint [ID]` | Validate specialist and reviewer report structure. |
-| `palari skill create NAME` | Scaffold a portable feature-contract skill. |
+| `palari skill create NAME` | Scaffold an optional feature-contract skill adapter. |
 | `palari github ruleset-command` | Print the `gh api` command that activates required checks. |
 | `palari github install-ruleset` | Install the GitHub ruleset through `gh api`. |
 | `palari mcp manifest` | Print optional MCP tool metadata for wrapper adapters. |
@@ -155,7 +155,7 @@ ship as adapters:
 - Trusted evidence: `palari ci` writes `reports/evidence/<ticket>/verification.log`, `junit.xml`, and `palari.sarif`; the GitHub adapter uploads and attests `palari-evidence.tgz`.
 - Concurrency: `ticket claim` records lease metadata, `ticket heartbeat` renews it, and `scope-overlaps` blocks path-scope collisions by default.
 - MCP: `palari mcp manifest` exposes a thin command manifest for optional MCP wrappers.
-- Web console: `palari web` starts a local dashboard that reads the repo and shows tickets, claims, evidence, scope overlaps, workflow health, and copyable next commands.
+- Web console: `palari web` starts a local dashboard that renders `palari snapshot --json` and shows tickets, claims, evidence, scope overlaps, workflow health, and copyable next commands.
 
 ## Portable Core
 
@@ -168,7 +168,7 @@ Keep these concepts in the reusable package:
 - worktree isolation
 - path scope checks
 - fresh-context review
-- optional product-feel review for rendered UI, copy, and workflow
+- custom required reports such as `product-feel` for rendered UI, copy, and workflow
 - human or authorized-reviewer acceptance
 
 Keep these concepts in repo-specific adapters or examples:
