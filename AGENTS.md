@@ -78,6 +78,17 @@ they conflict with repo files.
 - Repo-specific app preferences, browser scripts, screenshots, founder taste,
   and private connectors belong in adapters, not in the Palari core.
 
+## Memory
+
+Repo memory, when present, lives under `memory/**/*.md`.
+
+Only active, non-expired, non-superseded memory is packet truth. The
+orchestrator selects relevant memory and includes it in packets. Specialists
+should use the memory in the packet and should not browse memory broadly unless
+blocked.
+
+Agents may propose memory, but active memory must be reviewed or promoted.
+
 ## Fast Lane And Governed Lane
 
 Use a compact gate for R0/R1 read/check/coordination or tiny exact edits:

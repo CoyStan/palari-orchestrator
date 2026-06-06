@@ -159,6 +159,27 @@ palari web
 - **Humans keep authority:** review can recommend; acceptance is explicit.
 - **No product lock-in:** product-feel and app-specific preferences are examples or adapters.
 
+## Optional Repo Memory
+
+Palari can store repo-native memory under `memory/**/*.md`: accepted decisions,
+path-level invariants, gotchas, failure patterns, and command knowledge.
+
+Memory is source-controlled Markdown. SQLite FTS is only an optional generated
+search cache under `.palari/cache/`. The orchestrator uses active memory to
+enrich packets; specialists receive the selected memory in their packet and
+should not browse the full memory directory unless blocked.
+
+```bash
+palari memory add invariant "Console stays read-only" \
+  --truth-key web.console.mutation_boundary \
+  --path "adapters/web/**" \
+  --source-ticket WEB-0001
+
+palari memory index
+palari memory query --path adapters/web/server.py
+palari packet WEB-0002 specialist
+```
+
 ## Command Reference
 
 <details>
@@ -180,6 +201,7 @@ palari web
 | `palari ticket reopen ID` | Move an in-review ticket back to implementation. |
 | `palari worktree ID` | Create or locate the ticket-specific git worktree. |
 | `palari packet ID ROLE` | Generate the mission packet for a specialist, reviewer, acceptor/human, or custom review profile. |
+| `palari memory ...` | Manage optional repo-native memory and generated search indexes. |
 | `palari ci ID --base REF` | Run scope/lint/report gates and write evidence artifacts. Fails closed without a ticket. |
 | `palari ci --repo-only` | Run explicit non-merge-gate repository lint evidence. |
 | `palari scope-check [ID]` | Compare changed files against allowed and forbidden path rules. |
