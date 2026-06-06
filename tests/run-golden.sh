@@ -23,9 +23,11 @@ test -f lefthook.yml
 test -f adapters/web/server.py
 test -f adapters/web/static/index.html
 test -f adapters/web/static/styles.css
+test -f adapters/web/static/app-shell.css
 test -f adapters/web/static/app.js
 test -f reports/evidence/.gitkeep
 grep -Fq "workflow alone does not protect merges" "$TMP_ROOT/init.out"
+grep -Fq "gh api --method PATCH repos/OWNER/REPO/rulesets" "$TMP_ROOT/init.out"
 grep -Fq "gh api --method POST repos/OWNER/REPO/rulesets" "$TMP_ROOT/init.out"
 python3 -m py_compile adapters/web/server.py
 ./bin/palari snapshot --json > "$TMP_ROOT/snapshot.out"
@@ -50,6 +52,7 @@ grep -Fq "palari_ticket_claim" "$TMP_ROOT/mcp.out"
 grep -Fq "palari_scope_check" "$TMP_ROOT/mcp.out"
 
 ./bin/palari github ruleset-command --repo CoyStan/palari-orchestrator > "$TMP_ROOT/ruleset-command.out"
+grep -Fq "gh api --method PATCH repos/CoyStan/palari-orchestrator/rulesets" "$TMP_ROOT/ruleset-command.out"
 grep -Fq "gh api --method POST repos/CoyStan/palari-orchestrator/rulesets" "$TMP_ROOT/ruleset-command.out"
 
 if ./bin/palari ci > "$TMP_ROOT/no-ticket-ci.out" 2>&1; then
@@ -60,6 +63,22 @@ grep -Fq "ci requires a ticket ID" "$TMP_ROOT/no-ticket-ci.out"
 ./bin/palari ci --repo-only > "$TMP_ROOT/repo-ci.out"
 grep -Fq "ci: ok for repo" "$TMP_ROOT/repo-ci.out"
 rm -rf reports/evidence/repo
+
+python3 - <<'PY'
+from pathlib import Path
+
+path = Path("palari.config.yaml")
+text = path.read_text(encoding="utf-8")
+start = text.index("default_forbidden_paths:")
+end = text.index("\n# Optional repo-wide", start)
+path.write_text(
+    text[:start]
+    + "default_forbidden_paths:\n"
+    + "  - config-only-secret/**\n"
+    + text[end:],
+    encoding="utf-8",
+)
+PY
 
 ./bin/palari ticket create POS-0002 "Overlap alpha" \
   --stream docs \
@@ -76,6 +95,12 @@ if grep -Fq "Ticket Completion Contract" tickets/open/POS-0002-overlap-alpha.md;
   printf 'golden: lean R1 ticket generated the heavy completion contract\n' >&2
   exit 1
 fi
+grep -Fq "config-only-secret/**" tickets/open/POS-0002-overlap-alpha.md
+if grep -Fq "infra/prod/**" tickets/open/POS-0002-overlap-alpha.md; then
+  printf 'golden: ticket create ignored config default_forbidden_paths\n' >&2
+  exit 1
+fi
+./bin/palari lint POS-0002 > "$TMP_ROOT/lean-lint.out"
 ./bin/palari ticket create POS-0003 "Overlap beta" \
   --stream docs \
   --risk R1 \
@@ -124,8 +149,98 @@ grep -Fq "already claimed" "$TMP_ROOT/second-claim.out"
 git update-ref -d refs/palari/claims/POS-0004 >/dev/null 2>&1 || true
 rm -f tickets/open/POS-0004-*.md
 
+./bin/palari ticket create POS-0008 "Governed contract" \
+  --stream docs \
+  --risk R2 \
+  --allowed "docs/**" \
+  --allowed "tickets/**" \
+  --allowed "reports/**" \
+  --verify "manual governed check" >/dev/null
+grep -Fq "Ticket Completion Contract" tickets/open/POS-0008-governed-contract.md
+grep -Fq "requires_review: true" tickets/open/POS-0008-governed-contract.md
+rm -f tickets/open/POS-0008-*.md
+
 git add .
 git commit -m "initial orchestrator package" >/dev/null
+
+./bin/palari ticket create POS-0005 "Governed missing evidence" \
+  --stream docs \
+  --risk R2 \
+  --allowed "tickets/**" \
+  --allowed "reports/**" \
+  --verify "manual governed evidence check" >/dev/null
+./bin/palari ticket claim POS-0005 evidence-specialist >/dev/null
+cat > reports/POS-0005-technical-report.md <<'DOC'
+# POS-0005 Technical Report
+
+## Files Changed
+
+```text
+tickets/open/POS-0005-governed-missing-evidence.md
+```
+
+## Verification
+
+- Passed: manual governed evidence check
+
+## CI Evidence
+
+- Missing on purpose for this negative test.
+
+## Risks / Follow-Ups
+
+- None.
+DOC
+cat > reports/POS-0005-reviewer-note.md <<'DOC'
+# POS-0005 Reviewer Note
+
+## Review Result
+
+Decision: accept
+
+## Findings
+
+- No blocking findings.
+
+## Verification Reviewed
+
+- Reviewed the report only.
+
+## Required Changes
+
+- None.
+
+## Recommendation
+
+Accept.
+DOC
+./bin/palari ticket ready POS-0005 >/dev/null
+if ./bin/palari accept POS-0005 --by founder > "$TMP_ROOT/missing-evidence-accept.out" 2>&1; then
+  printf 'golden: expected missing evidence acceptance to fail\n' >&2
+  exit 1
+fi
+grep -Fq "missing evidence artifact" "$TMP_ROOT/missing-evidence-accept.out"
+git update-ref -d refs/palari/claims/POS-0005 >/dev/null 2>&1 || true
+rm -f tickets/open/POS-0005-*.md reports/POS-0005-*.md
+
+./bin/palari ticket create POS-0006 "Self acceptance check" \
+  --stream docs \
+  --risk R1 \
+  --allowed "tickets/**" \
+  --allowed "reports/**" \
+  --verify "manual self acceptance check" >/dev/null
+./bin/palari ticket claim POS-0006 implementer >/dev/null
+./bin/palari ci POS-0006 > "$TMP_ROOT/self-ci.out"
+test -f reports/evidence/POS-0006/manifest.json
+./bin/palari ticket ready POS-0006 >/dev/null
+if ./bin/palari accept POS-0006 --by implementer > "$TMP_ROOT/self-accept.out" 2>&1; then
+  printf 'golden: expected self-acceptance to fail\n' >&2
+  exit 1
+fi
+grep -Fq "implementation_self_acceptance is forbidden" "$TMP_ROOT/self-accept.out"
+git update-ref -d refs/palari/claims/POS-0006 >/dev/null 2>&1 || true
+rm -f tickets/open/POS-0006-*.md
+rm -rf reports/evidence/POS-0006
 
 ./bin/palari ticket create POS-0001 "Golden flow scope review" \
   --stream docs \
@@ -135,7 +250,14 @@ git commit -m "initial orchestrator package" >/dev/null
   --allowed "reports/**" \
   --verify "manual golden check" \
   --review \
-  --product-feel required >/dev/null
+  --required-report product-feel >/dev/null
+
+./bin/palari snapshot --json > "$TMP_ROOT/custom-report-snapshot.out"
+grep -Fq '"name":"product-feel"' "$TMP_ROOT/custom-report-snapshot.out"
+if grep -Fq '"product_feel"' "$TMP_ROOT/custom-report-snapshot.out"; then
+  printf 'golden: snapshot reintroduced a product-specific core report key\n' >&2
+  exit 1
+fi
 
 git add tickets
 git commit -m "add golden ticket" >/dev/null
@@ -170,6 +292,7 @@ grep -Fq "ci: ok for POS-0001" "$TMP_ROOT/ci.out"
 test -f reports/evidence/POS-0001/verification.log
 test -f reports/evidence/POS-0001/junit.xml
 test -f reports/evidence/POS-0001/palari.sarif
+test -f reports/evidence/POS-0001/manifest.json
 
 cat > reports/POS-0001-technical-report.md <<'DOC'
 # POS-0001 Technical Report

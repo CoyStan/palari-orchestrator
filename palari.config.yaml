@@ -9,7 +9,6 @@ tickets_closed_dir: tickets/closed
 reports_dir: reports
 human_reports_dir: reports/human
 handoffs_dir: handoffs
-templates_dir: templates
 agent_skills_dir: agent-skills
 state_dir: .palari
 evidence_dir: reports/evidence
@@ -36,15 +35,9 @@ default_forbidden_paths:
   - prod/**
 
 # Optional repo-wide custom report gates. Tickets can also declare
-# `required_reports` directly in frontmatter. Product-feel belongs here or in a
-# profile, not in the core ticket schema.
+# `required_reports` directly in frontmatter. Report names are repository
+# choices; the core only checks that a matching custom report exists.
 required_reports: []
 
-review_profiles:
-  ui:
-    required_reports:
-      - product-feel
-
 acceptance:
-  requires_named_acceptor: true
   implementation_self_acceptance: forbidden

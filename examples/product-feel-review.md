@@ -1,7 +1,8 @@
 # TICKET-ID Product Feel Review
 
 Fresh-context review for visible UI, copy, workflow order, capability-boundary
-honesty, and rendered experience. Use only when applicable.
+honesty, and rendered experience. Use this only when the adopting repository
+declares `product-feel` as a custom required report.
 
 ## Review Result
 
@@ -22,5 +23,5 @@ Decision: accept | reopen | needs-human | not-applicable
 
 ## Recommendation
 
-Accept from product-feel axis, reopen for specific changes, or ask the
+Accept for this custom report, reopen for specific changes, or ask the
 human/founder for a decision.

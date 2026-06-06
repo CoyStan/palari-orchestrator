@@ -31,8 +31,8 @@ they conflict with repo files.
 - Acceptor/human: verifies evidence, review state, scope, and authority before
   accepting. Does not accept missing gates.
 - Custom review profile: where configured, reviews through a named lens such as
-  product-feel, security, docs, or platform constraints and writes the matching
-  required report.
+  security, docs, UI, or platform constraints and writes the matching required
+  report.
 - Handoff author: frames options when scope, access, authority, or risk blocks
   work. This is a handoff pattern, not a separate core role.
 

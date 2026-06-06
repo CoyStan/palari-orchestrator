@@ -20,9 +20,13 @@ jobs:
         run: |
           bash -n bin/palari
           bash -n tests/run-golden.sh
+          bash -n tests/run-dashboard-rubric.sh
 
       - name: Golden flow
         run: tests/run-golden.sh
+
+      - name: Dashboard rubric
+        run: tests/run-dashboard-rubric.sh
 
       - name: Palari lint
         run: ./bin/palari lint

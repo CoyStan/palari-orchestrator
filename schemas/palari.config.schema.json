@@ -13,7 +13,6 @@
     "human_reports_dir",
     "evidence_dir",
     "handoffs_dir",
-    "templates_dir",
     "worktree_base",
     "default_forbidden_paths"
   ],
@@ -26,7 +25,6 @@
     "human_reports_dir": { "type": "string", "minLength": 1 },
     "evidence_dir": { "type": "string", "minLength": 1 },
     "handoffs_dir": { "type": "string", "minLength": 1 },
-    "templates_dir": { "type": "string", "minLength": 1 },
     "agent_skills_dir": { "type": "string", "minLength": 1 },
     "state_dir": { "type": "string", "minLength": 1 },
     "worktree_base": { "type": "string", "minLength": 1 },
@@ -47,24 +45,10 @@
       "type": "array",
       "items": { "type": "string", "minLength": 1 }
     },
-    "review_profiles": {
-      "type": "object",
-      "additionalProperties": {
-        "type": "object",
-        "additionalProperties": true,
-        "properties": {
-          "required_reports": {
-            "type": "array",
-            "items": { "type": "string", "minLength": 1 }
-          }
-        }
-      }
-    },
     "acceptance": {
       "type": "object",
       "additionalProperties": true,
       "properties": {
-        "requires_named_acceptor": { "type": "boolean" },
         "implementation_self_acceptance": {
           "type": "string",
           "enum": ["forbidden", "allowed-by-config"]

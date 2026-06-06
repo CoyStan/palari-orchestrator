@@ -4,10 +4,13 @@
 from __future__ import annotations
 
 import argparse
+import ipaddress
 import json
 import os
 import subprocess
 import sys
+import threading
+import time
 import urllib.parse
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -16,6 +19,13 @@ from typing import Any
 
 HERE = Path(__file__).resolve().parent
 STATIC_DIR = HERE / "static"
+SNAPSHOT_CACHE_TTL = 2.0
+SNAPSHOT_CACHE_LOCK = threading.Lock()
+SNAPSHOT_CACHE: dict[str, Any] = {
+    "root": None,
+    "at": 0.0,
+    "payload": None,
+}
 
 
 def run(root: Path, args: list[str], timeout: int = 5) -> dict[str, Any]:
@@ -50,15 +60,36 @@ def snapshot(root: Path) -> dict[str, Any]:
         raise RuntimeError(f"palari snapshot returned invalid JSON: {exc}") from exc
 
 
+def cached_snapshot(root: Path) -> dict[str, Any]:
+    cache_key = str(root)
+    now = time.monotonic()
+    with SNAPSHOT_CACHE_LOCK:
+        if (
+            SNAPSHOT_CACHE["root"] == cache_key
+            and SNAPSHOT_CACHE["payload"] is not None
+            and now - float(SNAPSHOT_CACHE["at"]) < SNAPSHOT_CACHE_TTL
+        ):
+            return SNAPSHOT_CACHE["payload"]
+
+        payload = snapshot(root)
+        SNAPSHOT_CACHE["root"] = cache_key
+        SNAPSHOT_CACHE["at"] = time.monotonic()
+        SNAPSHOT_CACHE["payload"] = payload
+        return payload
+
+
 class ConsoleHandler(SimpleHTTPRequestHandler):
     root: Path
 
     def translate_path(self, path: str) -> str:
         parsed = urllib.parse.urlparse(path)
         clean = parsed.path.lstrip("/") or "index.html"
+        static_root = STATIC_DIR.resolve()
         target = (STATIC_DIR / clean).resolve()
-        if not str(target).startswith(str(STATIC_DIR.resolve())):
-            return str(STATIC_DIR / "index.html")
+        try:
+            target.relative_to(static_root)
+        except ValueError:
+            return str(static_root / "index.html")
         if target.is_dir():
             target = target / "index.html"
         return str(target)
@@ -67,7 +98,11 @@ class ConsoleHandler(SimpleHTTPRequestHandler):
         parsed = urllib.parse.urlparse(self.path)
         if parsed.path == "/api/snapshot":
             try:
-                self.send_json(snapshot(self.root))
+                query = urllib.parse.parse_qs(parsed.query)
+                if query.get("fresh") == ["1"]:
+                    self.send_json(snapshot(self.root))
+                else:
+                    self.send_json(cached_snapshot(self.root))
             except RuntimeError as exc:
                 self.send_error(500, str(exc))
             return
@@ -103,6 +138,12 @@ def main() -> int:
             print(f"palari web check failed: {exc}", file=sys.stderr)
             return 1
 
+    if not is_loopback_host(args.host):
+        print(
+            "warning: palari web uses Python's local http.server; bind to loopback for local monitoring.",
+            file=sys.stderr,
+        )
+
     ConsoleHandler.root = root
     server = ThreadingHTTPServer((args.host, args.port), ConsoleHandler)
     print(f"Palari Console: http://{args.host}:{args.port}")
@@ -112,6 +153,15 @@ def main() -> int:
     except KeyboardInterrupt:
         print("\nPalari Console stopped.")
     return 0
+
+
+def is_loopback_host(host: str) -> bool:
+    if host == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
 
 
 if __name__ == "__main__":

@@ -32,6 +32,9 @@ Options:
 `--check` prints the same JSON produced by `palari snapshot --json`. It is
 useful for tests, CI, and debugging adapter reads.
 
+The server is a local stdlib viewer. It warns when bound outside loopback and is
+not a production web service.
+
 ## What It Shows
 
 - lifecycle ticket board
@@ -46,11 +49,24 @@ useful for tests, CI, and debugging adapter reads.
 
 The console borrows product principles from modern developer tools:
 
-- compact navigation and calm consistency
+- soft app-shell navigation with a canvas workspace and inspector pane
 - fast-feeling transitions
-- dense but scannable operational panels
+- row-based operational surfaces instead of heavy card stacks
 - evidence-first workflow surfaces
 - reduced-motion support
 
 The visual layer is deliberately self-contained so adopters can replace it
 without touching the Palari core.
+
+## Professional Rubric
+
+Run the dashboard rubric check before changing the console:
+
+```bash
+tests/run-dashboard-rubric.sh
+```
+
+The check guards the baseline product standard: clear purpose, app-shell
+structure, accessible refresh/status behavior, visible focus, semantic health
+states, action-linked warnings, missing-evidence visibility, responsive reflow,
+reduced-motion support, and lightweight adapter performance.
