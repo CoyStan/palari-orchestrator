@@ -7,6 +7,8 @@ on:
 permissions:
   contents: read
   actions: read
+  attestations: write
+  id-token: write
   security-events: write
 
 jobs:
@@ -38,16 +40,31 @@ jobs:
             ./bin/palari ci
           fi
 
+      - name: Package Palari evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p reports/evidence
+          tar -czf palari-evidence.tgz reports/evidence
+
       - name: Upload Palari evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: palari-evidence
-          path: reports/evidence/**
+          path: palari-evidence.tgz
           if-no-files-found: ignore
 
+      - name: Attest Palari evidence
+        if: ${{ always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        uses: actions/attest@v4
+        with:
+          subject-path: palari-evidence.tgz
+
       - name: Upload Palari SARIF
-        if: always()
+        if: ${{ always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: reports/evidence
+          category: palari

@@ -21,6 +21,8 @@ test -f .github/workflows/palari.yml
 test -f .github/palari-required-checks.ruleset.json
 test -f lefthook.yml
 test -f reports/evidence/.gitkeep
+grep -Fq "workflow alone does not protect merges" "$TMP_ROOT/init.out"
+grep -Fq "gh api --method POST repos/OWNER/REPO/rulesets" "$TMP_ROOT/init.out"
 
 ./bin/palari skill create sample-feature \
   --description "Preserve the sample feature contract for golden tests." > "$TMP_ROOT/skill.out"
@@ -35,6 +37,18 @@ done < "$REPO_ROOT/tests/golden/skill.contains.txt"
 ./bin/palari mcp manifest > "$TMP_ROOT/mcp.out"
 grep -Fq "palari_ticket_claim" "$TMP_ROOT/mcp.out"
 grep -Fq "palari_scope_check" "$TMP_ROOT/mcp.out"
+
+./bin/palari github ruleset-command --repo CoyStan/palari-orchestrator > "$TMP_ROOT/ruleset-command.out"
+grep -Fq "gh api --method POST repos/CoyStan/palari-orchestrator/rulesets" "$TMP_ROOT/ruleset-command.out"
+
+if ./bin/palari ci > "$TMP_ROOT/no-ticket-ci.out" 2>&1; then
+  printf 'golden: expected no-ticket ci to fail closed\n' >&2
+  exit 1
+fi
+grep -Fq "ci requires a ticket ID" "$TMP_ROOT/no-ticket-ci.out"
+./bin/palari ci --repo-only > "$TMP_ROOT/repo-ci.out"
+grep -Fq "ci: ok for repo" "$TMP_ROOT/repo-ci.out"
+rm -rf reports/evidence/repo
 
 ./bin/palari ticket create POS-0002 "Overlap alpha" \
   --stream docs \
@@ -55,7 +69,41 @@ if ./bin/palari scope-overlaps POS-0002 > "$TMP_ROOT/overlap.out" 2>&1; then
   exit 1
 fi
 grep -Fq "scope-overlaps: POS-0002 overlaps POS-0003" "$TMP_ROOT/overlap.out"
+if ./bin/palari ticket claim POS-0002 overlap-tester > "$TMP_ROOT/overlap-claim.out" 2>&1; then
+  printf 'golden: expected overlapping claim to fail under block policy\n' >&2
+  exit 1
+fi
+grep -Fq "overlapping allowed_paths" "$TMP_ROOT/overlap-claim.out"
+
+cat > oops.txt <<'DOC'
+outside declared ticket scope
+DOC
+if ./bin/palari ci POS-0002 > "$TMP_ROOT/failing-ci.out" 2>&1; then
+  printf 'golden: expected out-of-scope ci to fail\n' >&2
+  exit 1
+fi
+grep -Fq "ci: failed for POS-0002" "$TMP_ROOT/failing-ci.out"
+grep -Fq '"runAutomationDetails": {"id": "palari/POS-0002"}' reports/evidence/POS-0002/palari.sarif
+grep -Fq '"locations"' reports/evidence/POS-0002/palari.sarif
+rm -f oops.txt
+rm -rf reports/evidence/POS-0002
 rm -f tickets/open/POS-0002-*.md tickets/open/POS-0003-*.md
+
+./bin/palari ticket create POS-0004 "Claim lease check" \
+  --stream docs \
+  --risk R1 \
+  --allowed "lease/**" \
+  --allowed "tickets/**" \
+  --allowed "reports/**" \
+  --verify "manual claim check" >/dev/null
+./bin/palari ticket claim POS-0004 first-claimant >/dev/null
+if ./bin/palari ticket claim POS-0004 second-claimant > "$TMP_ROOT/second-claim.out" 2>&1; then
+  printf 'golden: expected second active claim to fail\n' >&2
+  exit 1
+fi
+grep -Fq "already claimed" "$TMP_ROOT/second-claim.out"
+git update-ref -d refs/palari/claims/POS-0004 >/dev/null 2>&1 || true
+rm -f tickets/open/POS-0004-*.md
 
 git add .
 git commit -m "initial orchestrator package" >/dev/null
@@ -225,6 +273,14 @@ DOC
 
 ./bin/palari scope-check POS-0001 > "$TMP_ROOT/scope.out"
 ./bin/palari ticket ready POS-0001 >/dev/null
+./bin/palari ticket heartbeat POS-0001 0 >/dev/null
+sleep 1
+if ./bin/palari accept POS-0001 --by founder > "$TMP_ROOT/expired-accept.out" 2>&1; then
+  printf 'golden: expected expired claim acceptance to fail\n' >&2
+  exit 1
+fi
+grep -Fq "claim lease is expired" "$TMP_ROOT/expired-accept.out"
+./bin/palari ticket heartbeat POS-0001 >/dev/null
 ./bin/palari lint POS-0001 > "$TMP_ROOT/lint.out"
 ./bin/palari accept POS-0001 --by founder > "$TMP_ROOT/accept.out"
 ./bin/palari status > "$TMP_ROOT/status.out"

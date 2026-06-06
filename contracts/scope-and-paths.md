@@ -35,6 +35,10 @@ In CI, run the same gate against a PR diff:
 palari scope-check TICKET-ID --base origin/main
 ```
 
+`palari ci` fails closed without a ticket ID, `PALARI_TICKET_ID`, or a
+`ticket/*` branch. Use `palari ci --repo-only` only for repository checks that
+are not serving as a merge-protection scope gate.
+
 When multiple tickets are active, `allowed_paths` also act as a concurrency
 control primitive. Use:
 

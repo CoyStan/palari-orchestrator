@@ -18,7 +18,7 @@ evidence_dir: reports/evidence
 worktree_base: ../palari-orchestrator-worktrees
 
 claim_lease_seconds: 300
-scope_overlap_policy: warn
+scope_overlap_policy: block
 concurrency_ignored_overlap_paths:
   - tickets/**
   - reports/**

@@ -16,6 +16,11 @@ bundle lives under `reports/evidence/TICKET-ID/` and contains:
 Specialist reports should cite this bundle in `## CI Evidence` instead of
 asking reviewers to trust prose-only verification claims.
 
+In GitHub, the adapter packages evidence as `palari-evidence.tgz`, uploads it as
+an artifact, and uses `actions/attest` when permissions allow it. This binds the
+evidence bundle to the workflow run instead of treating committed evidence files
+as inherently trustworthy.
+
 Product-feel reviewers are used when a ticket changes visible UI, user-facing
 copy, workflow order, capability boundaries, or product vocabulary. They should
 ground findings in rendered evidence where possible.

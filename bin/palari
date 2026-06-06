@@ -95,7 +95,7 @@ EVIDENCE_DIR="$(cfg evidence_dir "reports/evidence")"
 DEFAULT_BRANCH="$(cfg default_branch "main")"
 WORKTREE_BASE="$(cfg worktree_base "../$(basename "$ROOT")-worktrees")"
 CLAIM_LEASE_SECONDS="$(cfg claim_lease_seconds "300")"
-SCOPE_OVERLAP_POLICY="$(cfg scope_overlap_policy "warn")"
+SCOPE_OVERLAP_POLICY="$(cfg scope_overlap_policy "block")"
 
 abs_path() {
   local path="$1"
@@ -139,6 +139,11 @@ xml_escape() {
 
 json_escape() {
   sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e ':a;N;$!ba;s/\n/\\n/g'
+}
+
+shell_quote() {
+  local value="$1"
+  printf "'%s'" "$(printf '%s' "$value" | sed "s/'/'\\\\''/g")"
 }
 
 require_dir() {
@@ -569,12 +574,40 @@ create_git_claim_ref() {
   local head zeros
   zeros="0000000000000000000000000000000000000000"
   git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 0
-  head="$(git -C "$ROOT" rev-parse HEAD)"
+  head="$(git -C "$ROOT" rev-parse HEAD 2>/dev/null)" || return 0
   if git -C "$ROOT" update-ref "$ref" "$head" "$zeros" 2>/dev/null; then
     printf '%s\n' "$head"
     return 0
   fi
   die "ticket $ticket_id already has a git claim ref: $ref"
+}
+
+github_repo_slug() {
+  local remote="${1:-}"
+  [[ -n "$remote" ]] || remote="$(git -C "$ROOT" remote get-url origin 2>/dev/null || true)"
+  case "$remote" in
+    git@github.com:*)
+      remote="${remote#git@github.com:}"
+      remote="${remote%.git}"
+      ;;
+    https://github.com/*|http://github.com/*)
+      remote="${remote#https://github.com/}"
+      remote="${remote#http://github.com/}"
+      remote="${remote%.git}"
+      ;;
+    *)
+      remote=""
+      ;;
+  esac
+  [[ "$remote" == */* ]] && printf '%s\n' "$remote" || return 1
+}
+
+ruleset_activation_command() {
+  local repo="${1:-}"
+  local file="${2:-.github/palari-required-checks.ruleset.json}"
+  [[ -n "$repo" ]] || repo="$(github_repo_slug || true)"
+  [[ -n "$repo" ]] || repo="OWNER/REPO"
+  printf 'gh api --method POST repos/%s/rulesets --input %s\n' "$repo" "$(shell_quote "$file")"
 }
 
 ignored_overlap_patterns() {
@@ -671,6 +704,9 @@ cmd_init() {
   if [[ "$with_ci" == "true" ]]; then
     install_template_file "adapters/github/workflows/palari.yml" ".github/workflows/palari.yml" "$force"
     install_template_file "adapters/github/rulesets/palari-required-checks.json" ".github/palari-required-checks.ruleset.json" "$force"
+    printf 'init: important: the workflow alone does not protect merges until the ruleset is installed.\n'
+    printf 'init: activate required checks with:\n'
+    printf '  %s' "$(ruleset_activation_command)"
   fi
   if [[ "$with_hooks" == "true" ]]; then
     install_template_file "adapters/hooks/lefthook.yml" "lefthook.yml" "$force"
@@ -883,7 +919,9 @@ cmd_ticket_claim() {
   printf 'ticket claim: %s as %s\n' "$ticket_id" "$by"
   printf 'claim token: %s\n' "$token"
   printf 'claim lease: %ss, expires %s\n' "$ttl" "$expires"
-  [[ -n "$claim_head" ]] && printf 'claim ref: %s\n' "$claim_ref"
+  if [[ -n "$claim_head" ]]; then
+    printf 'claim ref: %s\n' "$claim_ref"
+  fi
 }
 
 cmd_ticket_heartbeat() {
@@ -1418,11 +1456,13 @@ ci_add_junit_case() {
 ci_add_sarif_failure() {
   local rule="$1"
   local message="$2"
-  local rule_json message_json
+  local rule_json message_json location_json
   rule_json="$(printf '%s' "$rule" | json_escape)"
   message_json="$(printf '%s' "$message" | json_escape)"
+  location_json="$(printf '%s' "${CI_SARIF_LOCATION:-palari.config.yaml}" | json_escape)"
   [[ ! -s "$CI_SARIF_RESULTS" ]] || printf ',\n' >> "$CI_SARIF_RESULTS"
-  printf '        {"ruleId":"%s","level":"error","message":{"text":"%s"}}' "$rule_json" "$message_json" >> "$CI_SARIF_RESULTS"
+  printf '        {"ruleId":"%s","level":"error","message":{"text":"%s"},"locations":[{"physicalLocation":{"artifactLocation":{"uri":"%s"},"region":{"startLine":1}}}]}' \
+    "$rule_json" "$message_json" "$location_json" >> "$CI_SARIF_RESULTS"
 }
 
 ci_run_step() {
@@ -1488,6 +1528,7 @@ ci_write_artifacts() {
     printf '  "runs": [\n'
     printf '    {\n'
     printf '      "tool": {"driver": {"name": "palari-ci", "informationUri": "https://github.com/CoyStan/palari-orchestrator"}},\n'
+    printf '      "runAutomationDetails": {"id": "%s"},\n' "$(printf '%s' "${CI_SARIF_RUN_ID:-palari/repo}" | json_escape)"
     printf '      "results": [\n'
     cat "$CI_SARIF_RESULTS"
     printf '\n      ]\n'
@@ -1499,18 +1540,23 @@ ci_write_artifacts() {
 
 cmd_ci() {
   require_base_folders
-  local ticket="" base_ref="" evidence_dir="$EVIDENCE_DIR" arg
+  local ticket="" base_ref="" evidence_dir="$EVIDENCE_DIR" repo_only="false" arg
   while (( $# > 0 )); do
     arg="$1"
     case "$arg" in
       --base) base_ref="$2"; shift 2 ;;
       --evidence-dir) evidence_dir="$2"; shift 2 ;;
       --ticket) ticket="$2"; shift 2 ;;
+      --repo-only) repo_only="true"; shift ;;
       --*) die "unknown ci option: $arg" ;;
       *) ticket="$arg"; shift ;;
     esac
   done
+  [[ -n "$ticket" ]] || ticket="${PALARI_TICKET_ID:-}"
   [[ -n "$ticket" ]] || ticket="$(infer_ticket_from_branch || true)"
+  if [[ -z "$ticket" && "$repo_only" != "true" ]]; then
+    die "ci requires a ticket ID, a ticket/* branch, or PALARI_TICKET_ID; use --repo-only only for non-merge-gate repository checks"
+  fi
 
   local ticket_label="${ticket:-repo}"
   local out_dir="$ROOT/$evidence_dir/$ticket_label"
@@ -1524,6 +1570,8 @@ cmd_ci() {
   CI_TESTS=0
   CI_FAILURES=0
   CI_SKIPPED=0
+  CI_SARIF_RUN_ID="palari/$ticket_label"
+  CI_SARIF_LOCATION="palari.config.yaml"
   : > "$CI_JUNIT_CASES"
   : > "$CI_SARIF_RESULTS"
   {
@@ -1535,13 +1583,14 @@ cmd_ci() {
 
   local failed=0 file check index=0
   if [[ -n "$ticket" ]]; then
+    file="$(find_ticket_file "$ticket")" || die "ticket not found: $ticket"
+    CI_SARIF_LOCATION="${file#$ROOT/}"
     if [[ -n "$base_ref" ]]; then
       ci_run_step "scope-check" cmd_scope_check "$ticket" --base "$base_ref" || failed=1
     else
       ci_run_step "scope-check" cmd_scope_check "$ticket" || failed=1
     fi
     ci_run_step "lint" cmd_lint "$ticket" || failed=1
-    file="$(find_ticket_file "$ticket")" || die "ticket not found: $ticket"
     while IFS= read -r check; do
       [[ -n "$check" ]] || continue
       index=$((index + 1))
@@ -1690,6 +1739,36 @@ cmd_mcp() {
   esac
 }
 
+cmd_github() {
+  local sub="${1:-}"
+  shift || true
+  local repo="" file=".github/palari-required-checks.ruleset.json" arg
+  while (( $# > 0 )); do
+    arg="$1"
+    case "$arg" in
+      --repo) repo="$2"; shift 2 ;;
+      --file) file="$2"; shift 2 ;;
+      *) die "unknown github option: $arg" ;;
+    esac
+  done
+  [[ -n "$repo" ]] || repo="$(github_repo_slug || true)"
+  [[ -n "$repo" ]] || repo="OWNER/REPO"
+  case "$sub" in
+    ruleset-command)
+      ruleset_activation_command "$repo" "$file"
+      ;;
+    install-ruleset)
+      [[ "$repo" != "OWNER/REPO" ]] || die "install-ruleset needs --repo OWNER/REPO or a GitHub origin remote"
+      [[ -f "$ROOT/$file" ]] || die "ruleset file not found: $file"
+      command -v gh >/dev/null 2>&1 || die "install-ruleset requires GitHub CLI: gh"
+      gh api --method POST "repos/$repo/rulesets" --input "$ROOT/$file"
+      ;;
+    *)
+      die "unknown github command: ${sub:-}; try \`palari github ruleset-command\`"
+      ;;
+  esac
+}
+
 usage() {
   cat <<'USAGE'
 usage: palari COMMAND [ARGS]
@@ -1709,12 +1788,15 @@ commands:
   packet ID ROLE               Print specialist/reviewer/product-feel/mediator packet.
   skill create NAME --description TEXT
                                Create a feature-contract Agent Skill scaffold.
-  ci [ID] [--base REF]         Run structural gates and write evidence artifacts.
+  ci ID [--base REF]           Run ticket gates and write evidence artifacts.
+  ci --repo-only               Run non-merge-gate repository lint evidence.
   lint [ID]                    Lint ticket fields and report gates.
   report-lint [ID]             Lint report presence and headings.
   scope-check [ID] [--base REF]
                                Check local or PR-diff paths against ticket scope.
   scope-overlaps [ID]          Detect overlapping active ticket write scopes.
+  github ruleset-command       Print the gh api command that activates required checks.
+  github install-ruleset       Install the GitHub ruleset with gh api.
   mcp manifest                 Print optional MCP tool metadata.
   accept ID --by NAME          Human/authorized-reviewer acceptance gate.
 
@@ -1723,6 +1805,14 @@ init options:
   --hooks                      Generate local lefthook config.
   --all                        Generate all optional adapters.
   --force                      Overwrite generated adapter files.
+
+github options:
+  --repo OWNER/REPO             Repository for ruleset installation.
+  --file PATH                   Ruleset JSON path; default .github/palari-required-checks.ruleset.json.
+
+ci options:
+  --base REF                    Diff ticket scope against REF...HEAD.
+  --repo-only                   Explicitly skip ticket scope enforcement.
 
 ticket create options:
   --stream NAME --risk R1 --priority P2 --allowed GLOB --forbidden GLOB
@@ -1751,6 +1841,7 @@ case "${1:-}" in
   report-lint) shift; cmd_report_lint "${1:-}" ;;
   scope-check) shift; cmd_scope_check "$@" ;;
   scope-overlaps) shift; cmd_scope_overlaps "${1:-}" ;;
+  github) shift; cmd_github "$@" ;;
   mcp) shift; cmd_mcp "${1:-manifest}" ;;
   accept) shift; cmd_accept "${1:-}" "${@:2}" ;;
   -h|--help|help|"") usage ;;

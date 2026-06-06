@@ -65,7 +65,13 @@ To also install optional governance adapters:
 ```
 
 This generates a GitHub Actions governance workflow, an importable ruleset
-template, and a `lefthook.yml` for local advisory checks.
+template, and a `lefthook.yml` for local advisory checks. The workflow alone
+does not protect merges until the ruleset is installed:
+
+```bash
+palari github ruleset-command --repo OWNER/REPO
+palari github install-ruleset --repo OWNER/REPO
+```
 
 Optional shell alias:
 
@@ -124,12 +130,15 @@ palari accept APP-0001 --by founder
 | `palari ticket ready ID` | Move a ticket into review once implementation evidence exists. |
 | `palari worktree ID` | Create or locate the ticket-specific git worktree. |
 | `palari packet ID ROLE` | Generate the mission packet for a specialist, reviewer, product-feel reviewer, or mediator. |
-| `palari ci [ID] --base REF` | Run scope/lint/report gates and write evidence artifacts. |
+| `palari ci ID --base REF` | Run scope/lint/report gates and write evidence artifacts. Fails closed without a ticket. |
+| `palari ci --repo-only` | Run explicit non-merge-gate repository lint evidence. |
 | `palari scope-check [ID]` | Compare changed files against allowed and forbidden path rules. |
 | `palari scope-overlaps [ID]` | Detect overlapping active ticket write scopes. |
 | `palari lint [ID]` | Validate ticket state, evidence, config, templates, and required reports. |
 | `palari report-lint [ID]` | Validate specialist and reviewer report structure. |
 | `palari skill create NAME` | Scaffold a portable feature-contract skill. |
+| `palari github ruleset-command` | Print the `gh api` command that activates required checks. |
+| `palari github install-ruleset` | Install the GitHub ruleset through `gh api`. |
 | `palari mcp manifest` | Print optional MCP tool metadata for wrapper adapters. |
 | `palari accept ID --by NAME` | Close the ticket only after the acceptance gate is satisfied. |
 
@@ -141,8 +150,8 @@ ship as adapters:
 - GitHub Actions: `palari init --ci` writes `.github/workflows/palari.yml`.
 - GitHub rulesets: `palari init --ci` writes `.github/palari-required-checks.ruleset.json`.
 - Local hooks: `palari init --hooks` writes `lefthook.yml` for fast advisory checks.
-- Trusted evidence: `palari ci` writes `reports/evidence/<ticket>/verification.log`, `junit.xml`, and `palari.sarif`.
-- Concurrency: `ticket claim` records lease metadata, `ticket heartbeat` renews it, and `scope-overlaps` detects path-scope collisions.
+- Trusted evidence: `palari ci` writes `reports/evidence/<ticket>/verification.log`, `junit.xml`, and `palari.sarif`; the GitHub adapter uploads and attests `palari-evidence.tgz`.
+- Concurrency: `ticket claim` records lease metadata, `ticket heartbeat` renews it, and `scope-overlaps` blocks path-scope collisions by default.
 - MCP: `palari mcp manifest` exposes a thin command manifest for optional MCP wrappers.
 
 ## Portable Core

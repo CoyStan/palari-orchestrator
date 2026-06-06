@@ -47,7 +47,8 @@ they conflict with repo files.
    database mutation, destructive commands, or unclear acceptance criteria.
 7. Record evidence in reports and run `palari scope-check TICKET-ID`. In CI,
    use `palari ci TICKET-ID --base BASE_REF` so the evidence bundle is produced
-   by the trusted executor under `reports/evidence/`.
+   by the trusted executor under `reports/evidence/`. `palari ci` fails closed
+   without a ticket; use `--repo-only` only for non-merge-gate repository checks.
 8. Use `palari scope-overlaps TICKET-ID` before parallel work when write scopes
    may collide. Renew long-running work with `palari ticket heartbeat TICKET-ID`.
 9. Move implementation to `in-review`. Acceptance remains a separate human or
@@ -56,9 +57,12 @@ they conflict with repo files.
 ## Integrations
 
 - `palari init --ci` generates the GitHub Actions governance workflow and an
-  importable ruleset template. CI is the authoritative gate.
+  importable ruleset template. The workflow alone does not protect merges; run
+  `palari github install-ruleset --repo OWNER/REPO` to activate required checks.
 - `palari init --hooks` generates `lefthook.yml` for fast local feedback. Hooks
   are advisory and can be skipped.
+- The GitHub adapter uploads and attests `palari-evidence.tgz` when repository
+  permissions allow it.
 - `palari mcp manifest` prints optional MCP tool metadata for adapter wrappers.
 - Repo-specific app preferences, browser scripts, screenshots, founder taste,
   and private connectors belong in adapters, not in the Palari core.

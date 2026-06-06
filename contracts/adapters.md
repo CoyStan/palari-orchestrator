@@ -21,9 +21,19 @@ The GitHub adapter may generate:
 - required status-check documentation
 - artifact upload steps for Palari evidence
 - SARIF upload steps for Palari findings
+- artifact attestation for `palari-evidence.tgz`
 
 The workflow should call the CLI. It should not reimplement ticket parsing,
 scope checks, lifecycle rules, or acceptance policy.
+
+The ruleset JSON is inert until installed in GitHub. Use:
+
+```bash
+palari github ruleset-command --repo OWNER/REPO
+palari github install-ruleset --repo OWNER/REPO
+```
+
+The workflow is a check producer. The ruleset is the merge authority.
 
 ## Local Hook Adapter
 
@@ -39,8 +49,10 @@ CI evidence belongs under `reports/evidence/`. The standard bundle is:
 - `junit.xml`
 - `palari.sarif`
 
-Future attestation adapters may sign or verify that bundle, but human-authored
-reports remain separate from machine-produced evidence.
+The GitHub adapter packages this directory into `palari-evidence.tgz`, uploads
+it as an artifact, and uses `actions/attest` when repository permissions allow
+attestations. Human-authored reports remain separate from machine-produced
+evidence.
 
 ## MCP Adapter
 

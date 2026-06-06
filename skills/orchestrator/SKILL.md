@@ -19,7 +19,8 @@ repository.
    `palari ticket heartbeat TICKET-ID`.
 8. Run verification or record a clear not-run reason. In CI, use
    `palari ci TICKET-ID --base BASE_REF` so logs, JUnit, and SARIF are captured
-   under `reports/evidence/`.
+   under `reports/evidence/`. Do not use `palari ci --repo-only` for
+   merge-gated ticket work.
 9. Write the required report artifact, including the `CI Evidence` section when
    machine evidence exists.
 10. Run `palari scope-check TICKET-ID` and `palari lint TICKET-ID`.
@@ -30,6 +31,8 @@ repository.
 ## Adapter Rules
 
 - GitHub workflows and rulesets are generated with `palari init --ci`.
+- Required GitHub checks are not active until `palari github install-ruleset`
+  or the printed `gh api` command installs the ruleset.
 - Local hooks are generated with `palari init --hooks` and are advisory only.
 - MCP wrappers should use `palari mcp manifest`; the CLI remains authoritative.
 - Product-specific behavior belongs in an adopter adapter, not in the portable
