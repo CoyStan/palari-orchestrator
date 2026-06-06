@@ -20,9 +20,17 @@ git config user.name "Golden Test"
 test -f .github/workflows/palari.yml
 test -f .github/palari-required-checks.ruleset.json
 test -f lefthook.yml
+test -f adapters/web/server.py
+test -f adapters/web/static/index.html
+test -f adapters/web/static/styles.css
+test -f adapters/web/static/app.js
 test -f reports/evidence/.gitkeep
 grep -Fq "workflow alone does not protect merges" "$TMP_ROOT/init.out"
 grep -Fq "gh api --method POST repos/OWNER/REPO/rulesets" "$TMP_ROOT/init.out"
+python3 -m py_compile adapters/web/server.py
+./bin/palari web --check > "$TMP_ROOT/web-snapshot.out"
+grep -Fq '"project": "Palari Orchestrator"' "$TMP_ROOT/web-snapshot.out"
+grep -Fq '"tickets": []' "$TMP_ROOT/web-snapshot.out"
 
 ./bin/palari skill create sample-feature \
   --description "Preserve the sample feature contract for golden tests." > "$TMP_ROOT/skill.out"

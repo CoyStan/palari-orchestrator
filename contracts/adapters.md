@@ -60,6 +60,21 @@ MCP is a delivery protocol for agents. It may expose Palari commands as tools,
 but the CLI remains the source of truth and `accept` remains a human or
 authorized-reviewer gate.
 
+## Web Adapter
+
+The web adapter is an operator console. It may read tickets, reports, evidence,
+config, and git state, then present copyable CLI commands and health signals.
+
+It must not become a separate source of truth:
+
+- no separate ticket database
+- no acceptance bypass
+- no hidden mutation path around `palari`
+- no product-specific Palari app assumptions in the portable console
+
+`palari web` binds to `127.0.0.1` by default and runs from the stdlib Python
+server in `adapters/web/`.
+
 ## Repo-Specific Adapters
 
 Product vocabulary, private app routes, screenshots, founder preferences,

@@ -35,6 +35,8 @@ repository.
   or the printed `gh api` command installs the ruleset.
 - Local hooks are generated with `palari init --hooks` and are advisory only.
 - MCP wrappers should use `palari mcp manifest`; the CLI remains authoritative.
+- The local web console runs with `palari web`; use it to monitor tickets,
+  claims, evidence, and scope, not to replace ticket/report authority.
 - Product-specific behavior belongs in an adopter adapter, not in the portable
   core.
 

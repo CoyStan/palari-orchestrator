@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Palari Console</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="rail" aria-label="Palari Console navigation">
+        <div class="brand">
+          <span class="mark" aria-hidden="true"></span>
+          <div>
+            <strong>Palari</strong>
+            <span>Console</span>
+          </div>
+        </div>
+        <nav>
+          <a href="#overview" class="active">Overview</a>
+          <a href="#tickets">Tickets</a>
+          <a href="#evidence">Evidence</a>
+          <a href="#scope">Scope</a>
+          <a href="#commands">Commands</a>
+        </nav>
+        <div class="rail-status">
+          <span class="pulse" aria-hidden="true"></span>
+          <div>
+            <strong id="railState">Loading</strong>
+            <span id="railDetail">Reading repository</span>
+          </div>
+        </div>
+      </aside>
+
+      <main>
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Local adapter · repo as law</p>
+            <h1 id="projectName">Palari Orchestrator</h1>
+          </div>
+          <div class="top-actions">
+            <button class="ghost" id="refreshButton" type="button">Refresh</button>
+            <span class="timestamp" id="timestamp">--</span>
+          </div>
+        </header>
+
+        <section class="hero" id="overview">
+          <div class="hero-copy">
+            <p class="eyebrow">Governance Control Room</p>
+            <h2>Monitor tickets, claims, evidence, and acceptance gates without leaving the repo.</h2>
+            <p>
+              Palari Console reads the same Markdown, git state, and evidence artifacts as the CLI. It
+              gives operators a calm surface for deciding what to run next.
+            </p>
+          </div>
+          <div class="signal-panel" aria-label="Current orchestration health">
+            <div class="signal-ring" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <div>
+              <strong id="healthGrade">--</strong>
+              <span id="healthSummary">Loading health model</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="metrics" aria-label="Ticket lifecycle counts">
+          <article>
+            <span>Open</span>
+            <strong id="countOpen">0</strong>
+          </article>
+          <article>
+            <span>Claimed</span>
+            <strong id="countClaimed">0</strong>
+          </article>
+          <article>
+            <span>In Review</span>
+            <strong id="countReview">0</strong>
+          </article>
+          <article>
+            <span>Accepted</span>
+            <strong id="countAccepted">0</strong>
+          </article>
+        </section>
+
+        <section class="grid two">
+          <article class="panel" id="tickets">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Ticket Board</p>
+                <h3>Lifecycle</h3>
+              </div>
+              <select id="ticketFilter" aria-label="Filter tickets by status">
+                <option value="all">All statuses</option>
+                <option value="open">Open</option>
+                <option value="claimed">Claimed</option>
+                <option value="in-review">In review</option>
+                <option value="blocked">Blocked</option>
+                <option value="accepted">Accepted</option>
+              </select>
+            </div>
+            <div class="ticket-list" id="ticketList"></div>
+          </article>
+
+          <article class="panel" id="evidence">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Evidence Center</p>
+                <h3>CI Artifacts</h3>
+              </div>
+              <span class="pill" id="evidencePill">0 bundles</span>
+            </div>
+            <div class="evidence-list" id="evidenceList"></div>
+          </article>
+        </section>
+
+        <section class="grid two">
+          <article class="panel" id="scope">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Scope Map</p>
+                <h3>Path Partitions</h3>
+              </div>
+              <span class="pill" id="scopePill">clean</span>
+            </div>
+            <div id="scopeMap" class="scope-map"></div>
+          </article>
+
+          <article class="panel" id="commands">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Command Palette</p>
+                <h3>Next Actions</h3>
+              </div>
+              <span class="pill">copy only</span>
+            </div>
+            <div class="command-list" id="commandList"></div>
+          </article>
+        </section>
+
+        <section class="panel mono-panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Repository Signal</p>
+              <h3>Git and Palari Status</h3>
+            </div>
+            <span class="pill" id="branchPill">branch</span>
+          </div>
+          <pre id="statusOutput">Loading...</pre>
+        </section>
+      </main>
+    </div>
+
+    <template id="emptyTemplate">
+      <div class="empty">
+        <strong>No records yet</strong>
+        <span>The console will populate as tickets, reports, and evidence appear.</span>
+      </div>
+    </template>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>

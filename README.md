@@ -36,6 +36,7 @@ The useful unit is a ticket. Every ticket has allowed paths, verification comman
 - Generated GitHub CI/ruleset and local hook adapters for structural gates.
 - CI evidence bundles with logs, JUnit XML, and SARIF output.
 - Claim leases, heartbeat renewal, git claim refs, and path-overlap checks.
+- Optional local Palari Console web dashboard for monitoring tickets, evidence, claims, and scope.
 - Config schema, templates, contracts, adapter guidance, orchestrator skill guidance, and golden fixtures.
 - Feature-contract skill scaffolding with `palari skill create`.
 
@@ -140,6 +141,7 @@ palari accept APP-0001 --by founder
 | `palari github ruleset-command` | Print the `gh api` command that activates required checks. |
 | `palari github install-ruleset` | Install the GitHub ruleset through `gh api`. |
 | `palari mcp manifest` | Print optional MCP tool metadata for wrapper adapters. |
+| `palari web` | Run the optional local Palari Console dashboard. |
 | `palari accept ID --by NAME` | Close the ticket only after the acceptance gate is satisfied. |
 
 ## Governance Integrations
@@ -153,6 +155,7 @@ ship as adapters:
 - Trusted evidence: `palari ci` writes `reports/evidence/<ticket>/verification.log`, `junit.xml`, and `palari.sarif`; the GitHub adapter uploads and attests `palari-evidence.tgz`.
 - Concurrency: `ticket claim` records lease metadata, `ticket heartbeat` renews it, and `scope-overlaps` blocks path-scope collisions by default.
 - MCP: `palari mcp manifest` exposes a thin command manifest for optional MCP wrappers.
+- Web console: `palari web` starts a local dashboard that reads the repo and shows tickets, claims, evidence, scope overlaps, workflow health, and copyable next commands.
 
 ## Portable Core
 
@@ -184,7 +187,7 @@ palari.config.yaml                Example config for lifecycle, paths, roles, an
 schemas/palari.config.schema.json Config schema
 templates/                        Ticket, packet, report, handoff, and skill templates
 contracts/                        Portable workflow contracts
-adapters/                         Optional GitHub, hooks, and MCP integration templates
+adapters/                         Optional GitHub, hooks, MCP, and web integration templates
 skills/orchestrator/SKILL.md      Orchestrator usage guidance
 tests/golden/                     Fixtures that prove the flow works
 ```

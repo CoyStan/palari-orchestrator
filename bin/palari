@@ -1769,6 +1769,39 @@ cmd_github() {
   esac
 }
 
+cmd_web() {
+  local host="127.0.0.1" port="8765" check="false" arg
+  while (( $# > 0 )); do
+    arg="$1"
+    case "$arg" in
+      --host) host="$2"; shift 2 ;;
+      --port) port="$2"; shift 2 ;;
+      --check) check="true"; shift ;;
+      -h|--help)
+        cat <<'WEBUSAGE'
+usage: palari web [--host HOST] [--port PORT] [--check]
+
+Run the optional local Palari Console web dashboard.
+
+options:
+  --host HOST   Bind host. Default: 127.0.0.1
+  --port PORT   Bind port. Default: 8765
+  --check       Print the dashboard JSON snapshot and exit.
+WEBUSAGE
+        return 0
+        ;;
+      *) die "unknown web option: $arg" ;;
+    esac
+  done
+  [[ "$port" =~ ^[0-9]+$ ]] || die "web port must be numeric"
+  command -v python3 >/dev/null 2>&1 || die "palari web requires python3"
+  if [[ "$check" == "true" ]]; then
+    python3 "$ROOT/adapters/web/server.py" --root "$ROOT" --check
+  else
+    python3 "$ROOT/adapters/web/server.py" --root "$ROOT" --host "$host" --port "$port"
+  fi
+}
+
 usage() {
   cat <<'USAGE'
 usage: palari COMMAND [ARGS]
@@ -1798,6 +1831,8 @@ commands:
   github ruleset-command       Print the gh api command that activates required checks.
   github install-ruleset       Install the GitHub ruleset with gh api.
   mcp manifest                 Print optional MCP tool metadata.
+  web [--host HOST] [--port PORT]
+                               Run the optional local web dashboard.
   accept ID --by NAME          Human/authorized-reviewer acceptance gate.
 
 init options:
@@ -1843,6 +1878,7 @@ case "${1:-}" in
   scope-overlaps) shift; cmd_scope_overlaps "${1:-}" ;;
   github) shift; cmd_github "$@" ;;
   mcp) shift; cmd_mcp "${1:-manifest}" ;;
+  web) shift; cmd_web "$@" ;;
   accept) shift; cmd_accept "${1:-}" "${@:2}" ;;
   -h|--help|help|"") usage ;;
   *) usage >&2; die "unknown command: $1" ;;

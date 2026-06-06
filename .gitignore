@@ -1,4 +1,6 @@
 *.tmp.*
+*.pyc
 .DS_Store
+__pycache__/
 .palari/
 palari-orchestrator-worktrees/

@@ -64,6 +64,9 @@ they conflict with repo files.
 - The GitHub adapter uploads and attests `palari-evidence.tgz` when repository
   permissions allow it.
 - `palari mcp manifest` prints optional MCP tool metadata for adapter wrappers.
+- `palari web` starts the optional local Palari Console. Use it for monitoring
+  and command discovery; do not treat it as a replacement for ticket files,
+  reports, packets, or `accept`.
 - Repo-specific app preferences, browser scripts, screenshots, founder taste,
   and private connectors belong in adapters, not in the Palari core.
 
