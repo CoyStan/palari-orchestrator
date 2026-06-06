@@ -49,10 +49,12 @@ they conflict with repo files.
 6. Execute only inside ticket scope. Stop on missing authority, forbidden paths,
    higher real risk, secrets, production, live services, deploys, Docker,
    database mutation, destructive commands, or unclear acceptance criteria.
-7. Record evidence in reports and run `palari scope-check TICKET-ID`. In CI,
-   use `palari ci TICKET-ID --base BASE_REF` so the evidence bundle is produced
-   by the trusted executor under `reports/evidence/`. `palari ci` fails closed
-   without a ticket; use `--repo-only` only for non-merge-gate repository checks.
+7. Record evidence in reports and run `palari scope-check TICKET-ID`. Use
+   `palari ci TICKET-ID --base BASE_REF` so the evidence bundle includes the
+   integrity manifest required by `accept`. In GitHub, the required `palari`
+   check and evidence attestation provide the trusted merge-path executor.
+   `palari ci` fails closed without a ticket; use `--repo-only` only for
+   non-merge-gate repository checks.
 8. Use `palari scope-overlaps TICKET-ID` before parallel work when write scopes
    may collide. Renew long-running work with `palari ticket heartbeat TICKET-ID`.
 9. Move implementation to `in-review`. Acceptance remains a separate human or
@@ -68,6 +70,8 @@ they conflict with repo files.
 - The GitHub adapter uploads and attests `palari-evidence.tgz` when repository
   permissions allow it.
 - `palari mcp manifest` prints optional MCP tool metadata for adapter wrappers.
+  It does not expose `accept`; acceptance remains a human or explicitly
+  authorized reviewer action.
 - `palari web` starts the optional local Palari Console. Use it for monitoring
   and command discovery. It renders `palari snapshot --json`; do not treat it as
   a replacement for ticket files, reports, packets, or `accept`.

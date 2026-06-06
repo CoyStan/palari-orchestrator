@@ -127,6 +127,7 @@ def main() -> int:
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--check", action="store_true", help="Print a dashboard snapshot and exit.")
+    parser.add_argument("--unsafe-bind", action="store_true", help="Allow binding outside loopback.")
     args = parser.parse_args()
 
     root = Path(args.root).resolve()
@@ -138,6 +139,12 @@ def main() -> int:
             print(f"palari web check failed: {exc}", file=sys.stderr)
             return 1
 
+    if not is_loopback_host(args.host) and not args.unsafe_bind:
+        print(
+            "palari web refuses non-loopback hosts unless --unsafe-bind is set.",
+            file=sys.stderr,
+        )
+        return 2
     if not is_loopback_host(args.host):
         print(
             "warning: palari web uses Python's local http.server; bind to loopback for local monitoring.",

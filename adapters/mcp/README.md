@@ -12,5 +12,6 @@ Keep this adapter thin:
 - The CLI remains the source of truth.
 - MCP exposes discovery and tool-call ergonomics.
 - CI, ticket files, reports, and git state remain authoritative.
-- Agents may call `packet`, `scope-check`, and `lint`; they may not bypass
-  `accept`.
+- Agents may call `packet`, `scope-check`, and `lint`; `accept` stays outside
+  this manifest because acceptance is a human or explicitly authorized reviewer
+  action.
