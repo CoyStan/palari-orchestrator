@@ -13,6 +13,13 @@ agent_skills_dir: agent-skills
 state_dir: .palari
 evidence_dir: reports/evidence
 
+memory_dir: memory
+memory_index_backend: sqlite # sqlite | json | none
+memory_cache_dir: .palari/cache
+memory_packet_limit: 5
+memory_related_limit: 2
+memory_active_only_default: true
+
 # Relative paths are resolved from the repository root.
 worktree_base: ../palari-orchestrator-worktrees
 

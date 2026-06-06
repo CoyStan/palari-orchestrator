@@ -470,4 +470,6 @@ done <"$REPO_ROOT/tests/golden/status.contains.txt"
 test -f tickets/closed/POS-0001-golden-flow-scope-review.md
 test ! -f tickets/open/POS-0001-golden-flow-scope-review.md
 
+"$REPO_ROOT/tests/run-memory.sh" >/dev/null
+
 printf 'golden: ok\n'

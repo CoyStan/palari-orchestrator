@@ -123,6 +123,8 @@ DEFAULT_BRANCH="$(cfg default_branch "main")"
 WORKTREE_BASE="$(cfg worktree_base "../$(basename "$ROOT")-worktrees")"
 CLAIM_LEASE_SECONDS="$(cfg claim_lease_seconds "300")"
 SCOPE_OVERLAP_POLICY="$(cfg scope_overlap_policy "block")"
+MEMORY_DIR="$(cfg memory_dir "memory")"
+MEMORY_INDEX_BACKEND="$(cfg memory_index_backend "sqlite")"
 
 abs_path() {
 	local path="$1"
@@ -1347,8 +1349,22 @@ cmd_packet() {
 	printf '  - secrets, production, live external services, deploys, Docker, database mutation, or destructive commands become necessary without explicit scope\n'
 	printf '  - acceptance criteria, product direction, or authority are unclear\n'
 	printf '  - actor would need to accept its own substantive work\n\n'
+	print_packet_memory "$ticket_id" "$role"
 	printf 'Closeout:\n'
 	printf '  - result state\n  - changed paths\n  - verification passed/failed/not run\n  - blockers or scope conflicts\n  - risks/follow-ups\n  - next action for orchestrator/human\n'
+}
+
+print_packet_memory() {
+	local ticket_id="$1"
+	local role="$2"
+	if command -v python3 >/dev/null 2>&1 && [[ -f "$ROOT/adapters/memory/memory.py" ]]; then
+		if python3 -B "$ROOT/adapters/memory/memory.py" --root "$ROOT" context "$ticket_id" --role "$role" --write-lock; then
+			printf '\n'
+			return 0
+		fi
+	fi
+	printf 'Relevant Memory:\n'
+	printf '  - none selected\n\n'
 }
 
 lint_one_ticket() {
@@ -2434,6 +2450,19 @@ snapshot_workflow_json() {
 		"$(json_bool "$([[ "$workflow_text" == *upload-sarif* ]] && printf true || printf false)")"
 }
 
+snapshot_memory_json() {
+	if command -v python3 >/dev/null 2>&1 && [[ -f "$ROOT/adapters/memory/memory.py" ]]; then
+		python3 -B "$ROOT/adapters/memory/memory.py" --root "$ROOT" summary --json 2>/dev/null && return 0
+	fi
+	printf '{"enabled":'
+	json_bool "$([[ -d "$ROOT/$MEMORY_DIR" ]] && printf true || printf false)"
+	printf ',"dir":'
+	json_string "$MEMORY_DIR"
+	printf ',"backend":'
+	json_string "$MEMORY_INDEX_BACKEND"
+	printf ',"total":0,"active":0,"proposed":0,"stale_review":0,"lint_ok":true,"index_exists":false}'
+}
+
 cmd_snapshot() {
 	require_base_folders
 	local format="${1:-}"
@@ -2490,6 +2519,8 @@ cmd_snapshot() {
 	printf ',\n  "overlaps": %s,\n' "$overlaps_json"
 	printf '  "workflow": '
 	snapshot_workflow_json
+	printf ',\n  "memory": '
+	snapshot_memory_json
 	printf ',\n  "health": {"status_ok":true,"dirty_paths":%s,"stale_claims":%s,"missing_evidence":%s,"overlaps":%s},\n' \
 		"$dirty" "$stale" "$missing_evidence" "$overlap_count"
 	printf '  "git": {"branch":'
@@ -2552,6 +2583,12 @@ WEBUSAGE
 	fi
 }
 
+cmd_memory() {
+	command -v python3 >/dev/null 2>&1 || die "palari memory requires python3"
+	[[ -f "$ROOT/adapters/memory/memory.py" ]] || die "missing memory adapter: adapters/memory/memory.py"
+	python3 -B "$ROOT/adapters/memory/memory.py" --root "$ROOT" "$@"
+}
+
 usage() {
 	cat <<'USAGE'
 usage: palari COMMAND [ARGS]
@@ -2569,6 +2606,7 @@ commands:
   ticket reopen ID             Move in-review ticket to reopened.
   worktree ID                  Prepare and verify ticket branch/worktree.
   packet ID ROLE               Print specialist/reviewer/acceptor or custom-profile packet.
+  memory ...                   Manage optional repo-native memory.
   skill create NAME --description TEXT
                                Adapter scaffold for feature-contract Agent Skills.
   ci ID [--base REF]           Run ticket gates and write evidence artifacts.
@@ -2635,6 +2673,10 @@ worktree)
 packet | agent-packet)
 	shift
 	cmd_packet "${1:-}" "${2:-}"
+	;;
+memory)
+	shift
+	cmd_memory "$@"
 	;;
 skill)
 	shift
