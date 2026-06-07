@@ -1241,6 +1241,241 @@ cmd_worktree() {
 	printf 'Worker cd: cd %s\n' "$worktree"
 }
 
+sandbox_default_path() {
+	local ticket_id="$1"
+	printf '%s/sandboxes/%s/repo\n' "$WORKTREE_BASE_ABS" "$ticket_id"
+}
+
+ensure_palari_gitignore() {
+	local repo="$1"
+	local ignore="$repo/.gitignore"
+	if [[ -f "$ignore" ]]; then
+		grep -Fxq ".palari/" "$ignore" || printf '\n.palari/\n' >>"$ignore"
+	else
+		printf '.palari/\n' >"$ignore"
+	fi
+}
+
+cmd_sandbox_create() {
+	require_base_folders
+	local ticket="${1:-}"
+	shift || true
+	[[ -n "$ticket" ]] || die "sandbox create requires ticket ID"
+	local force="false" path="" arg
+	while (($# > 0)); do
+		arg="$1"
+		case "$arg" in
+		--force)
+			force="true"
+			shift
+			;;
+		--path)
+			path="$2"
+			shift 2
+			;;
+		*) die "unknown sandbox create option: $arg" ;;
+		esac
+	done
+
+	local file ticket_id rel target target_branch
+	file="$(find_ticket_file "$ticket")" || die "ticket not found: $ticket"
+	ticket_id="$(frontmatter_value "$file" id)"
+	[[ -n "$ticket_id" ]] || ticket_id="$ticket"
+	rel="${file#"$ROOT"/}"
+	target_branch="$(frontmatter_value "$file" target_branch)"
+	[[ -n "$target_branch" ]] || target_branch="$DEFAULT_BRANCH"
+	[[ -n "$path" ]] || path="$(sandbox_default_path "$ticket_id")"
+	target="$(abs_path "$path")"
+
+	git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1 || die "sandbox create requires a git repo"
+	require_clean_git_at "$ROOT" "canonical repo"
+	git -C "$ROOT" cat-file -e "HEAD:$rel" 2>/dev/null ||
+		die "sandbox create requires ticket file committed at HEAD: $rel"
+
+	if [[ -e "$target" ]]; then
+		[[ "$force" == "true" ]] || die "sandbox already exists: $target; pass --force to recreate"
+		[[ -f "$target/.palari-sandbox" ]] || die "refusing to remove non-Palari sandbox path: $target"
+		rm -rf "$target"
+	fi
+	mkdir -p "$target"
+	git -C "$ROOT" archive --format=tar HEAD | tar -xf - -C "$target"
+	ensure_palari_gitignore "$target"
+	printf '%s\n' "$ticket_id" >"$target/.palari-sandbox"
+	git -C "$target" init -b "$target_branch" >/dev/null
+	git -C "$target" config user.email "palari-sandbox@example.invalid"
+	git -C "$target" config user.name "Palari Sandbox"
+	git -C "$target" add .
+	git -C "$target" commit -m "sandbox baseline for $ticket_id" >/dev/null
+	"$target/bin/palari" init >/dev/null
+
+	printf 'sandbox create: ok\n'
+	printf 'Ticket: %s\n' "$ticket_id"
+	printf 'Sandbox repo: %s\n' "$target"
+	printf 'Sandbox branch: %s\n' "$target_branch"
+	printf 'Worker cd: cd %s\n' "$target"
+}
+
+cmd_sandbox() {
+	local sub="${1:-}"
+	shift || true
+	case "$sub" in
+	create) cmd_sandbox_create "$@" ;;
+	*) die "unknown sandbox command: ${sub:-}; try \`palari sandbox create TICKET-ID\`" ;;
+	esac
+}
+
+opencode_config_content() {
+	cat <<'JSON'
+{"$schema":"https://opencode.ai/config.json","permission":{"*":"allow","question":"deny","plan_enter":"deny","plan_exit":"deny","webfetch":"deny","websearch":"deny","external_directory":"deny","bash":{"*":"allow","palari *":"deny","./bin/palari *":"deny","bin/palari *":"deny","git commit*":"deny","git push*":"deny","rm *":"deny"}}}
+JSON
+}
+
+agent_run_gate() {
+	local worktree="$1"
+	local label="$2"
+	local out_dir="$3"
+	shift 3
+	local code
+	set +e
+	(cd "$worktree" && "$@" >"$out_dir/$label.out" 2>"$out_dir/$label.err")
+	code=$?
+	set -e
+	printf '%s\n' "$code" >"$out_dir/$label.exit"
+	return "$code"
+}
+
+cmd_agent_run() {
+	require_base_folders
+	local ticket="${1:-}"
+	shift || true
+	[[ -n "$ticket" ]] || die "agent run requires ticket ID"
+	local executor="" model="" prompt="" dry_run="false" no_gates="false" arg
+	while (($# > 0)); do
+		arg="$1"
+		case "$arg" in
+		--executor)
+			executor="$2"
+			shift 2
+			;;
+		--model)
+			model="$2"
+			shift 2
+			;;
+		--prompt)
+			prompt="$2"
+			shift 2
+			;;
+		--dry-run)
+			dry_run="true"
+			shift
+			;;
+		--no-gates)
+			no_gates="true"
+			shift
+			;;
+		*) die "unknown agent run option: $arg" ;;
+		esac
+	done
+	[[ "$executor" == "opencode" ]] || die "agent run currently supports only --executor opencode"
+	[[ -n "$prompt" ]] || prompt="Execute this Palari ticket from the attached packet. Stay inside allowed paths. Do not run any palari lifecycle command, git commit, git push, or palari accept."
+
+	local file ticket_id worktree packet_tmp packet_path evidence_dir stdout stderr session session_export export_stderr command_file opencode_code=0 scope_code=0 ci_code=0
+	file="$(find_ticket_file "$ticket")" || die "ticket not found: $ticket"
+	ticket_id="$(frontmatter_value "$file" id)"
+	[[ -n "$ticket_id" ]] || ticket_id="$ticket"
+	worktree="$(ticket_declared_worktree "$file" "$ticket_id")"
+
+	cmd_worktree "$ticket_id"
+	packet_tmp="$(mktemp)"
+	cmd_packet "$ticket_id" specialist >"$packet_tmp"
+	mkdir -p "$worktree/$REPORTS_DIR" "$worktree/$EVIDENCE_DIR/$ticket_id/executor/opencode"
+	packet_path="$worktree/$REPORTS_DIR/$ticket_id-opencode-packet.md"
+	cp "$packet_tmp" "$packet_path"
+	rm -f "$packet_tmp"
+
+	evidence_dir="$worktree/$EVIDENCE_DIR/$ticket_id/executor/opencode"
+	stdout="$evidence_dir/run.jsonl"
+	stderr="$evidence_dir/run.stderr"
+	session_export="$evidence_dir/session-export.json"
+	export_stderr="$evidence_dir/session-export.stderr"
+	command_file="$evidence_dir/command.txt"
+	{
+		printf 'executor: opencode\n'
+		printf 'ticket: %s\n' "$ticket_id"
+		printf 'worktree: %s\n' "$worktree"
+		printf 'packet: %s\n' "$packet_path"
+		printf 'model: %s\n' "${model:-opencode default}"
+		printf 'command: opencode run --dir %s --file %s --format json --title palari-%s%s %s\n' \
+			"$(shell_quote "$worktree")" \
+			"$(shell_quote "$packet_path")" \
+			"$ticket_id" \
+			"$([[ -n "$model" ]] && printf ' --model %s' "$(shell_quote "$model")")" \
+			"$(shell_quote "$prompt")"
+		printf 'denied: palari *, ./bin/palari *, bin/palari *, git commit*, git push*, rm *\n'
+	} >"$command_file"
+
+	if [[ "$dry_run" == "true" ]]; then
+		printf 'agent run: dry-run for %s\n' "$ticket_id"
+		printf 'executor: opencode\n'
+		printf 'worktree: %s\n' "$worktree"
+		printf 'packet: %s\n' "$packet_path"
+		printf 'evidence: %s\n' "${evidence_dir#"$worktree"/}"
+		cat "$command_file"
+		return 0
+	fi
+
+	command -v opencode >/dev/null 2>&1 || die "agent run --executor opencode requires opencode on PATH"
+	set +e
+	if [[ -n "$model" ]]; then
+		OPENCODE_CONFIG_CONTENT="$(opencode_config_content)" \
+		OPENCODE_DISABLE_AUTOUPDATE=1 \
+		OPENCODE_DISABLE_PRUNE=1 \
+			opencode run --model "$model" --dir "$worktree" --file "$packet_path" --format json --title "palari-$ticket_id" "$prompt" >"$stdout" 2>"$stderr"
+	else
+		OPENCODE_CONFIG_CONTENT="$(opencode_config_content)" \
+		OPENCODE_DISABLE_AUTOUPDATE=1 \
+		OPENCODE_DISABLE_PRUNE=1 \
+			opencode run --dir "$worktree" --file "$packet_path" --format json --title "palari-$ticket_id" "$prompt" >"$stdout" 2>"$stderr"
+	fi
+	opencode_code=$?
+	set -e
+	printf '%s\n' "$opencode_code" >"$evidence_dir/run.exit"
+
+	session="$(sed -n 's/.*"sessionID":"\([^"]*\)".*/\1/p' "$stdout" | tail -n 1)"
+	printf '%s\n' "$session" >"$evidence_dir/session.id"
+	if [[ -n "$session" ]]; then
+		set +e
+		opencode export "$session" >"$session_export" 2>"$export_stderr"
+		printf '%s\n' "$?" >"$evidence_dir/session-export.exit"
+		set -e
+	else
+		printf '{}\n' >"$session_export"
+		printf 'no session id found in opencode JSON stream\n' >"$export_stderr"
+		printf '1\n' >"$evidence_dir/session-export.exit"
+	fi
+
+	if [[ "$no_gates" != "true" ]]; then
+		agent_run_gate "$worktree" scope-check "$evidence_dir" ./bin/palari scope-check "$ticket_id" || scope_code=$?
+		agent_run_gate "$worktree" ci "$evidence_dir" ./bin/palari ci "$ticket_id" || ci_code=$?
+	fi
+
+	printf 'agent run: %s via opencode\n' "$ticket_id"
+	printf 'opencode exit: %s\n' "$opencode_code"
+	printf 'scope-check exit: %s\n' "$scope_code"
+	printf 'ci exit: %s\n' "$ci_code"
+	printf 'evidence: %s\n' "${evidence_dir#"$worktree"/}"
+	((opencode_code == 0 && scope_code == 0 && ci_code == 0))
+}
+
+cmd_agent() {
+	local sub="${1:-}"
+	shift || true
+	case "$sub" in
+	run) cmd_agent_run "$@" ;;
+	*) die "unknown agent command: ${sub:-}; try \`palari agent run TICKET-ID --executor opencode\`" ;;
+	esac
+}
+
 print_ticket_section_excerpt() {
 	local file="$1"
 	local heading="$2"
@@ -2606,6 +2841,9 @@ commands:
   ticket reopen ID             Move in-review ticket to reopened.
   worktree ID                  Prepare and verify ticket branch/worktree.
   packet ID ROLE               Print specialist/reviewer/acceptor or custom-profile packet.
+  sandbox create ID            Create a disposable local repo sandbox.
+  agent run ID --executor opencode
+                               Run an external executor from a Palari packet.
   memory ...                   Manage optional repo-native memory.
   skill create NAME --description TEXT
                                Adapter scaffold for feature-contract Agent Skills.
@@ -2646,6 +2884,17 @@ ticket claim options:
   --ttl SECONDS                Lease duration; default from claim_lease_seconds.
   --allow-overlap              Acknowledge overlapping allowed_paths.
 
+agent run options:
+  --executor opencode          Executor adapter to run.
+  --model PROVIDER/MODEL       Optional opencode model id.
+  --prompt TEXT                Optional executor instruction.
+  --dry-run                    Prepare packet/evidence plan without invoking opencode.
+  --no-gates                   Skip automatic scope-check and ci after executor run.
+
+sandbox create options:
+  --path PATH                  Optional sandbox repo path.
+  --force                      Recreate an existing sandbox path.
+
 skill create options:
   --description TEXT           Required Agent Skills frontmatter description.
   --dir DIR                    Optional output dir; default agent-skills.
@@ -2673,6 +2922,14 @@ worktree)
 packet | agent-packet)
 	shift
 	cmd_packet "${1:-}" "${2:-}"
+	;;
+sandbox)
+	shift
+	cmd_sandbox "$@"
+	;;
+agent)
+	shift
+	cmd_agent "$@"
 	;;
 memory)
 	shift
