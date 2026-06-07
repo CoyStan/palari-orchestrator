@@ -60,6 +60,30 @@ MCP is a delivery protocol for agents. It may expose Palari commands as tools,
 but the CLI remains the source of truth and `accept` remains a human or
 authorized-reviewer gate.
 
+## Executor Adapters
+
+Executor adapters run a stronger coding agent inside a Palari ticket contract.
+The first supported executor is opencode:
+
+```bash
+palari agent run TICKET-ID --executor opencode
+```
+
+Executor adapters may invoke external agents, capture their logs, and run
+Palari gates. They must not accept work, push, deploy, or own lifecycle
+authority. Palari remains responsible for ticket scope, evidence, review, and
+acceptance.
+
+Use:
+
+```bash
+palari sandbox create TICKET-ID
+```
+
+when you need a disposable local repository copy for executor experiments.
+Worktrees still remain the default execution surface for the first wrapper
+because existing packet and evidence commands already understand them.
+
 ## Web Adapter
 
 The web adapter is an operator console. It should render `palari snapshot

@@ -44,7 +44,7 @@ authority.
 | Who is it for? | Teams delegating coding work to agents while keeping human review and repository control. |
 | What is the core? | Bash, Markdown, git, templates, and checks that can move into almost any repo. |
 | What does it enforce? | Ticket lifecycle, allowed/forbidden paths, evidence bundles, fresh-context review, and acceptance gates. |
-| What is optional? | GitHub rulesets, hooks, MCP wrappers, the local console, and repo-memory adapters. |
+| What is optional? | GitHub rulesets, hooks, MCP wrappers, opencode execution, local sandboxes, the console, and repo-memory adapters. |
 | What is it not? | A hosted agent platform, product-specific Palari app code, or a replacement for human judgment. |
 
 ## Why Palari
@@ -152,6 +152,26 @@ palari accept APP-0001 --by founder
 `accept` moves the ticket to `tickets/closed/`. It does not merge, push, deploy,
 or bless missing evidence.
 
+## Optional External Executors
+
+Palari can wrap stronger coding agents without making them the authority. The
+first wrapper targets opencode:
+
+```bash
+palari agent run APP-0001 --executor opencode
+```
+
+The wrapper prepares the Palari worktree and packet, runs opencode with Palari
+lifecycle commands denied, captures executor evidence, then runs Palari scope
+and CI gates. It does not accept, push, merge, or deploy.
+
+Use a disposable local copy when you want to test executor behavior away from
+the canonical checkout:
+
+```bash
+palari sandbox create APP-0001
+```
+
 ## Optional Console
 
 The local console is a read-only view over `palari snapshot --json`. It helps
@@ -214,6 +234,8 @@ palari packet WEB-0002 specialist
 | `palari ticket reopen ID` | Move an in-review ticket back to implementation. |
 | `palari worktree ID` | Create or locate the ticket-specific git worktree. |
 | `palari packet ID ROLE` | Generate the mission packet for a specialist, reviewer, acceptor/human, or custom review profile. |
+| `palari sandbox create ID` | Create a disposable local repository copy for executor experiments. |
+| `palari agent run ID --executor opencode` | Run opencode from a Palari packet and record executor evidence without accepting work. |
 | `palari memory ...` | Manage optional repo-native memory and generated search indexes. |
 | `palari ci ID --base REF` | Run scope/lint/report gates and write evidence artifacts. Fails closed without a ticket. |
 | `palari ci --repo-only` | Run explicit non-merge-gate repository lint evidence. |
@@ -248,6 +270,8 @@ ship as adapters:
 - GitHub Actions: `palari init --ci` writes `.github/workflows/palari.yml`.
 - GitHub rulesets: `palari init --ci` writes `.github/palari-required-checks.ruleset.json`.
 - Local hooks: `palari init --hooks` writes `lefthook.yml` for fast advisory checks.
+- Executor wrappers: `palari agent run TICKET-ID --executor opencode` invokes opencode from a Palari packet and records executor evidence.
+- Local sandboxes: `palari sandbox create TICKET-ID` creates a disposable repository copy for executor experiments.
 - Evidence integrity: `palari ci` writes `reports/evidence/<ticket>/verification.log`, `junit.xml`, `palari.sarif`, and `manifest.json`; `accept` validates manifest status, current commit, and artifact hashes before closing a ticket.
 - Trusted merge evidence: the GitHub adapter uploads and attests `palari-evidence.tgz` on trusted repository runs. GitHub rulesets must be installed before this protects merges.
 - Concurrency: `ticket claim` records lease metadata, `ticket heartbeat` renews it, and `scope-overlaps` blocks path-scope collisions by default.
@@ -299,10 +323,11 @@ tests/golden/                     Fixtures that prove the flow works
 
 ```bash
 tests/run-golden.sh
+tests/run-agent-wrapper.sh
 tests/run-dashboard-rubric.sh
 ./bin/palari lint
-shellcheck bin/palari scripts/palari
-shfmt -d bin/palari scripts/palari
+shellcheck bin/palari scripts/palari tests/run-agent-wrapper.sh
+shfmt -d bin/palari scripts/palari tests/run-agent-wrapper.sh
 actionlint
 python3 -m py_compile adapters/web/server.py
 bats tests

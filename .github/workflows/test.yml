@@ -20,7 +20,11 @@ jobs:
         run: |
           bash -n bin/palari
           bash -n tests/run-golden.sh
+          bash -n tests/run-agent-wrapper.sh
           bash -n tests/run-dashboard-rubric.sh
+
+      - name: Agent wrapper
+        run: tests/run-agent-wrapper.sh
 
       - name: Golden flow
         run: tests/run-golden.sh
