@@ -13,6 +13,9 @@
     "human_reports_dir",
     "evidence_dir",
     "handoffs_dir",
+    "roles_active_dir",
+    "roles_proposed_dir",
+    "roles_revoked_dir",
     "worktree_base",
     "default_forbidden_paths"
   ],
@@ -27,6 +30,9 @@
     "planning_reports_dir": { "type": "string", "minLength": 1 },
     "evidence_dir": { "type": "string", "minLength": 1 },
     "handoffs_dir": { "type": "string", "minLength": 1 },
+    "roles_active_dir": { "type": "string", "minLength": 1 },
+    "roles_proposed_dir": { "type": "string", "minLength": 1 },
+    "roles_revoked_dir": { "type": "string", "minLength": 1 },
     "agent_skills_dir": { "type": "string", "minLength": 1 },
     "state_dir": { "type": "string", "minLength": 1 },
     "memory_dir": { "type": "string", "minLength": 1 },
@@ -43,6 +49,27 @@
     "scope_overlap_policy": {
       "type": "string",
       "enum": ["warn", "block"]
+    },
+    "authority_profile": {
+      "type": "string",
+      "enum": ["solo-founder", "team-safe", "strict"]
+    },
+    "authority_profiles": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "agent_can_commit": { "type": "boolean" },
+          "agent_can_push_branch": { "type": "boolean" },
+          "agent_can_open_pr": { "type": "boolean" },
+          "agent_can_merge_main": { "type": "boolean" },
+          "agent_can_accept": {
+            "type": ["boolean", "string"],
+            "enum": [true, false, "user-explicit"]
+          }
+        }
+      }
     },
     "concurrency_ignored_overlap_paths": {
       "type": "array",

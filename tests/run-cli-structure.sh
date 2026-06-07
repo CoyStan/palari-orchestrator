@@ -17,6 +17,8 @@ fi
 
 modules=(
 	core
+	authority_lifecycle
+	roles
 	init_adopt
 	proposals
 	tickets_workspace

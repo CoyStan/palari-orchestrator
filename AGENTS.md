@@ -18,6 +18,10 @@ they conflict with repo files.
 
 ## Role Authority
 
+- Repo roles, when present, live under `roles/active`, `roles/proposed`, and
+  `roles/revoked`. They are authority artifacts, not agent identities.
+  Roles are local-mode authority artifacts. Signed provenance is not enforced
+  in v1.
 - Human/founder: owns product judgment, risk acceptance, and final direction.
   Only the human/founder or an explicitly authorized reviewer may accept work.
 - Lead/planner: turns founder intent into proposed tickets. May read repo
@@ -40,6 +44,11 @@ they conflict with repo files.
 - Handoff author: frames options when scope, access, authority, or risk blocks
   work. This is a handoff pattern, not a separate core role.
 
+Authority only narrows as it flows from parent role to child role to ticket.
+Use `palari role lint` before relying on role-issued tickets. A role may not
+activate itself or grant a child authority the parent role does not already
+hold.
+
 ## Ticket Workflow
 
 1. Refresh repository state with `git status --short --branch` and
@@ -49,6 +58,9 @@ they conflict with repo files.
    propose work but cannot authorize implementation.
 3. Create or select a ticket with risk, allowed paths, forbidden paths,
    verification, review gates, and human gates.
+   Use `palari ticket create ... --by-role ROLE-ID --delegate-to-role ROLE-ID`
+   only when `palari role lint` passes and the issuing role has the needed
+   authority.
 4. Commit accepted ticket setup before creating the worktree.
 5. Run `palari worktree TICKET-ID`.
 6. Generate packets with `palari packet TICKET-ID specialist` and, when ready,

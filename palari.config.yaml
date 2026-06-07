@@ -14,6 +14,9 @@ handoffs_dir: handoffs
 agent_skills_dir: agent-skills
 state_dir: .palari
 evidence_dir: reports/evidence
+roles_active_dir: roles/active
+roles_proposed_dir: roles/proposed
+roles_revoked_dir: roles/revoked
 
 memory_dir: memory
 memory_index_backend: sqlite # sqlite | json | none
@@ -33,6 +36,31 @@ concurrency_ignored_overlap_paths:
   - reports/human/**
   - handoffs/**
   - .palari/**
+
+# Agent authority profiles describe what an autonomous executor may do without
+# turning a human instruction into an implicit merge or acceptance permission.
+# Public/default posture is conservative: agents may prepare work, but humans
+# keep main-branch merge and ticket acceptance authority.
+authority_profile: team-safe
+authority_profiles:
+  solo-founder:
+    agent_can_commit: true
+    agent_can_push_branch: true
+    agent_can_open_pr: true
+    agent_can_merge_main: true
+    agent_can_accept: user-explicit
+  team-safe:
+    agent_can_commit: true
+    agent_can_push_branch: true
+    agent_can_open_pr: true
+    agent_can_merge_main: false
+    agent_can_accept: false
+  strict:
+    agent_can_commit: false
+    agent_can_push_branch: false
+    agent_can_open_pr: false
+    agent_can_merge_main: false
+    agent_can_accept: false
 
 default_forbidden_paths:
   - .env

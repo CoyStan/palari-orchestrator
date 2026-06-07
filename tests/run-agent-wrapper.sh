@@ -63,7 +63,7 @@ git commit -m "add opencode dry-run ticket" >/dev/null
 
 grep -Fq "agent run: dry-run for LAB-0201" "$TMP_ROOT/agent-dry-run.out"
 grep -Fq "executor: opencode" "$TMP_ROOT/agent-dry-run.out"
-grep -Fq "denied: palari *, ./bin/palari *, bin/palari *, git commit*, git push*, rm *" "$TMP_ROOT/agent-dry-run.out"
+grep -Fq "denied: palari *, ./bin/palari *, bin/palari *, git commit*, git push*, git merge*, gh pr merge*, rm *" "$TMP_ROOT/agent-dry-run.out"
 
 WORKTREE="$(awk -F': ' '/^worktree: \// { print $2; exit }' "$TMP_ROOT/agent-dry-run.out")"
 PACKET="$(awk -F': ' '/packet:/ { print $2; exit }' "$TMP_ROOT/agent-dry-run.out")"

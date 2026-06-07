@@ -1,6 +1,8 @@
+# shellcheck shell=bash
+# shellcheck disable=SC2153 # This module is sourced after core.bash, which defines shared globals.
 opencode_config_content() {
 	cat <<'JSON'
-{"$schema":"https://opencode.ai/config.json","permission":{"*":"allow","question":"deny","plan_enter":"deny","plan_exit":"deny","webfetch":"deny","websearch":"deny","external_directory":"deny","bash":{"*":"allow","palari *":"deny","./bin/palari *":"deny","bin/palari *":"deny","git commit*":"deny","git push*":"deny","rm *":"deny"}}}
+{"$schema":"https://opencode.ai/config.json","permission":{"*":"allow","question":"deny","plan_enter":"deny","plan_exit":"deny","webfetch":"deny","websearch":"deny","external_directory":"deny","bash":{"*":"allow","palari *":"deny","./bin/palari *":"deny","bin/palari *":"deny","git commit*":"deny","git push*":"deny","git merge*":"deny","gh pr merge*":"deny","rm *":"deny"}}}
 JSON
 }
 
@@ -85,7 +87,7 @@ cmd_agent_run() {
 			"$ticket_id" \
 			"$([[ -n "$model" ]] && printf ' --model %s' "$(shell_quote "$model")")" \
 			"$(shell_quote "$prompt")"
-		printf 'denied: palari *, ./bin/palari *, bin/palari *, git commit*, git push*, rm *\n'
+		printf 'denied: palari *, ./bin/palari *, bin/palari *, git commit*, git push*, git merge*, gh pr merge*, rm *\n'
 	} >"$command_file"
 
 	if [[ "$dry_run" == "true" ]]; then
@@ -175,7 +177,7 @@ cmd_packet() {
 	*[!a-z0-9-]* | "") die "role must be specialist, reviewer, acceptor, human, or a lowercase custom review profile" ;;
 	esac
 
-	local file rel ticket_id title status risk priority requires_review requires_human required_reports
+	local file rel ticket_id title status risk priority requires_review requires_human required_reports created_by_role delegated_to_role
 	local branch worktree target_branch worktree_head worktree_branch worktree_changed
 	file="$(find_ticket_file "$ticket")" || die "ticket not found: $ticket"
 	rel="${file#"$ROOT"/}"
@@ -187,6 +189,10 @@ cmd_packet() {
 	requires_review="$(frontmatter_value "$file" requires_review)"
 	requires_human="$(frontmatter_value "$file" requires_human_confirmation)"
 	required_reports="$(ticket_required_reports "$file" | paste -sd ', ' -)"
+	created_by_role="$(frontmatter_value "$file" created_by_role)"
+	[[ -n "$created_by_role" ]] || created_by_role="$(frontmatter_value "$file" issued_by_role)"
+	delegated_to_role="$(frontmatter_value "$file" delegated_to_role)"
+	[[ -n "$delegated_to_role" ]] || delegated_to_role="$(frontmatter_value "$file" delegate_to_role)"
 	[[ -n "$ticket_id" ]] || ticket_id="$ticket"
 	branch="$(ticket_declared_branch "$file" "$ticket_id")"
 	worktree="$(ticket_declared_worktree "$file" "$ticket_id")"
@@ -232,6 +238,21 @@ cmd_packet() {
 	printf 'Mission:\n'
 	print_ticket_section_excerpt "$file" "Goal" 5
 	printf '\nAuthority:\n'
+	printf '  Profile: %s\n' "$AUTHORITY_PROFILE"
+	printf '  Agent can commit: %s\n' "$(authority_value agent_can_commit)"
+	printf '  Agent can push branch: %s\n' "$(authority_value agent_can_push_branch)"
+	printf '  Agent can open PR: %s\n' "$(authority_value agent_can_open_pr)"
+	printf '  Agent can merge main: %s\n' "$(authority_value agent_can_merge_main)"
+	printf '  Agent can accept ticket: %s\n' "$(authority_value agent_can_accept)"
+	if [[ -n "$created_by_role" || -n "$delegated_to_role" ]]; then
+		printf '  Created by role: %s\n' "${created_by_role:-none}"
+		printf '  Delegated to role: %s\n' "${delegated_to_role:-none}"
+		if [[ -n "$created_by_role" ]]; then
+			printf '  Parent/delegator authority: %s may only grant authority it already holds.\n' "$created_by_role"
+		fi
+		printf '  Escalation rule: stop when scope, risk, path containment, or authority is unclear.\n'
+		printf '  Do not expand authority, activate roles, accept work, or bypass ticket/evidence/review gates.\n'
+	fi
 	case "$role" in
 	specialist)
 		printf '  Implement only inside ticket and packet scope. Move ready work to in-review; do not accept your own work.\n'
@@ -450,6 +471,7 @@ cmd_lint() {
 	}
 	if [[ -z "$ticket" ]]; then
 		cmd_propose_lint
+		cmd_role_lint
 	fi
 	cmd_report_lint "$ticket"
 	[[ -n "$ticket" ]] && printf 'lint: ok for %s\n' "$ticket" || printf 'lint: ok\n'
