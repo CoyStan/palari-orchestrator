@@ -12,8 +12,8 @@ mkdir -p "$WORK"
 
 cd "$WORK"
 chmod +x bin/palari scripts/palari
-rm -f tickets/open/*.md tickets/open/*.markdown tickets/closed/*.md tickets/closed/*.markdown
-rm -f reports/*.md reports/*.markdown reports/human/*.md reports/human/*.markdown handoffs/*.md handoffs/*.markdown
+rm -f tickets/open/*.md tickets/open/*.markdown tickets/proposed/*.md tickets/proposed/*.markdown tickets/closed/*.md tickets/closed/*.markdown
+rm -f reports/*.md reports/*.markdown reports/planning/*.md reports/planning/*.markdown reports/human/*.md reports/human/*.markdown handoffs/*.md handoffs/*.markdown
 rm -rf reports/evidence/*
 git init -b main >/dev/null
 git config user.email "golden@example.invalid"
@@ -29,6 +29,8 @@ test -f adapters/web/static/styles.css
 test -f adapters/web/static/app-shell.css
 test -f adapters/web/static/app.js
 test -f reports/evidence/.gitkeep
+test -f tickets/proposed/.gitkeep
+test -f reports/planning/.gitkeep
 grep -Fq "workflow alone does not protect merges" "$TMP_ROOT/init.out"
 grep -Fq "gh api --method PATCH repos/OWNER/REPO/rulesets" "$TMP_ROOT/init.out"
 grep -Fq "gh api --method POST repos/OWNER/REPO/rulesets" "$TMP_ROOT/init.out"
@@ -36,6 +38,7 @@ python3 -m py_compile adapters/web/server.py
 ./bin/palari snapshot --json >"$TMP_ROOT/snapshot.out"
 grep -Fq '"project": "Palari Orchestrator"' "$TMP_ROOT/snapshot.out"
 grep -Fq '"tickets": []' "$TMP_ROOT/snapshot.out"
+grep -Fq '"proposals": []' "$TMP_ROOT/snapshot.out"
 ./bin/palari web --check >"$TMP_ROOT/web-snapshot.out"
 grep -Fq '"project": "Palari Orchestrator"' "$TMP_ROOT/web-snapshot.out"
 grep -Fq '"tickets": []' "$TMP_ROOT/web-snapshot.out"

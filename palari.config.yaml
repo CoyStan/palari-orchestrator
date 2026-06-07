@@ -5,9 +5,11 @@ project_name: Palari Orchestrator
 default_branch: main
 
 tickets_open_dir: tickets/open
+tickets_proposed_dir: tickets/proposed
 tickets_closed_dir: tickets/closed
 reports_dir: reports
 human_reports_dir: reports/human
+planning_reports_dir: reports/planning
 handoffs_dir: handoffs
 agent_skills_dir: agent-skills
 state_dir: .palari
