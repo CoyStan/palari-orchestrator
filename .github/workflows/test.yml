@@ -19,11 +19,16 @@ jobs:
       - name: Syntax check
         run: |
           bash -n bin/palari
+          bash -n lib/palari/*.bash
+          bash -n tests/run-cli-structure.sh
           bash -n tests/run-golden.sh
           bash -n tests/run-adoption.sh
           bash -n tests/run-proposals.sh
           bash -n tests/run-agent-wrapper.sh
           bash -n tests/run-dashboard-rubric.sh
+
+      - name: CLI structure
+        run: tests/run-cli-structure.sh
 
       - name: Adoption
         run: tests/run-adoption.sh

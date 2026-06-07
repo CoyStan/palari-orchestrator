@@ -23,6 +23,8 @@ git config user.name "Golden Test"
 test -f .github/workflows/palari.yml
 test -f .github/palari-required-checks.ruleset.json
 test -f lefthook.yml
+test -f lib/palari/core.bash
+test -f lib/palari/init_adopt.bash
 test -f adapters/web/server.py
 test -f adapters/web/static/index.html
 test -f adapters/web/static/styles.css

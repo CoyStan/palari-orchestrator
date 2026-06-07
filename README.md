@@ -348,7 +348,8 @@ Keep these concepts in repo-specific adapters or examples:
 
 ```text
 AGENTS.md                         Agent operating template for adopters
-bin/palari                        Main CLI entrypoint
+bin/palari                        Thin CLI entrypoint and command dispatcher
+lib/palari/                       Portable Bash modules behind the CLI
 palari.config.yaml                Example config for lifecycle, paths, roles, and gates
 schemas/palari.config.schema.json Config schema
 templates/                        Human report, handoff, and feature-contract templates
@@ -369,12 +370,13 @@ tests/golden/                     Fixtures that prove the flow works
 
 ```bash
 tests/run-golden.sh
+tests/run-cli-structure.sh
 tests/run-adoption.sh
 tests/run-agent-wrapper.sh
 tests/run-dashboard-rubric.sh
 ./bin/palari lint
-shellcheck bin/palari scripts/palari tests/run-agent-wrapper.sh
-shfmt -d bin/palari scripts/palari tests/run-agent-wrapper.sh
+shellcheck -x bin/palari scripts/palari tests/run-cli-structure.sh tests/run-agent-wrapper.sh
+shfmt -d bin/palari scripts/palari lib/palari/*.bash tests/run-cli-structure.sh tests/run-agent-wrapper.sh
 actionlint
 python3 -m py_compile adapters/web/server.py
 bats tests
