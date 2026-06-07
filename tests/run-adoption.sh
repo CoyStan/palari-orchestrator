@@ -45,6 +45,8 @@ grep -Fq "./bin/palari github ruleset-command --repo OWNER/REPO" "$TMP_ROOT/adop
 
 test -x bin/palari
 test -x scripts/palari
+test -f lib/palari/core.bash
+test -f lib/palari/init_adopt.bash
 test -f palari.config.yaml
 test -f AGENTS.md
 test -f AGENTS.palari.md
@@ -64,6 +66,7 @@ grep -Fq "# Palari Orchestration Agent Template" AGENTS.palari.md
 ./bin/palari doctor >"$TMP_ROOT/doctor.out"
 grep -Fq "Palari adoption doctor" "$TMP_ROOT/doctor.out"
 grep -Fq "doctor: ok executable bin/palari" "$TMP_ROOT/doctor.out"
+grep -Fq "doctor: ok file lib/palari/core.bash" "$TMP_ROOT/doctor.out"
 grep -Fq "doctor: ok file contracts/adoption.md" "$TMP_ROOT/doctor.out"
 grep -Fq "doctor: ok file skills/adoption/SKILL.md" "$TMP_ROOT/doctor.out"
 grep -Fq "doctor: ok" "$TMP_ROOT/doctor.out"
@@ -73,6 +76,7 @@ grep -Fq "Palari Orchestration status" "$TMP_ROOT/status.out"
 
 (cd "$SOURCE" && ./bin/palari adopt "$TARGET" --dry-run) >"$TMP_ROOT/re-adopt-dry-run.out"
 grep -Fq "adopt: kept existing bin" "$TMP_ROOT/re-adopt-dry-run.out"
+grep -Fq "adopt: kept existing lib" "$TMP_ROOT/re-adopt-dry-run.out"
 grep -Fq "adopt: kept existing AGENTS.palari.md" "$TMP_ROOT/re-adopt-dry-run.out"
 grep -Fq "adopt: dry-run complete" "$TMP_ROOT/re-adopt-dry-run.out"
 

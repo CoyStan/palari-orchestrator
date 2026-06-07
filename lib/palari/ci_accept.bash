@@ -1,0 +1,458 @@
+infer_ticket_from_branch() {
+	local branch id
+	branch="$(git -C "$ROOT" branch --show-current 2>/dev/null || true)"
+	case "$branch" in
+	ticket/*)
+		id="${branch#ticket/}"
+		[[ -n "$id" ]] && printf '%s\n' "$id" && return 0
+		;;
+	esac
+	return 1
+}
+
+ci_add_junit_case() {
+	local name="$1"
+	local state="$2"
+	local body="${3:-}"
+	local name_xml body_xml
+	name_xml="$(printf '%s' "$name" | xml_escape)"
+	body_xml="$(printf '%s' "$body" | xml_escape)"
+	CI_TESTS=$((CI_TESTS + 1))
+	case "$state" in
+	pass)
+		printf '    <testcase classname="palari" name="%s"/>\n' "$name_xml" >>"$CI_JUNIT_CASES"
+		;;
+	skip)
+		CI_SKIPPED=$((CI_SKIPPED + 1))
+		printf '    <testcase classname="palari" name="%s"><skipped message="%s"/></testcase>\n' "$name_xml" "$body_xml" >>"$CI_JUNIT_CASES"
+		;;
+	fail)
+		CI_FAILURES=$((CI_FAILURES + 1))
+		printf '    <testcase classname="palari" name="%s"><failure message="failed"><![CDATA[%s]]></failure></testcase>\n' "$name_xml" "$body" >>"$CI_JUNIT_CASES"
+		;;
+	esac
+}
+
+ci_add_sarif_failure() {
+	local rule="$1"
+	local message="$2"
+	local rule_json message_json location_json
+	rule_json="$(printf '%s' "$rule" | json_escape)"
+	message_json="$(printf '%s' "$message" | json_escape)"
+	location_json="$(printf '%s' "${CI_SARIF_LOCATION:-palari.config.yaml}" | json_escape)"
+	[[ ! -s "$CI_SARIF_RESULTS" ]] || printf ',\n' >>"$CI_SARIF_RESULTS"
+	printf '        {"ruleId":"%s","level":"error","message":{"text":"%s"},"locations":[{"physicalLocation":{"artifactLocation":{"uri":"%s"},"region":{"startLine":1}}}]}' \
+		"$rule_json" "$message_json" "$location_json" >>"$CI_SARIF_RESULTS"
+}
+
+ci_run_step() {
+	local label="$1"
+	shift
+	local output code
+	{
+		printf '\n## %s\n\n' "$label"
+		printf '```text\n'
+	} >>"$CI_LOG"
+	set +e
+	output="$("$@" 2>&1)"
+	code=$?
+	set -e
+	printf '%s\n' "$output" >>"$CI_LOG"
+	printf '```\n' >>"$CI_LOG"
+	if ((code == 0)); then
+		ci_add_junit_case "$label" pass
+	else
+		ci_add_junit_case "$label" fail "$output"
+		ci_add_sarif_failure "$label" "$output"
+	fi
+	return "$code"
+}
+
+ci_run_shell_step() {
+	local label="$1"
+	local command="$2"
+	local output code
+	{
+		printf '\n## %s\n\n' "$label"
+		# shellcheck disable=SC2016 # Backticks are literal Markdown in evidence output.
+		printf 'Command: `%s`\n\n' "$command"
+		printf '```text\n'
+	} >>"$CI_LOG"
+	set +e
+	output="$(bash -lc "$command" 2>&1)"
+	code=$?
+	set -e
+	printf '%s\n' "$output" >>"$CI_LOG"
+	printf '```\n' >>"$CI_LOG"
+	if ((code == 0)); then
+		ci_add_junit_case "$label" pass
+	else
+		ci_add_junit_case "$label" fail "$output"
+		ci_add_sarif_failure "$label" "$output"
+	fi
+	return "$code"
+}
+
+ci_write_artifacts() {
+	local junit="$1"
+	local sarif="$2"
+	{
+		printf '<?xml version="1.0" encoding="UTF-8"?>\n'
+		printf '<testsuite name="palari" tests="%s" failures="%s" skipped="%s">\n' "$CI_TESTS" "$CI_FAILURES" "$CI_SKIPPED"
+		cat "$CI_JUNIT_CASES"
+		printf '</testsuite>\n'
+	} >"$junit"
+	{
+		printf '{\n'
+		# shellcheck disable=SC2016 # JSON requires a literal "$schema" key.
+		printf '  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",\n'
+		printf '  "version": "2.1.0",\n'
+		printf '  "runs": [\n'
+		printf '    {\n'
+		printf '      "tool": {"driver": {"name": "palari-ci", "informationUri": "https://github.com/CoyStan/palari-orchestrator"}},\n'
+		printf '      "automationDetails": {"id": "%s"},\n' "$(printf '%s' "${CI_SARIF_RUN_ID:-palari/repo}" | json_escape)"
+		printf '      "results": [\n'
+		cat "$CI_SARIF_RESULTS"
+		printf '\n      ]\n'
+		printf '    }\n'
+		printf '  ]\n'
+		printf '}\n'
+	} >"$sarif"
+}
+
+ci_write_manifest() {
+	local manifest="$1"
+	local ticket_label="$2"
+	local base_ref="$3"
+	local failed="$4"
+	local log="$5"
+	local junit="$6"
+	local sarif="$7"
+	local head_sha status
+	head_sha="$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || true)"
+	[[ "$failed" == "0" && "$CI_FAILURES" == "0" ]] && status="passed" || status="failed"
+	{
+		printf '{\n'
+		printf '  "schema_version": "1",\n'
+		printf '  "generator": "palari-ci",\n'
+		printf '  "ticket": '
+		json_string "$ticket_label"
+		printf ',\n  "base_ref": '
+		json_string "${base_ref:-local working tree}"
+		printf ',\n  "head_sha": '
+		json_string "$head_sha"
+		printf ',\n  "created_at": '
+		json_string "$(now_utc)"
+		printf ',\n  "status": '
+		json_string "$status"
+		printf ',\n  "tests": %s,\n  "failures": %s,\n  "skipped": %s,\n' "$CI_TESTS" "$CI_FAILURES" "$CI_SKIPPED"
+		printf '  "artifacts": [\n'
+		printf '    {"name":"verification.log","sha256":'
+		json_string "$(sha256_file "$log")"
+		printf '},\n'
+		printf '    {"name":"junit.xml","sha256":'
+		json_string "$(sha256_file "$junit")"
+		printf '},\n'
+		printf '    {"name":"palari.sarif","sha256":'
+		json_string "$(sha256_file "$sarif")"
+		printf '}\n'
+		printf '  ]\n'
+		printf '}\n'
+	} >"$manifest"
+}
+
+cmd_ci() {
+	require_base_folders
+	local ticket="" base_ref="" evidence_dir="$EVIDENCE_DIR" repo_only="false" arg
+	local -a tickets=()
+	while (($# > 0)); do
+		arg="$1"
+		case "$arg" in
+		--base)
+			base_ref="$2"
+			shift 2
+			;;
+		--evidence-dir)
+			evidence_dir="$2"
+			shift 2
+			;;
+		--ticket)
+			tickets+=("$2")
+			shift 2
+			;;
+		--repo-only)
+			repo_only="true"
+			shift
+			;;
+		--*) die "unknown ci option: $arg" ;;
+		*)
+			tickets+=("$arg")
+			shift
+			;;
+		esac
+	done
+	if ((${#tickets[@]} == 0)) && [[ -n "${PALARI_TICKET_ID:-}" ]]; then
+		tickets+=("$PALARI_TICKET_ID")
+	fi
+	if ((${#tickets[@]} == 0)); then
+		ticket="$(infer_ticket_from_branch || true)"
+		[[ -n "$ticket" ]] && tickets+=("$ticket")
+	fi
+	if ((${#tickets[@]} == 0)) && [[ "$repo_only" != "true" ]]; then
+		die "ci requires a ticket ID, a ticket/* branch, or PALARI_TICKET_ID; use --repo-only only for non-merge-gate repository checks"
+	fi
+
+	local ticket_label="repo"
+	if ((${#tickets[@]} == 1)); then
+		ticket_label="${tickets[0]}"
+	elif ((${#tickets[@]} > 1)); then
+		ticket_label="$(
+			IFS=+
+			printf '%s' "${tickets[*]}"
+		)"
+	fi
+	local out_dir="$ROOT/$evidence_dir/$ticket_label"
+	local log="$out_dir/verification.log"
+	local junit="$out_dir/junit.xml"
+	local sarif="$out_dir/palari.sarif"
+	local manifest="$out_dir/manifest.json"
+	mkdir -p "$out_dir"
+	CI_LOG="$log"
+	CI_JUNIT_CASES="$out_dir/.junit-cases.tmp"
+	CI_SARIF_RESULTS="$out_dir/.sarif-results.tmp"
+	CI_TESTS=0
+	CI_FAILURES=0
+	CI_SKIPPED=0
+	CI_SARIF_RUN_ID="palari/$ticket_label"
+	CI_SARIF_LOCATION="palari.config.yaml"
+	: >"$CI_JUNIT_CASES"
+	: >"$CI_SARIF_RESULTS"
+	{
+		printf '# Palari CI Evidence\n\n'
+		printf -- '- Ticket: %s\n' "$ticket_label"
+		printf -- '- Base ref: %s\n' "${base_ref:-local working tree}"
+		printf -- '- Created: %s\n' "$(now_utc)"
+	} >"$log"
+
+	local failed=0 file check index=0 current_ticket
+	if ((${#tickets[@]} == 1)); then
+		current_ticket="${tickets[0]}"
+		file="$(find_ticket_file "$current_ticket")" || die "ticket not found: $current_ticket"
+		CI_SARIF_LOCATION="${file#"$ROOT"/}"
+		if [[ -n "$base_ref" ]]; then
+			ci_run_step "scope-check" cmd_scope_check "$current_ticket" --base "$base_ref" || failed=1
+		else
+			ci_run_step "scope-check" cmd_scope_check "$current_ticket" || failed=1
+		fi
+		ci_run_step "lint" cmd_lint "$current_ticket" || failed=1
+		while IFS= read -r check; do
+			[[ -n "$check" ]] || continue
+			index=$((index + 1))
+			case "$check" in
+			manual* | Manual* | describe\ * | Describe\ *)
+				ci_add_junit_case "verification $index" skip "manual or descriptive check: $check"
+				# shellcheck disable=SC2016 # Backticks are literal Markdown in evidence output.
+				printf '\n## verification %s\n\nSkipped manual/descriptive check: `%s`\n' "$index" "$check" >>"$log"
+				;;
+			*)
+				ci_run_shell_step "verification $index" "$check" || failed=1
+				;;
+			esac
+		done < <(frontmatter_list_items "$file" verification)
+	elif ((${#tickets[@]} > 1)); then
+		CI_SARIF_LOCATION="palari.config.yaml"
+		ci_run_step "scope-check" scope_check_ticket_set "$base_ref" "${tickets[@]}" || failed=1
+		for current_ticket in "${tickets[@]}"; do
+			file="$(find_ticket_file "$current_ticket")" || die "ticket not found: $current_ticket"
+			ci_run_step "lint $current_ticket" cmd_lint "$current_ticket" || failed=1
+			index=0
+			while IFS= read -r check; do
+				[[ -n "$check" ]] || continue
+				index=$((index + 1))
+				case "$check" in
+				manual* | Manual* | describe\ * | Describe\ *)
+					ci_add_junit_case "$current_ticket verification $index" skip "manual or descriptive check: $check"
+					# shellcheck disable=SC2016 # Backticks are literal Markdown in evidence output.
+					printf '\n## %s verification %s\n\nSkipped manual/descriptive check: `%s`\n' "$current_ticket" "$index" "$check" >>"$log"
+					;;
+				*)
+					ci_run_shell_step "$current_ticket verification $index" "$check" || failed=1
+					;;
+				esac
+			done < <(frontmatter_list_items "$file" verification)
+		done
+	else
+		ci_run_step "lint" cmd_lint || failed=1
+	fi
+
+	ci_write_artifacts "$junit" "$sarif"
+	ci_write_manifest "$manifest" "$ticket_label" "$base_ref" "$failed" "$log" "$junit" "$sarif"
+	rm -f "$CI_JUNIT_CASES" "$CI_SARIF_RESULTS"
+	printf 'ci evidence: %s\n' "${out_dir#"$ROOT"/}"
+	printf 'ci junit: %s\n' "${junit#"$ROOT"/}"
+	printf 'ci sarif: %s\n' "${sarif#"$ROOT"/}"
+	printf 'ci manifest: %s\n' "${manifest#"$ROOT"/}"
+	if ((failed != 0 || CI_FAILURES != 0)); then
+		printf 'ci: failed for %s\n' "$ticket_label" >&2
+		exit 1
+	fi
+	printf 'ci: ok for %s\n' "$ticket_label"
+}
+
+ticket_evidence_complete() {
+	local ticket_id="$1"
+	local dir="$ROOT/$EVIDENCE_DIR/$ticket_id"
+	local missing=0 name
+	for name in verification.log junit.xml palari.sarif manifest.json; do
+		if [[ ! -s "$dir/$name" ]]; then
+			printf 'accept refused: missing evidence artifact for %s: %s/%s\n' "$ticket_id" "$EVIDENCE_DIR/$ticket_id" "$name" >&2
+			missing=$((missing + 1))
+		fi
+	done
+	return "$missing"
+}
+
+ticket_evidence_manifest_valid() {
+	local ticket_id="$1"
+	local dir="$ROOT/$EVIDENCE_DIR/$ticket_id"
+	local manifest="$dir/manifest.json"
+	local expected_head=""
+
+	if git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+		expected_head="$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || true)"
+	fi
+	command -v python3 >/dev/null 2>&1 || die "accept requires python3 to validate evidence manifest integrity"
+
+	python3 - "$manifest" "$dir" "$ticket_id" "$expected_head" <<'PY'
+import hashlib
+import json
+import pathlib
+import sys
+
+manifest_path = pathlib.Path(sys.argv[1])
+evidence_dir = pathlib.Path(sys.argv[2])
+ticket_id = sys.argv[3]
+expected_head = sys.argv[4]
+required = {"verification.log", "junit.xml", "palari.sarif"}
+
+
+def fail(message: str) -> None:
+    print(f"accept refused: invalid evidence manifest for {ticket_id}: {message}", file=sys.stderr)
+    raise SystemExit(1)
+
+
+try:
+    data = json.loads(manifest_path.read_text(encoding="utf-8"))
+except Exception as exc:
+    fail(f"cannot parse manifest.json: {exc}")
+
+checks = {
+    "schema_version": "1",
+    "generator": "palari-ci",
+    "ticket": ticket_id,
+    "status": "passed",
+}
+for key, expected in checks.items():
+    actual = data.get(key)
+    if actual != expected:
+        fail(f"{key} is {actual!r}, expected {expected!r}")
+
+if expected_head and data.get("head_sha") != expected_head:
+    fail(f"head_sha is {data.get('head_sha')!r}, expected current HEAD {expected_head!r}")
+
+artifacts = data.get("artifacts")
+if not isinstance(artifacts, list):
+    fail("artifacts must be a list with sha256 entries")
+
+seen = set()
+root = evidence_dir.resolve()
+for item in artifacts:
+    if not isinstance(item, dict):
+        fail("artifact entry must be an object")
+    name = item.get("name")
+    digest = item.get("sha256")
+    if name not in required:
+        continue
+    if not isinstance(digest, str) or len(digest) != 64:
+        fail(f"{name} has missing or invalid sha256")
+    path = (evidence_dir / name).resolve()
+    try:
+        path.relative_to(root)
+    except ValueError:
+        fail(f"{name} escapes evidence directory")
+    if not path.is_file() or path.stat().st_size == 0:
+        fail(f"{name} is missing or empty")
+    actual = hashlib.sha256(path.read_bytes()).hexdigest()
+    if actual != digest:
+        fail(f"{name} sha256 mismatch")
+    seen.add(name)
+
+missing = required - seen
+if missing:
+    fail("missing artifact hash entries: " + ", ".join(sorted(missing)))
+PY
+}
+
+same_actor() {
+	local left="${1:-}"
+	local right="${2:-}"
+	[[ -n "$left" && -n "$right" ]] || return 1
+	[[ "${left,,}" == "${right,,}" ]]
+}
+
+cmd_accept() {
+	require_base_folders
+	local ticket="${1:-}"
+	shift || true
+	local by=""
+	while (($# > 0)); do
+		case "$1" in
+		--by)
+			by="$2"
+			shift 2
+			;;
+		*) die "unknown accept option: $1" ;;
+		esac
+	done
+	[[ -n "$ticket" ]] || die "accept requires ticket ID"
+	[[ -n "$by" ]] || die "accept requires --by NAME; acceptance must name the human or authorized reviewer"
+	local file status id dest claim_ref claimed_by implemented_by self_policy
+	file="$(find_ticket_file "$ticket")" || die "ticket not found: $ticket"
+	status="$(frontmatter_value "$file" status)"
+	id="$(frontmatter_value "$file" id)"
+	[[ -n "$id" ]] || id="$ticket"
+	[[ "${file#"$ROOT"/}" == "$OPEN_DIR/"* ]] || die "ticket is already closed: $ticket"
+	[[ "$status" == "in-review" ]] || die "accept requires in-review status; current: ${status:-missing}"
+	claim_ref="$(frontmatter_value "$file" claim_ref)"
+	if [[ -n "$claim_ref" || -n "$(frontmatter_value "$file" claim_expires_at)" ]]; then
+		ticket_claim_expired "$file" && die "accept refused: claim lease is expired for $id; renew with \`palari ticket heartbeat $id\`"
+	fi
+	if [[ -n "$claim_ref" ]] && git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+		git -C "$ROOT" show-ref --verify --quiet "$claim_ref" ||
+			die "accept refused: missing claim ref $claim_ref for $id"
+	fi
+	lint_one_ticket "$file" >/dev/null
+	cmd_report_lint "$id" >/dev/null
+	ticket_evidence_complete "$id" || exit 1
+	ticket_evidence_manifest_valid "$id" || exit 1
+	self_policy="$(cfg_nested acceptance implementation_self_acceptance "forbidden")"
+	if [[ "$self_policy" == "forbidden" ]]; then
+		claimed_by="$(frontmatter_value "$file" claimed_by)"
+		implemented_by="$(frontmatter_value "$file" implemented_by)"
+		if same_actor "$by" "$claimed_by" || same_actor "$by" "$implemented_by"; then
+			die "accept refused: implementation_self_acceptance is forbidden for $id"
+		fi
+	fi
+	update_frontmatter_scalars "$file" \
+		"status"$'\035'"accepted"$'\034' \
+		"accepted_by"$'\035'"$by"$'\034' \
+		"accepted_at"$'\035'"$(now_utc)"$'\034' \
+		"updated"$'\035'"$(today_utc)"$'\034'
+	dest="$ROOT/$CLOSED_DIR/$(basename "$file")"
+	mv "$file" "$dest"
+	if [[ -n "$claim_ref" ]]; then
+		git -C "$ROOT" update-ref -d "$claim_ref" >/dev/null 2>&1 || true
+	fi
+	printf 'accept: %s accepted by %s\n' "$id" "$by"
+	printf 'closed: %s\n' "${dest#"$ROOT"/}"
+}

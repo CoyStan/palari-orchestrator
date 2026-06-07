@@ -25,7 +25,8 @@ Every adoption-flow change should run:
 ```bash
 tests/run-adoption.sh
 tests/run-golden.sh
-shellcheck bin/palari scripts/palari tests/run-adoption.sh
+tests/run-cli-structure.sh
+shellcheck -x bin/palari scripts/palari tests/run-adoption.sh
 ```
 
 ## User Promise
