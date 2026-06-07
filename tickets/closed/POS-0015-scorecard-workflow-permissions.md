@@ -1,15 +1,15 @@
 ---
 id: POS-0015
 title: Fix Scorecard workflow permissions
-status: open
+status: accepted
 risk: R1
 priority: P1
 stream: governance
-claimed_by:
-claimed_at:
-claim_ref:
-claim_heartbeat_at:
-claim_expires_at:
+claimed_by: founder-closeout
+claimed_at: 2026-06-07T09:17:15Z
+claim_ref: refs/palari/claims/POS-0015
+claim_heartbeat_at: 2026-06-07T09:17:15Z
+claim_expires_at: 2026-06-07T13:17:15Z
 allowed_paths:
   - .github/workflows/scorecard.yml
   - tickets/**
@@ -29,8 +29,8 @@ verification:
 target_branch: main
 branch: ticket/POS-0015
 worktree:
-accepted_by:
-accepted_at:
+accepted_by: founder
+accepted_at: 2026-06-07T09:25:32Z
 created: 2026-06-07
 updated: 2026-06-07
 ---

@@ -1,19 +1,20 @@
 ---
 id: POS-0011
 title: README presentation refresh
-status: open
+status: accepted
 risk: R1
 priority: P2
 stream: presentation
-claimed_by:
-claimed_at:
-claim_ref:
-claim_heartbeat_at:
-claim_expires_at:
+claimed_by: founder-closeout
+claimed_at: 2026-06-07T09:17:14Z
+claim_ref: refs/palari/claims/POS-0011
+claim_heartbeat_at: 2026-06-07T09:17:14Z
+claim_expires_at: 2026-06-07T13:17:14Z
 allowed_paths:
   - README.md
   - assets/readme/**
   - tickets/**
+  - reports/**
 forbidden_paths:
   - .env
   - .env.*
@@ -34,10 +35,10 @@ verification:
 target_branch: main
 branch: ticket/POS-0011
 worktree: /home/quetza/palari-orchestrator/../palari-orchestrator-worktrees/POS-0011
-accepted_by:
-accepted_at:
+accepted_by: founder
+accepted_at: 2026-06-07T09:25:30Z
 created: 2026-06-06
-updated: 2026-06-06
+updated: 2026-06-07
 ---
 
 # POS-0011 README Presentation Refresh

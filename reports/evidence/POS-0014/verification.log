@@ -1,0 +1,44 @@
+# Palari CI Evidence
+
+- Ticket: POS-0014
+- Base ref: origin/main
+- Created: 2026-06-07T09:22:28Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0014 (0 changed path(s))
+```
+
+## lint
+
+```text
+report-lint: ok for POS-0014
+lint: ok for POS-0014
+```
+
+## verification 1
+
+Command: `tests/run-adoption.sh`
+
+```text
+adoption: ok
+```
+
+## verification 2
+
+Command: `tests/run-golden.sh`
+
+```text
+Preparing worktree (new branch 'ticket/POS-0001')
+Preparing worktree (new branch 'ticket/APP-0001')
+golden: ok
+```
+
+## verification 3
+
+Command: `shellcheck -x bin/palari scripts/palari tests/run-adoption.sh`
+
+```text
+
+```

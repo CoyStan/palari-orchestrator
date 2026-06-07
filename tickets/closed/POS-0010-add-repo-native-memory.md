@@ -1,25 +1,27 @@
 ---
 id: POS-0010
 title: Add repo-native memory
-status: open
+status: accepted
 risk: R2
 priority: P1
 stream: core
-claimed_by:
-claimed_at:
-claim_ref:
-claim_heartbeat_at:
-claim_expires_at:
+claimed_by: founder-closeout
+claimed_at: 2026-06-07T09:17:14Z
+claim_ref: refs/palari/claims/POS-0010
+claim_heartbeat_at: 2026-06-07T09:17:14Z
+claim_expires_at: 2026-06-07T13:17:14Z
 allowed_paths:
   - adapters/memory/**
   - memory/**
   - bin/palari
+  - lib/palari/**
   - README.md
   - AGENTS.md
   - palari.config.yaml
   - schemas/**
   - tests/**
   - tickets/**
+  - reports/**
 forbidden_paths:
   - .env
   - .env.*
@@ -33,16 +35,16 @@ requires_review: true
 verification:
   - tests/run-memory.sh
   - tests/run-golden.sh
-  - shellcheck bin/palari scripts/palari tests/run-golden.sh tests/run-memory.sh
-  - if command -v shfmt >/dev/null 2>&1; then shfmt -d bin/palari scripts/palari tests/run-golden.sh tests/run-memory.sh; else echo "shfmt unavailable in this runner; Static Analysis owns formatting"; fi
+  - shellcheck -x bin/palari scripts/palari tests/run-golden.sh tests/run-memory.sh
+  - if command -v shfmt >/dev/null 2>&1; then shfmt -d bin/palari scripts/palari lib/palari/*.bash tests/run-golden.sh tests/run-memory.sh; else echo "shfmt unavailable in this runner; Static Analysis owns formatting"; fi
   - python3 -m py_compile adapters/memory/memory.py adapters/web/server.py
 target_branch: main
 branch: ticket/POS-0010
 worktree: /home/quetza/palari-orchestrator/../palari-orchestrator-worktrees/POS-0010
-accepted_by:
-accepted_at:
+accepted_by: founder
+accepted_at: 2026-06-07T09:25:29Z
 created: 2026-06-06
-updated: 2026-06-06
+updated: 2026-06-07
 ---
 
 # POS-0010 Add repo-native memory
@@ -75,8 +77,8 @@ path-scoped Markdown knowledge into specialist and reviewer packets.
 
 - tests/run-memory.sh
 - tests/run-golden.sh
-- shellcheck bin/palari scripts/palari tests/run-golden.sh tests/run-memory.sh
-- if command -v shfmt >/dev/null 2>&1; then shfmt -d bin/palari scripts/palari tests/run-golden.sh tests/run-memory.sh; else echo "shfmt unavailable in this runner; Static Analysis owns formatting"; fi
+- shellcheck -x bin/palari scripts/palari tests/run-golden.sh tests/run-memory.sh
+- if command -v shfmt >/dev/null 2>&1; then shfmt -d bin/palari scripts/palari lib/palari/*.bash tests/run-golden.sh tests/run-memory.sh; else echo "shfmt unavailable in this runner; Static Analysis owns formatting"; fi
 - python3 -m py_compile adapters/memory/memory.py adapters/web/server.py
 
 ## Ticket Completion Contract

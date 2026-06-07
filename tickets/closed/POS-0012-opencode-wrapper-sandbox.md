@@ -1,15 +1,15 @@
 ---
 id: POS-0012
 title: opencode wrapper sandbox
-status: open
+status: accepted
 risk: R2
 priority: P1
 stream: adapters
-claimed_by:
-claimed_at:
-claim_ref:
-claim_heartbeat_at:
-claim_expires_at:
+claimed_by: founder-closeout
+claimed_at: 2026-06-07T09:17:14Z
+claim_ref: refs/palari/claims/POS-0012
+claim_heartbeat_at: 2026-06-07T09:17:14Z
+claim_expires_at: 2026-06-07T13:17:14Z
 allowed_paths:
   - bin/palari
   - README.md
@@ -32,13 +32,13 @@ requires_review: true
 verification:
   - tests/run-agent-wrapper.sh
   - tests/run-golden.sh
-  - shellcheck bin/palari scripts/palari tests/run-agent-wrapper.sh
-  - shfmt -d bin/palari scripts/palari tests/run-agent-wrapper.sh
+  - shellcheck -x bin/palari scripts/palari tests/run-agent-wrapper.sh
+  - shfmt -d bin/palari scripts/palari lib/palari/*.bash tests/run-agent-wrapper.sh
 target_branch: main
 branch: ticket/POS-0012
 worktree: /home/quetza/palari-orchestrator/../palari-orchestrator-worktrees/POS-0012
-accepted_by:
-accepted_at:
+accepted_by: founder
+accepted_at: 2026-06-07T09:25:30Z
 created: 2026-06-07
 updated: 2026-06-07
 ---
@@ -74,8 +74,8 @@ scope checks, and acceptance authority.
 
 - tests/run-agent-wrapper.sh
 - tests/run-golden.sh
-- shellcheck bin/palari scripts/palari tests/run-agent-wrapper.sh
-- shfmt -d bin/palari scripts/palari tests/run-agent-wrapper.sh
+- shellcheck -x bin/palari scripts/palari tests/run-agent-wrapper.sh
+- shfmt -d bin/palari scripts/palari lib/palari/*.bash tests/run-agent-wrapper.sh
 
 ## Ticket Completion Contract
 

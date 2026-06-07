@@ -1,31 +1,29 @@
 ---
-id: POS-0009
-title: Public readiness remediation
-status: open
+id: POS-0013
+title: Lead proposal planning layer
+status: accepted
 risk: R2
 priority: P2
-stream: governance
-claimed_by:
-claimed_at:
-claim_ref:
-claim_heartbeat_at:
-claim_expires_at:
+stream: orchestration
+claimed_by: founder-closeout
+claimed_at: 2026-06-07T09:17:15Z
+claim_ref: refs/palari/claims/POS-0013
+claim_heartbeat_at: 2026-06-07T09:17:15Z
+claim_expires_at: 2026-06-07T13:17:15Z
 allowed_paths:
-  - .github/**
+  - bin/palari
+  - palari.config.yaml
+  - schemas/**
   - AGENTS.md
   - README.md
-  - CHANGELOG.md
-  - CODE_OF_CONDUCT.md
-  - CONTRIBUTING.md
-  - LICENSE
-  - RELEASING.md
-  - SECURITY.md
-  - adapters/**
-  - bin/**
   - contracts/**
-  - docs/**
+  - templates/**
+  - skills/**
+  - adapters/openclaude/**
+  - .github/workflows/**
   - tests/**
   - tickets/**
+  - reports/**
 forbidden_paths:
   - .env
   - .env.*
@@ -37,20 +35,20 @@ forbidden_paths:
 requires_human_confirmation: false
 requires_review: true
 verification:
+  - tests/run-proposals.sh
   - tests/run-golden.sh
-  - tests/run-dashboard-rubric.sh
-  - ./bin/palari lint
-  - python3 -m py_compile adapters/web/server.py
+  - tests/run-agent-wrapper.sh
+  - bash -n bin/palari tests/run-proposals.sh tests/run-golden.sh tests/run-agent-wrapper.sh
 target_branch: main
-branch: ticket/POS-0009
-worktree: /home/quetza/palari-orchestrator/../palari-orchestrator-worktrees/POS-0009
-accepted_by:
-accepted_at:
-created: 2026-06-06
-updated: 2026-06-06
+branch: ticket/POS-0013
+worktree: /home/quetza/palari-orchestrator/../palari-orchestrator-worktrees/POS-0013
+accepted_by: founder
+accepted_at: 2026-06-07T09:25:31Z
+created: 2026-06-07
+updated: 2026-06-07
 ---
 
-# POS-0009 Public readiness remediation
+# POS-0013 Lead proposal planning layer
 
 ## Goal
 
@@ -67,10 +65,10 @@ List what may change.
 
 ## Verification
 
+- tests/run-proposals.sh
 - tests/run-golden.sh
-- tests/run-dashboard-rubric.sh
-- ./bin/palari lint
-- python3 -m py_compile adapters/web/server.py
+- tests/run-agent-wrapper.sh
+- bash -n bin/palari tests/run-proposals.sh tests/run-golden.sh tests/run-agent-wrapper.sh
 
 ## Ticket Completion Contract
 
