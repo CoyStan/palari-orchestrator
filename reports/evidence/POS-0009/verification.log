@@ -1,0 +1,54 @@
+# Palari CI Evidence
+
+- Ticket: POS-0009
+- Base ref: origin/main
+- Created: 2026-06-07T09:19:07Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0009 (0 changed path(s))
+```
+
+## lint
+
+```text
+report-lint: ok for POS-0009
+lint: ok for POS-0009
+```
+
+## verification 1
+
+Command: `tests/run-golden.sh`
+
+```text
+Preparing worktree (new branch 'ticket/POS-0001')
+Preparing worktree (new branch 'ticket/APP-0001')
+golden: ok
+```
+
+## verification 2
+
+Command: `tests/run-dashboard-rubric.sh`
+
+```text
+dashboard-rubric: ok (static layout checks + contrast)
+```
+
+## verification 3
+
+Command: `./bin/palari lint`
+
+```text
+propose lint: ok (no proposals)
+report-lint: ok
+lint: ok
+```
+
+## verification 4
+
+Command: `python3 -m py_compile adapters/web/server.py`
+
+```text
+
+```

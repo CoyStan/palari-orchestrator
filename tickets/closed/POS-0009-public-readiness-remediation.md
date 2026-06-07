@@ -1,25 +1,31 @@
 ---
-id: POS-0014
-title: Cleaner install adoption flow
-status: open
+id: POS-0009
+title: Public readiness remediation
+status: accepted
 risk: R2
 priority: P2
-stream: adoption
-claimed_by:
-claimed_at:
-claim_ref:
-claim_heartbeat_at:
-claim_expires_at:
+stream: governance
+claimed_by: founder-closeout
+claimed_at: 2026-06-07T09:17:13Z
+claim_ref: refs/palari/claims/POS-0009
+claim_heartbeat_at: 2026-06-07T09:17:13Z
+claim_expires_at: 2026-06-07T13:17:13Z
 allowed_paths:
-  - bin/palari
+  - .github/**
+  - AGENTS.md
   - README.md
+  - CHANGELOG.md
+  - CODE_OF_CONDUCT.md
+  - CONTRIBUTING.md
+  - LICENSE
+  - RELEASING.md
+  - SECURITY.md
+  - adapters/**
+  - bin/**
   - contracts/**
-  - skills/**
+  - docs/**
   - tests/**
-  - .github/workflows/**
-  - adapters/github/**
   - tickets/**
-  - reports/**
 forbidden_paths:
   - .env
   - .env.*
@@ -31,19 +37,20 @@ forbidden_paths:
 requires_human_confirmation: false
 requires_review: true
 verification:
-  - tests/run-adoption.sh
   - tests/run-golden.sh
-  - shellcheck bin/palari scripts/palari tests/run-adoption.sh
+  - tests/run-dashboard-rubric.sh
+  - ./bin/palari lint
+  - python3 -m py_compile adapters/web/server.py
 target_branch: main
-branch: ticket/POS-0014
-worktree: /home/quetza/palari-orchestrator/../palari-orchestrator-worktrees/POS-0014
-accepted_by:
-accepted_at:
-created: 2026-06-07
+branch: ticket/POS-0009
+worktree: /home/quetza/palari-orchestrator/../palari-orchestrator-worktrees/POS-0009
+accepted_by: founder
+accepted_at: 2026-06-07T09:25:29Z
+created: 2026-06-06
 updated: 2026-06-07
 ---
 
-# POS-0014 Cleaner install adoption flow
+# POS-0009 Public readiness remediation
 
 ## Goal
 
@@ -60,9 +67,10 @@ List what may change.
 
 ## Verification
 
-- tests/run-adoption.sh
 - tests/run-golden.sh
-- shellcheck bin/palari scripts/palari tests/run-adoption.sh
+- tests/run-dashboard-rubric.sh
+- ./bin/palari lint
+- python3 -m py_compile adapters/web/server.py
 
 ## Ticket Completion Contract
 
