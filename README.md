@@ -119,6 +119,13 @@ want GitHub to require the Palari check:
 palari github install-ruleset --repo OWNER/REPO
 ```
 
+GitHub PRs are intentionally ticketed by default. The workflow calls
+`palari github ci`, which resolves tickets from `PALARI_TICKET_ID`, a
+`ticket/TICKET-ID` branch name, or changed ticket files. If none is found, the
+check fails with instructions instead of silently running a weak gate. Use
+`palari github ci --repo-only` only for explicit maintenance checks that are not
+claiming ticket-governed agent work.
+
 `adopt` refuses non-git targets, keeps existing files by default, writes
 `AGENTS.palari.md` instead of overwriting an existing `AGENTS.md`, runs
 `palari init`, and finishes with `palari doctor`.
@@ -289,6 +296,7 @@ palari packet WEB-0002 specialist
 
 | Command | Purpose |
 | --- | --- |
+| `palari github ci --base REF` | Discover PR tickets from env, branch, or changed ticket files, then run merge-gate CI. |
 | `palari github ruleset-command` | Print the `gh api` command that activates required checks. |
 | `palari github install-ruleset` | Install the GitHub ruleset through `gh api`. |
 | `palari mcp manifest` | Print optional MCP tool metadata for wrapper adapters. |
@@ -309,6 +317,7 @@ ship as adapters:
 
 - GitHub Actions: `palari init --ci` writes `.github/workflows/palari.yml`.
 - GitHub rulesets: `palari init --ci` writes `.github/palari-required-checks.ruleset.json`.
+- GitHub ticket discovery: `palari github ci` fails closed when no PR ticket is discoverable and prints the allowed ticketed and repo-only paths.
 - Adoption: `palari adopt TARGET` copies the portable package into an existing git repository and runs `palari doctor`.
 - Local hooks: `palari init --hooks` writes `lefthook.yml` for fast advisory checks.
 - Lead proposals: `palari propose create`, `palari propose packet`, and `palari propose adopt` separate planning authority from implementation authority.

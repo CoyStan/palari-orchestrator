@@ -43,33 +43,7 @@ jobs:
         run: |
           set -euo pipefail
           git fetch origin "${GITHUB_BASE_REF}:${GITHUB_BASE_REF}" || true
-          ticket="${PALARI_TICKET_ID:-}"
-          ticket_ids=()
-          if [[ -z "$ticket" && "${GITHUB_HEAD_REF:-}" == ticket/* ]]; then
-            ticket="${GITHUB_HEAD_REF#ticket/}"
-          fi
-          if [[ -n "$ticket" ]]; then
-            ticket_ids=("$ticket")
-          else
-            mapfile -t ticket_ids < <(
-              git diff --name-only "$GITHUB_BASE_REF"...HEAD -- 'tickets/open/*.md' 'tickets/closed/*.md' |
-                while IFS= read -r ticket_file; do
-                  awk '
-                    NR == 1 && $0 == "---" { in_fm = 1; next }
-                    in_fm && $0 == "---" { exit }
-                    in_fm && $1 == "id:" { print $2; exit }
-                  ' "$ticket_file"
-                done |
-                sed '/^$/d' |
-                sort -u
-            )
-          fi
-          if (( ${#ticket_ids[@]} > 0 )); then
-            printf 'Running Palari gates for tickets: %s\n' "${ticket_ids[*]}"
-            ./bin/palari ci --base "$GITHUB_BASE_REF" "${ticket_ids[@]}"
-          else
-            ./bin/palari ci
-          fi
+          ./bin/palari github ci --base "$GITHUB_BASE_REF"
 
       - name: Package Palari evidence
         if: always()

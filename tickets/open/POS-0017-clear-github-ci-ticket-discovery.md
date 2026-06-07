@@ -11,7 +11,7 @@ claim_ref: refs/palari/claims/POS-0017
 claim_heartbeat_at: 2026-06-07T09:53:23Z
 claim_expires_at: 2026-06-07T09:58:23Z
 allowed_paths:
-  - .github/workflows/palari.yml
+  - .github/workflows/**
   - adapters/github/workflows/palari.yml
   - bin/palari
   - lib/palari/**

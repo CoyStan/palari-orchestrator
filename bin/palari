@@ -82,6 +82,7 @@ commands:
   scope-check [ID] [--base REF]
                                Check local or PR-diff paths against ticket scope.
   scope-overlaps [ID]          Detect overlapping active ticket write scopes.
+  github ci [--base REF]       Discover PR tickets and run merge-gate Palari CI.
   github ruleset-command       Print the gh api command that activates required checks.
   github install-ruleset       Install the GitHub ruleset with gh api.
   mcp manifest                 Print optional MCP tool metadata.
@@ -103,6 +104,8 @@ adopt options:
   --dry-run                    Print planned writes without copying files.
 
 github options:
+  ci --base REF                 Diff changed ticket files against REF...HEAD.
+  ci --repo-only                Explicit non-merge-gate repository check.
   --repo OWNER/REPO             Repository for ruleset installation.
   --file PATH                   Ruleset JSON path; default .github/palari-required-checks.ruleset.json.
 

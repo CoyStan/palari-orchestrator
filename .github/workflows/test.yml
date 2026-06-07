@@ -25,6 +25,7 @@ jobs:
           bash -n tests/run-adoption.sh
           bash -n tests/run-proposals.sh
           bash -n tests/run-agent-wrapper.sh
+          bash -n tests/run-github-ci.sh
           bash -n tests/run-dashboard-rubric.sh
 
       - name: CLI structure
@@ -38,6 +39,9 @@ jobs:
 
       - name: Agent wrapper
         run: tests/run-agent-wrapper.sh
+
+      - name: GitHub CI discovery
+        run: tests/run-github-ci.sh
 
       - name: Golden flow
         run: tests/run-golden.sh

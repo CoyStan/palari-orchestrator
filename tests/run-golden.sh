@@ -39,10 +39,11 @@ grep -Fq "workflow alone does not protect merges" "$TMP_ROOT/init.out"
 grep -Fq "gh api --method PATCH repos/OWNER/REPO/rulesets" "$TMP_ROOT/init.out"
 grep -Fq "gh api --method POST repos/OWNER/REPO/rulesets" "$TMP_ROOT/init.out"
 # shellcheck disable=SC2016 # The checked workflow text must contain literal shell expressions.
-grep -Fq './bin/palari ci --base "$GITHUB_BASE_REF" "${ticket_ids[@]}"' .github/workflows/palari.yml
+grep -Fq './bin/palari github ci --base "$GITHUB_BASE_REF"' .github/workflows/palari.yml
 # shellcheck disable=SC2016 # The checked workflow text must contain literal shell expressions.
-if grep -Fq '${#ticket_ids[@]} == 1' .github/workflows/palari.yml; then
-	printf 'golden: workflow reintroduced single-ticket-only CI extraction\n' >&2
+if grep -Fq 'mapfile -t ticket_ids' .github/workflows/palari.yml ||
+	grep -Fq 'awk ' .github/workflows/palari.yml; then
+	printf 'golden: workflow reintroduced YAML-side ticket extraction\n' >&2
 	exit 1
 fi
 python3 -m py_compile adapters/web/server.py

@@ -82,10 +82,136 @@ cmd_mcp() {
 	esac
 }
 
+github_ci_ticket_id_from_file() {
+	local path="$1"
+	local abs="$ROOT/$path"
+	local tmp="" id="" base
+	if [[ -f "$abs" ]]; then
+		frontmatter_value "$abs" id
+		return
+	fi
+	if git -C "$ROOT" cat-file -e "HEAD:$path" 2>/dev/null; then
+		tmp="$(mktemp)"
+		git -C "$ROOT" show "HEAD:$path" >"$tmp"
+		id="$(frontmatter_value "$tmp" id || true)"
+		rm -f "$tmp"
+		if [[ -n "$id" ]]; then
+			printf '%s\n' "$id"
+			return
+		fi
+	fi
+	base="$(basename "$path")"
+	if [[ "$base" =~ ^([A-Za-z][A-Za-z0-9]*-[0-9]+) ]]; then
+		printf '%s\n' "${BASH_REMATCH[1]}"
+	fi
+}
+
+github_ci_changed_ticket_ids() {
+	local base_ref="$1"
+	local path id
+	[[ -n "$base_ref" ]] || return 0
+	git -C "$ROOT" rev-parse --verify "$base_ref" >/dev/null 2>&1 ||
+		die "github ci base ref not found: $base_ref"
+	while IFS= read -r path; do
+		[[ -n "$path" ]] || continue
+		id="$(github_ci_ticket_id_from_file "$path" || true)"
+		[[ -n "$id" ]] && printf '%s\n' "$id"
+	done < <(
+		git -C "$ROOT" diff --name-only "$base_ref"...HEAD -- \
+			"$OPEN_DIR/*.md" "$OPEN_DIR/*.markdown" \
+			"$CLOSED_DIR/*.md" "$CLOSED_DIR/*.markdown"
+	)
+}
+
+github_ci_no_ticket_message() {
+	local base_ref="$1"
+	cat >&2 <<EOF
+error: github ci could not find a Palari ticket for this PR.
+
+Palari checked:
+- PALARI_TICKET_ID
+- GITHUB_HEAD_REF matching ticket/TICKET-ID
+- the current branch matching ticket/TICKET-ID
+- changed ticket files under $OPEN_DIR/ and $CLOSED_DIR/ against ${base_ref:-BASE}...HEAD
+
+Use one governed path:
+- name the branch ticket/TICKET-ID
+- include or move a ticket file under $OPEN_DIR/ or $CLOSED_DIR/
+- set PALARI_TICKET_ID when the PR intentionally maps to one ticket
+
+For maintenance-only repository checks, run:
+- palari github ci --repo-only
+
+Do not use --repo-only as a merge-gate substitute for ticketed agent work.
+EOF
+}
+
+cmd_github_ci() {
+	require_base_folders
+	local base_ref="" evidence_dir="" repo_only="false" ticket="" branch_ticket="" arg
+	local -a ticket_ids=()
+	while (($# > 0)); do
+		arg="$1"
+		case "$arg" in
+		--base)
+			base_ref="$2"
+			shift 2
+			;;
+		--evidence-dir)
+			evidence_dir="$2"
+			shift 2
+			;;
+		--repo-only)
+			repo_only="true"
+			shift
+			;;
+		--*) die "unknown github ci option: $arg" ;;
+		*) die "github ci does not accept positional ticket IDs; use palari ci TICKET-ID for direct local runs" ;;
+		esac
+	done
+	[[ -n "$base_ref" ]] || base_ref="${GITHUB_BASE_REF:-$DEFAULT_BRANCH}"
+
+	if [[ "$repo_only" == "true" ]]; then
+		local -a repo_args=(--repo-only)
+		[[ -n "$base_ref" ]] && repo_args+=(--base "$base_ref")
+		[[ -n "$evidence_dir" ]] && repo_args+=(--evidence-dir "$evidence_dir")
+		cmd_ci "${repo_args[@]}"
+		return
+	fi
+
+	ticket="${PALARI_TICKET_ID:-}"
+	if [[ -n "$ticket" ]]; then
+		ticket_ids+=("$ticket")
+	else
+		if [[ "${GITHUB_HEAD_REF:-}" == ticket/* ]]; then
+			branch_ticket="${GITHUB_HEAD_REF#ticket/}"
+		else
+			branch_ticket="$(infer_ticket_from_branch || true)"
+		fi
+		[[ -n "$branch_ticket" ]] && ticket_ids+=("$branch_ticket")
+	fi
+	if ((${#ticket_ids[@]} == 0)); then
+		mapfile -t ticket_ids < <(github_ci_changed_ticket_ids "$base_ref" | sed '/^$/d' | sort -u)
+	fi
+	if ((${#ticket_ids[@]} == 0)); then
+		github_ci_no_ticket_message "$base_ref"
+		exit 2
+	fi
+
+	printf 'github ci: tickets: %s\n' "${ticket_ids[*]}"
+	local -a ci_args=(--base "$base_ref")
+	[[ -n "$evidence_dir" ]] && ci_args+=(--evidence-dir "$evidence_dir")
+	cmd_ci "${ci_args[@]}" "${ticket_ids[@]}"
+}
+
 cmd_github() {
 	local sub="${1:-}"
 	shift || true
 	local repo="" file=".github/palari-required-checks.ruleset.json" arg ruleset_name jq_filter ruleset_id
+	if [[ "$sub" == "ci" ]]; then
+		cmd_github_ci "$@"
+		return
+	fi
 	while (($# > 0)); do
 		arg="$1"
 		case "$arg" in
@@ -123,7 +249,7 @@ cmd_github() {
 		fi
 		;;
 	*)
-		die "unknown github command: ${sub:-}; try \`palari github ruleset-command\`"
+		die "unknown github command: ${sub:-}; try \`palari github ci\` or \`palari github ruleset-command\`"
 		;;
 	esac
 }
