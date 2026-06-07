@@ -20,6 +20,10 @@ they conflict with repo files.
 
 - Human/founder: owns product judgment, risk acceptance, and final direction.
   Only the human/founder or an explicitly authorized reviewer may accept work.
+- Lead/planner: turns founder intent into proposed tickets. May read repo
+  context, selected memory, skills, and contracts. May write
+  `tickets/proposed/**` and `reports/planning/**`. Does not implement, accept,
+  push, commit, or broaden scope.
 - Orchestrator: selects or creates tickets, runs clean/context gates, prepares
   worktrees, emits packets, routes specialists/reviewers, and integrates
   evidence.
@@ -40,24 +44,27 @@ they conflict with repo files.
 
 1. Refresh repository state with `git status --short --branch` and
    `palari status`.
-2. Create or select a ticket with risk, allowed paths, forbidden paths,
+2. When intent is still messy, create a proposal with `palari propose create`,
+   review it, then adopt it with `palari propose adopt`. The lead/planner may
+   propose work but cannot authorize implementation.
+3. Create or select a ticket with risk, allowed paths, forbidden paths,
    verification, review gates, and human gates.
-3. Commit accepted ticket setup before creating the worktree.
-4. Run `palari worktree TICKET-ID`.
-5. Generate packets with `palari packet TICKET-ID specialist` and, when ready,
+4. Commit accepted ticket setup before creating the worktree.
+5. Run `palari worktree TICKET-ID`.
+6. Generate packets with `palari packet TICKET-ID specialist` and, when ready,
    `palari packet TICKET-ID reviewer`.
-6. Execute only inside ticket scope. Stop on missing authority, forbidden paths,
+7. Execute only inside ticket scope. Stop on missing authority, forbidden paths,
    higher real risk, secrets, production, live services, deploys, Docker,
    database mutation, destructive commands, or unclear acceptance criteria.
-7. Record evidence in reports and run `palari scope-check TICKET-ID`. Use
+8. Record evidence in reports and run `palari scope-check TICKET-ID`. Use
    `palari ci TICKET-ID --base BASE_REF` so the evidence bundle includes the
    integrity manifest required by `accept`. In GitHub, the required `palari`
    check and evidence attestation provide the trusted merge-path executor.
    `palari ci` fails closed without a ticket; use `--repo-only` only for
    non-merge-gate repository checks.
-8. Use `palari scope-overlaps TICKET-ID` before parallel work when write scopes
+9. Use `palari scope-overlaps TICKET-ID` before parallel work when write scopes
    may collide. Renew long-running work with `palari ticket heartbeat TICKET-ID`.
-9. Move implementation to `in-review`. Acceptance remains a separate human or
+10. Move implementation to `in-review`. Acceptance remains a separate human or
    authorized-reviewer gate.
 
 ## Integrations

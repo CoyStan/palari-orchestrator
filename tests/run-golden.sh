@@ -12,8 +12,8 @@ mkdir -p "$WORK"
 
 cd "$WORK"
 chmod +x bin/palari scripts/palari
-rm -f tickets/open/*.md tickets/open/*.markdown tickets/closed/*.md tickets/closed/*.markdown
-rm -f reports/*.md reports/*.markdown reports/human/*.md reports/human/*.markdown handoffs/*.md handoffs/*.markdown
+rm -f tickets/open/*.md tickets/open/*.markdown tickets/proposed/*.md tickets/proposed/*.markdown tickets/closed/*.md tickets/closed/*.markdown
+rm -f reports/*.md reports/*.markdown reports/planning/*.md reports/planning/*.markdown reports/human/*.md reports/human/*.markdown handoffs/*.md handoffs/*.markdown
 rm -rf reports/evidence/*
 git init -b main >/dev/null
 git config user.email "golden@example.invalid"
@@ -29,13 +29,25 @@ test -f adapters/web/static/styles.css
 test -f adapters/web/static/app-shell.css
 test -f adapters/web/static/app.js
 test -f reports/evidence/.gitkeep
+test -f tickets/proposed/.gitkeep
+test -f reports/planning/.gitkeep
+test -f contracts/adoption.md
+test -f skills/adoption/SKILL.md
 grep -Fq "workflow alone does not protect merges" "$TMP_ROOT/init.out"
 grep -Fq "gh api --method PATCH repos/OWNER/REPO/rulesets" "$TMP_ROOT/init.out"
 grep -Fq "gh api --method POST repos/OWNER/REPO/rulesets" "$TMP_ROOT/init.out"
+# shellcheck disable=SC2016 # The checked workflow text must contain literal shell expressions.
+grep -Fq './bin/palari ci --base "$GITHUB_BASE_REF" "${ticket_ids[@]}"' .github/workflows/palari.yml
+# shellcheck disable=SC2016 # The checked workflow text must contain literal shell expressions.
+if grep -Fq '${#ticket_ids[@]} == 1' .github/workflows/palari.yml; then
+	printf 'golden: workflow reintroduced single-ticket-only CI extraction\n' >&2
+	exit 1
+fi
 python3 -m py_compile adapters/web/server.py
 ./bin/palari snapshot --json >"$TMP_ROOT/snapshot.out"
 grep -Fq '"project": "Palari Orchestrator"' "$TMP_ROOT/snapshot.out"
 grep -Fq '"tickets": []' "$TMP_ROOT/snapshot.out"
+grep -Fq '"proposals": []' "$TMP_ROOT/snapshot.out"
 ./bin/palari web --check >"$TMP_ROOT/web-snapshot.out"
 grep -Fq '"project": "Palari Orchestrator"' "$TMP_ROOT/web-snapshot.out"
 grep -Fq '"tickets": []' "$TMP_ROOT/web-snapshot.out"
@@ -169,6 +181,34 @@ rm -f tickets/open/POS-0008-*.md
 
 git add .
 git commit -m "initial orchestrator package" >/dev/null
+
+./bin/palari ticket create POS-0100 "Multi ticket alpha" \
+	--stream docs \
+	--risk R1 \
+	--allowed "docs/alpha/**" \
+	--allowed "tickets/**" \
+	--allowed "reports/**" \
+	--verify "manual multi alpha check" >/dev/null
+./bin/palari ticket create POS-0101 "Multi ticket beta" \
+	--stream docs \
+	--risk R1 \
+	--allowed "docs/beta/**" \
+	--allowed "tickets/**" \
+	--allowed "reports/**" \
+	--verify "manual multi beta check" >/dev/null
+git add tickets/open/POS-0100-*.md tickets/open/POS-0101-*.md
+git commit -m "add multi-ticket fixtures" >/dev/null
+mkdir -p docs/alpha docs/beta
+printf 'alpha\n' >docs/alpha/a.md
+printf 'beta\n' >docs/beta/b.md
+./bin/palari ci POS-0100 POS-0101 --base main >"$TMP_ROOT/multi-ci.out"
+grep -Fq "scope-check: ok for ticket set POS-0100,POS-0101" reports/evidence/POS-0100+POS-0101/verification.log
+grep -Fq "ci: ok for POS-0100+POS-0101" "$TMP_ROOT/multi-ci.out"
+rm -rf reports/evidence/POS-0100+POS-0101
+rm -rf docs/alpha docs/beta
+rm -f tickets/open/POS-0100-*.md tickets/open/POS-0101-*.md
+git add -A
+git commit -m "remove multi-ticket fixtures" >/dev/null
 
 ./bin/palari ticket create POS-0005 "Governed missing evidence" \
 	--stream docs \

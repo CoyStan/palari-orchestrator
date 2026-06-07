@@ -29,7 +29,7 @@ give an AI coworker a named job, approved sources, visible records, and a
 permission moment before anything important moves.
 
 ```text
-ticket -> worktree -> packet -> scope-check -> ci evidence -> review -> accept
+intent -> proposal -> ticket -> worktree -> packet -> scope-check -> ci evidence -> review -> accept
 ```
 
 It is built for founders, operators, product people, and small technical teams
@@ -43,7 +43,7 @@ authority.
 | --- | --- |
 | Who is it for? | Teams delegating coding work to agents while keeping human review and repository control. |
 | What is the core? | Bash, Markdown, git, templates, and checks that can move into almost any repo. |
-| What does it enforce? | Ticket lifecycle, allowed/forbidden paths, evidence bundles, fresh-context review, and acceptance gates. |
+| What does it enforce? | Proposal adoption, ticket lifecycle, allowed/forbidden paths, evidence bundles, fresh-context review, and acceptance gates. |
 | What is optional? | GitHub rulesets, hooks, MCP wrappers, opencode execution, local sandboxes, the console, and repo-memory adapters. |
 | What is it not? | A hosted agent platform, product-specific Palari app code, or a replacement for human judgment. |
 
@@ -77,6 +77,7 @@ review and evidence gates. R3/R4 work requires human confirmation.
 
 | Primitive | What it protects |
 | --- | --- |
+| Lead proposals | Messy founder intent becomes adoptable tickets without letting the planner implement. |
 | Scoped tickets | The agent knows where it may work and what must be verified. |
 | Worktree-first execution | Each ticket gets isolated from the main checkout. |
 | Agent packets | Specialists, reviewers, and acceptors get the right context. |
@@ -99,16 +100,16 @@ tests/run-golden.sh
 Adopt it in another repo:
 
 ```bash
-cp -R bin scripts templates contracts skills schemas adapters examples AGENTS.md palari.config.yaml /path/to/repo/
+./bin/palari adopt /path/to/repo
 cd /path/to/repo
-./bin/palari init
+./bin/palari doctor
 ./bin/palari status
 ```
 
 Add optional GitHub and local hook adapters:
 
 ```bash
-./bin/palari init --ci --hooks
+./bin/palari adopt /path/to/repo --ci --hooks
 ```
 
 The workflow file alone does not protect merges. Install the ruleset when you
@@ -118,7 +119,36 @@ want GitHub to require the Palari check:
 palari github install-ruleset --repo OWNER/REPO
 ```
 
+`adopt` refuses non-git targets, keeps existing files by default, writes
+`AGENTS.palari.md` instead of overwriting an existing `AGENTS.md`, runs
+`palari init`, and finishes with `palari doctor`.
+
 ## First Ticket
+
+If the work is still fuzzy, start with a lead/planner proposal:
+
+```bash
+palari propose create APP-PROP-0001 "Improve onboarding" \
+  --planner openclaude \
+  --model deepseek/deepseek-v4-flash \
+  --intent "Make the repository easier for non-programmers to understand."
+
+palari propose packet APP-PROP-0001
+palari propose adopt APP-PROP-0001 \
+  --ticket APP-0001 \
+  --allowed "src/**" \
+  --allowed "tests/**" \
+  --allowed "tickets/**" \
+  --allowed "reports/**" \
+  --verify "npm test" \
+  --review
+```
+
+The lead can write `tickets/proposed/**` and `reports/planning/**`. It cannot
+implement, accept, push, commit, or broaden authority. A human adopts the
+proposal before executor work begins.
+
+If the work is already clear, create the ticket directly:
 
 ```bash
 palari ticket create APP-0001 "first scoped slice" \
@@ -164,6 +194,11 @@ palari agent run APP-0001 --executor opencode
 The wrapper prepares the Palari worktree and packet, runs opencode with Palari
 lifecycle commands denied, captures executor evidence, then runs Palari scope
 and CI gates. It does not accept, push, merge, or deploy.
+
+OpenClaude can act as a restricted lead/planner when paired with
+`palari propose packet`. DeepSeek models can be used through whichever executor
+adapter supports them. Palari keeps the same boundary: planner proposes, executor
+implements, reviewer checks, human accepts.
 
 Use a disposable local copy when you want to test executor behavior away from
 the canonical checkout:
@@ -223,8 +258,13 @@ palari packet WEB-0002 specialist
 | Command | Purpose |
 | --- | --- |
 | `palari init` | Create the ticket, report, and handoff directories expected by the workflow. |
+| `palari adopt /path/to/repo` | Copy Palari into an existing git repo, initialize it, and run the doctor. |
+| `palari doctor` | Check whether the current repo has the required Palari files and directories. |
 | `palari status` | Show current tickets and workflow health at a glance. |
 | `palari snapshot --json` | Print the repo-native JSON state model used by adapters. |
+| `palari propose create ID TITLE` | Create a restricted lead/planner proposal before executable ticket work exists. |
+| `palari propose packet ID` | Print the restricted lead packet for a planner AI such as OpenClaude. |
+| `palari propose adopt ID --ticket TICKET-ID` | Convert a human-approved proposal into a real scoped ticket. |
 | `palari ticket create ID TITLE` | Create a scoped ticket with allowed paths, risk, checks, and review requirements. |
 | `palari ticket claim ID` | Mark a ticket as claimed before implementation work starts. |
 | `palari ticket heartbeat ID` | Renew the ticket claim lease. |
@@ -269,7 +309,9 @@ ship as adapters:
 
 - GitHub Actions: `palari init --ci` writes `.github/workflows/palari.yml`.
 - GitHub rulesets: `palari init --ci` writes `.github/palari-required-checks.ruleset.json`.
+- Adoption: `palari adopt TARGET` copies the portable package into an existing git repository and runs `palari doctor`.
 - Local hooks: `palari init --hooks` writes `lefthook.yml` for fast advisory checks.
+- Lead proposals: `palari propose create`, `palari propose packet`, and `palari propose adopt` separate planning authority from implementation authority.
 - Executor wrappers: `palari agent run TICKET-ID --executor opencode` invokes opencode from a Palari packet and records executor evidence.
 - Local sandboxes: `palari sandbox create TICKET-ID` creates a disposable repository copy for executor experiments.
 - Evidence integrity: `palari ci` writes `reports/evidence/<ticket>/verification.log`, `junit.xml`, `palari.sarif`, and `manifest.json`; `accept` validates manifest status, current commit, and artifact hashes before closing a ticket.
@@ -312,8 +354,12 @@ schemas/palari.config.schema.json Config schema
 templates/                        Human report, handoff, and feature-contract templates
 examples/                         Optional adopter examples such as product-feel review
 contracts/                        Portable workflow contracts
-adapters/                         Optional GitHub, hooks, MCP, and web integration templates
+adapters/                         Optional GitHub, hooks, MCP, opencode, OpenClaude, and web templates
 skills/orchestrator/SKILL.md      Orchestrator usage guidance
+skills/planner/SKILL.md           Restricted lead/planner guidance
+skills/adoption/SKILL.md          Install/adoption guidance and rubric
+tickets/proposed/                 Human-adopted proposal staging area
+reports/planning/                 Lead packets and planning notes
 tests/golden/                     Fixtures that prove the flow works
 ```
 
@@ -323,6 +369,7 @@ tests/golden/                     Fixtures that prove the flow works
 
 ```bash
 tests/run-golden.sh
+tests/run-adoption.sh
 tests/run-agent-wrapper.sh
 tests/run-dashboard-rubric.sh
 ./bin/palari lint

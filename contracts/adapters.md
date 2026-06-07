@@ -41,6 +41,21 @@ Local hooks are fast feedback only. They can run `palari lint` and
 `palari scope-overlaps`, but they are not an authority boundary because users
 can skip hooks.
 
+## Adoption Adapter
+
+Adoption is a copy-and-check flow, not a package manager or hosted installer.
+Use:
+
+```bash
+palari adopt /path/to/repo
+palari doctor
+```
+
+The adoption flow copies the portable package into an existing git repository,
+runs `palari init`, and prints next commands. It must keep existing files by
+default, write `AGENTS.palari.md` instead of overwriting an existing
+`AGENTS.md`, and keep GitHub workflows/hooks opt-in.
+
 ## Evidence Adapter
 
 CI evidence belongs under `reports/evidence/`. The standard bundle is:
@@ -83,6 +98,28 @@ palari sandbox create TICKET-ID
 when you need a disposable local repository copy for executor experiments.
 Worktrees still remain the default execution surface for the first wrapper
 because existing packet and evidence commands already understand them.
+
+## Lead Planner Adapters
+
+Lead planner adapters turn founder intent into proposals, not implementation.
+They may read repository context, selected memory, skills, and contracts, then
+write proposal artifacts under `tickets/proposed/**` and planning notes under
+`reports/planning/**`.
+
+The first stable boundary is repository-native:
+
+```bash
+palari propose create POS-PROP-0001 "Plan the next slice" \
+  --planner openclaude \
+  --model deepseek/deepseek-v4-flash
+palari propose packet POS-PROP-0001
+palari propose adopt POS-PROP-0001 --ticket POS-0013 ...
+```
+
+Lead adapters must not edit source files, run implementation, accept tickets,
+push, commit, deploy, or rewrite governance. OpenClaude and opencode can both
+consume the lead packet if configured, but the proposal/adoption boundary stays
+in Palari.
 
 ## Web Adapter
 
