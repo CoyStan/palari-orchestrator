@@ -17,7 +17,9 @@ allowed_paths:
   - palari.config.yaml
   - schemas/**
   - README.md
+  - AGENTS.md
   - contracts/**
+  - roles/**
   - tests/**
   - tickets/**
   - reports/**
