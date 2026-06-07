@@ -2408,6 +2408,48 @@ cmd_scope_overlaps() {
 	fi
 }
 
+scope_check_ticket_set() {
+	local base_ref="$1"
+	shift
+	local ticket_ids=("$@")
+	local file ticket_id path pattern changed_count=0 errors=0 label
+	local -a allowed=()
+	local -a forbidden=()
+	((${#ticket_ids[@]} > 0)) || die "multi-ticket scope-check requires at least one ticket"
+	for ticket_id in "${ticket_ids[@]}"; do
+		file="$(find_ticket_file "$ticket_id")" || die "ticket not found: $ticket_id"
+		while IFS= read -r pattern; do [[ -n "$pattern" ]] && allowed+=("$pattern"); done < <(frontmatter_list_items "$file" allowed_paths)
+		while IFS= read -r pattern; do [[ -n "$pattern" ]] && forbidden+=("$pattern"); done < <(frontmatter_list_items "$file" forbidden_paths)
+	done
+	((${#allowed[@]} > 0)) || die "multi-ticket scope has no allowed_paths"
+	((${#forbidden[@]} > 0)) || die "multi-ticket scope has no forbidden_paths"
+	label="$(
+		IFS=,
+		printf '%s' "${ticket_ids[*]}"
+	)"
+	while IFS= read -r path; do
+		[[ -n "$path" ]] || continue
+		changed_count=$((changed_count + 1))
+		pattern="$(check_path_against_patterns "$path" "${forbidden[@]}" || true)"
+		if [[ -n "$pattern" ]]; then
+			printf 'scope-check: %s forbidden by ticket set %s (rule: %s)\n' "$path" "$label" "$pattern" >&2
+			errors=$((errors + 1))
+			continue
+		fi
+		pattern="$(check_path_against_patterns "$path" "${allowed[@]}" || true)"
+		if [[ -z "$pattern" ]]; then
+			printf 'scope-check: %s outside union allowed_paths for ticket set %s\n' "$path" "$label" >&2
+			printf 'scope-check: allowed rules: %s\n' "${allowed[*]}" >&2
+			errors=$((errors + 1))
+		fi
+	done < <(git_changed_paths "$base_ref")
+	((errors == 0)) || {
+		printf 'scope-check: failed for ticket set %s with %s issue(s)\n' "$label" "$errors" >&2
+		return 1
+	}
+	printf 'scope-check: ok for ticket set %s (%s changed path(s))\n' "$label" "$changed_count"
+}
+
 infer_ticket_from_branch() {
 	local branch id
 	branch="$(git -C "$ROOT" branch --show-current 2>/dev/null || true)"
@@ -2574,6 +2616,7 @@ ci_write_manifest() {
 cmd_ci() {
 	require_base_folders
 	local ticket="" base_ref="" evidence_dir="$EVIDENCE_DIR" repo_only="false" arg
+	local -a tickets=()
 	while (($# > 0)); do
 		arg="$1"
 		case "$arg" in
@@ -2586,7 +2629,7 @@ cmd_ci() {
 			shift 2
 			;;
 		--ticket)
-			ticket="$2"
+			tickets+=("$2")
 			shift 2
 			;;
 		--repo-only)
@@ -2595,18 +2638,31 @@ cmd_ci() {
 			;;
 		--*) die "unknown ci option: $arg" ;;
 		*)
-			ticket="$arg"
+			tickets+=("$arg")
 			shift
 			;;
 		esac
 	done
-	[[ -n "$ticket" ]] || ticket="${PALARI_TICKET_ID:-}"
-	[[ -n "$ticket" ]] || ticket="$(infer_ticket_from_branch || true)"
-	if [[ -z "$ticket" && "$repo_only" != "true" ]]; then
+	if ((${#tickets[@]} == 0)) && [[ -n "${PALARI_TICKET_ID:-}" ]]; then
+		tickets+=("$PALARI_TICKET_ID")
+	fi
+	if ((${#tickets[@]} == 0)); then
+		ticket="$(infer_ticket_from_branch || true)"
+		[[ -n "$ticket" ]] && tickets+=("$ticket")
+	fi
+	if ((${#tickets[@]} == 0)) && [[ "$repo_only" != "true" ]]; then
 		die "ci requires a ticket ID, a ticket/* branch, or PALARI_TICKET_ID; use --repo-only only for non-merge-gate repository checks"
 	fi
 
-	local ticket_label="${ticket:-repo}"
+	local ticket_label="repo"
+	if ((${#tickets[@]} == 1)); then
+		ticket_label="${tickets[0]}"
+	elif ((${#tickets[@]} > 1)); then
+		ticket_label="$(
+			IFS=+
+			printf '%s' "${tickets[*]}"
+		)"
+	fi
 	local out_dir="$ROOT/$evidence_dir/$ticket_label"
 	local log="$out_dir/verification.log"
 	local junit="$out_dir/junit.xml"
@@ -2630,16 +2686,17 @@ cmd_ci() {
 		printf -- '- Created: %s\n' "$(now_utc)"
 	} >"$log"
 
-	local failed=0 file check index=0
-	if [[ -n "$ticket" ]]; then
-		file="$(find_ticket_file "$ticket")" || die "ticket not found: $ticket"
+	local failed=0 file check index=0 current_ticket
+	if ((${#tickets[@]} == 1)); then
+		current_ticket="${tickets[0]}"
+		file="$(find_ticket_file "$current_ticket")" || die "ticket not found: $current_ticket"
 		CI_SARIF_LOCATION="${file#"$ROOT"/}"
 		if [[ -n "$base_ref" ]]; then
-			ci_run_step "scope-check" cmd_scope_check "$ticket" --base "$base_ref" || failed=1
+			ci_run_step "scope-check" cmd_scope_check "$current_ticket" --base "$base_ref" || failed=1
 		else
-			ci_run_step "scope-check" cmd_scope_check "$ticket" || failed=1
+			ci_run_step "scope-check" cmd_scope_check "$current_ticket" || failed=1
 		fi
-		ci_run_step "lint" cmd_lint "$ticket" || failed=1
+		ci_run_step "lint" cmd_lint "$current_ticket" || failed=1
 		while IFS= read -r check; do
 			[[ -n "$check" ]] || continue
 			index=$((index + 1))
@@ -2654,6 +2711,28 @@ cmd_ci() {
 				;;
 			esac
 		done < <(frontmatter_list_items "$file" verification)
+	elif ((${#tickets[@]} > 1)); then
+		CI_SARIF_LOCATION="palari.config.yaml"
+		ci_run_step "scope-check" scope_check_ticket_set "$base_ref" "${tickets[@]}" || failed=1
+		for current_ticket in "${tickets[@]}"; do
+			file="$(find_ticket_file "$current_ticket")" || die "ticket not found: $current_ticket"
+			ci_run_step "lint $current_ticket" cmd_lint "$current_ticket" || failed=1
+			index=0
+			while IFS= read -r check; do
+				[[ -n "$check" ]] || continue
+				index=$((index + 1))
+				case "$check" in
+				manual* | Manual* | describe\ * | Describe\ *)
+					ci_add_junit_case "$current_ticket verification $index" skip "manual or descriptive check: $check"
+					# shellcheck disable=SC2016 # Backticks are literal Markdown in evidence output.
+					printf '\n## %s verification %s\n\nSkipped manual/descriptive check: `%s`\n' "$current_ticket" "$index" "$check" >>"$log"
+					;;
+				*)
+					ci_run_shell_step "$current_ticket verification $index" "$check" || failed=1
+					;;
+				esac
+			done < <(frontmatter_list_items "$file" verification)
+		done
 	else
 		ci_run_step "lint" cmd_lint || failed=1
 	fi

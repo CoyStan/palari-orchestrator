@@ -17,6 +17,7 @@ allowed_paths:
   - skills/**
   - tests/**
   - .github/workflows/**
+  - adapters/github/**
   - tickets/**
   - reports/**
 forbidden_paths:
