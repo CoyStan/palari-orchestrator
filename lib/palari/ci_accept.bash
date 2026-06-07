@@ -1,3 +1,5 @@
+# shellcheck shell=bash
+# shellcheck disable=SC2153 # This module is sourced after core.bash, which defines shared globals.
 infer_ticket_from_branch() {
 	local branch id
 	branch="$(git -C "$ROOT" branch --show-current 2>/dev/null || true)"

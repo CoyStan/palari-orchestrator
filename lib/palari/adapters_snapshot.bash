@@ -1,3 +1,5 @@
+# shellcheck shell=bash
+# shellcheck disable=SC2153 # This module is sourced after core.bash, which defines shared globals.
 cmd_skill_create() {
 	local name="${1:-}"
 	shift || true
@@ -618,6 +620,8 @@ cmd_snapshot() {
 	json_string "$SCOPE_OVERLAP_POLICY"
 	printf ',"claim_lease_seconds":'
 	json_string "$CLAIM_LEASE_SECONDS"
+	printf ',"authority_profile":'
+	json_string "$AUTHORITY_PROFILE"
 	printf ',"evidence_dir":'
 	json_string "$EVIDENCE_DIR"
 	printf '},\n'
@@ -643,7 +647,20 @@ cmd_snapshot() {
 	json_string "$(git -C "$ROOT" status --short --branch 2>/dev/null || true)"
 	printf '},\n'
 	printf '  "palari_status": %s,\n' "$palari_status"
-	printf '  "commands": {"status":"./bin/palari status","lint":"./bin/palari lint","scope_overlaps":"./bin/palari scope-overlaps","ruleset":"./bin/palari github ruleset-command --repo OWNER/REPO"}\n'
+	printf '  "authority": {"profile":'
+	json_string "$AUTHORITY_PROFILE"
+	printf ',"agent_can_commit":'
+	json_string "$(authority_value agent_can_commit)"
+	printf ',"agent_can_push_branch":'
+	json_string "$(authority_value agent_can_push_branch)"
+	printf ',"agent_can_open_pr":'
+	json_string "$(authority_value agent_can_open_pr)"
+	printf ',"agent_can_merge_main":'
+	json_string "$(authority_value agent_can_merge_main)"
+	printf ',"agent_can_accept":'
+	json_string "$(authority_value agent_can_accept)"
+	printf '},\n'
+	printf '  "commands": {"status":"./bin/palari status","status_next":"./bin/palari status --next","authority":"./bin/palari authority","ticket_audit":"./bin/palari ticket audit","lint":"./bin/palari lint","scope_overlaps":"./bin/palari scope-overlaps","ruleset":"./bin/palari github ruleset-command --repo OWNER/REPO"}\n'
 	printf '}\n'
 	: "$active" "$reports" "$human" "$evidence"
 }

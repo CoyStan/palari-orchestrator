@@ -24,6 +24,7 @@ test -f .github/workflows/palari.yml
 test -f .github/palari-required-checks.ruleset.json
 test -f lefthook.yml
 test -f lib/palari/core.bash
+test -f lib/palari/roles.bash
 test -f lib/palari/init_adopt.bash
 test -f adapters/web/server.py
 test -f adapters/web/static/index.html
@@ -32,6 +33,10 @@ test -f adapters/web/static/app-shell.css
 test -f adapters/web/static/app.js
 test -f reports/evidence/.gitkeep
 test -f tickets/proposed/.gitkeep
+test -f roles/proposed/.gitkeep
+test -f roles/revoked/.gitkeep
+test -f roles/active/ROLE-ROOT.md
+test -f roles/active/ROLE-ENGINEERING-LEAD.md
 test -f reports/planning/.gitkeep
 test -f contracts/adoption.md
 test -f skills/adoption/SKILL.md
@@ -49,8 +54,17 @@ fi
 python3 -m py_compile adapters/web/server.py
 ./bin/palari snapshot --json >"$TMP_ROOT/snapshot.out"
 grep -Fq '"project": "Palari Orchestrator"' "$TMP_ROOT/snapshot.out"
+grep -Fq '"authority_profile":"team-safe"' "$TMP_ROOT/snapshot.out"
 grep -Fq '"tickets": []' "$TMP_ROOT/snapshot.out"
 grep -Fq '"proposals": []' "$TMP_ROOT/snapshot.out"
+./bin/palari authority >"$TMP_ROOT/authority.out"
+grep -Fq "profile: team-safe" "$TMP_ROOT/authority.out"
+if ./bin/palari authority check merge-main >"$TMP_ROOT/authority-merge.out" 2>&1; then
+	printf 'golden: team-safe should refuse merge-main\n' >&2
+	exit 1
+fi
+./bin/palari role lint >"$TMP_ROOT/role-lint.out"
+grep -Fq "role lint: ok" "$TMP_ROOT/role-lint.out"
 ./bin/palari web --check >"$TMP_ROOT/web-snapshot.out"
 grep -Fq '"project": "Palari Orchestrator"' "$TMP_ROOT/web-snapshot.out"
 grep -Fq '"tickets": []' "$TMP_ROOT/web-snapshot.out"

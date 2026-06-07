@@ -189,6 +189,31 @@ palari accept APP-0001 --by founder
 `accept` moves the ticket to `tickets/closed/`. It does not merge, push, deploy,
 or bless missing evidence.
 
+## Authority Profiles
+
+Palari separates human intent from autonomous agent authority. The default
+profile is `team-safe`: agents can prepare branch work and PRs, but they cannot
+merge main or accept tickets as done.
+
+```bash
+palari authority
+palari authority check merge-main
+palari status --next
+palari doctor lifecycle
+```
+
+Adopters can switch profiles in `palari.config.yaml`:
+
+| Profile | Good for | Agent authority |
+| --- | --- | --- |
+| `team-safe` | Public default and small teams | commit/push branch/open PR allowed; merge main and accept denied |
+| `solo-founder` | A trusted single maintainer workflow | merge main allowed; accept requires an explicit user instruction |
+| `strict` | Regulated or unfamiliar repos | no autonomous commit, push, PR, merge, or accept |
+
+This is a policy signal for packets, wrappers, and human review. It does not
+remove GitHub branch protection or repository rules; keep those as the hard
+merge gate when the repo needs non-bypassable enforcement.
+
 ## Optional External Executors
 
 Palari can wrap stronger coding agents without making them the authority. The
@@ -267,13 +292,22 @@ palari packet WEB-0002 specialist
 | `palari init` | Create the ticket, report, and handoff directories expected by the workflow. |
 | `palari adopt /path/to/repo` | Copy Palari into an existing git repo, initialize it, and run the doctor. |
 | `palari doctor` | Check whether the current repo has the required Palari files and directories. |
-| `palari status` | Show current tickets and workflow health at a glance. |
+| `palari doctor lifecycle` | Explain the next action for active tickets. |
+| `palari status [--next]` | Show current tickets and optionally the next required lifecycle action. |
 | `palari snapshot --json` | Print the repo-native JSON state model used by adapters. |
+| `palari authority` | Show the active agent authority profile. |
+| `palari authority check ACTION` | Check whether an autonomous agent may commit, push, open a PR, merge main, or accept. |
+| `palari role list` | List optional repo-native roles and their authority boundaries. |
+| `palari role lint` | Validate that active roles only narrow authority from their parent roles. |
+| `palari role packet ROLE-ID` | Generate a role authority packet for a planner, specialist, or reviewer. |
+| `palari role propose ROLE TITLE --by-role PARENT` | Stage a child role proposal without activating it. |
+| `palari role adopt ROLE --by ACTOR` | Activate a proposed role only after authority checks pass. |
 | `palari propose create ID TITLE` | Create a restricted lead/planner proposal before executable ticket work exists. |
 | `palari propose packet ID` | Print the restricted lead packet for a planner AI such as OpenClaude. |
 | `palari propose adopt ID --ticket TICKET-ID` | Convert a human-approved proposal into a real scoped ticket. |
 | `palari ticket create ID TITLE` | Create a scoped ticket with allowed paths, risk, checks, and review requirements. |
 | `palari ticket claim ID` | Mark a ticket as claimed before implementation work starts. |
+| `palari ticket audit` | Explain active ticket next actions. |
 | `palari ticket heartbeat ID` | Renew the ticket claim lease. |
 | `palari ticket ready ID` | Move a ticket into review once implementation evidence exists. |
 | `palari ticket block ID` | Mark scoped work blocked. |
@@ -321,6 +355,9 @@ ship as adapters:
 - Adoption: `palari adopt TARGET` copies the portable package into an existing git repository and runs `palari doctor`.
 - Local hooks: `palari init --hooks` writes `lefthook.yml` for fast advisory checks.
 - Lead proposals: `palari propose create`, `palari propose packet`, and `palari propose adopt` separate planning authority from implementation authority.
+- Authority profiles: `palari authority` makes agent commit, push, PR, merge, and accept permissions explicit per repository.
+- Role-governed delegation: `palari role` lets a repo define root, lead, specialist, and reviewer authority as Markdown files. Role authority can only narrow as it flows from parent role to child role to ticket; unclear path containment escalates, and forbidden or invalid grants are rejected. Roles are local-mode authority artifacts. Signed provenance is not enforced in v1.
+- Lifecycle visibility: `palari status --next`, `palari doctor lifecycle`, and `palari ticket audit` explain active tickets that are not closed yet.
 - Executor wrappers: `palari agent run TICKET-ID --executor opencode` invokes opencode from a Palari packet and records executor evidence.
 - Local sandboxes: `palari sandbox create TICKET-ID` creates a disposable repository copy for executor experiments.
 - Evidence integrity: `palari ci` writes `reports/evidence/<ticket>/verification.log`, `junit.xml`, `palari.sarif`, and `manifest.json`; `accept` validates manifest status, current commit, and artifact hashes before closing a ticket.
@@ -370,6 +407,9 @@ skills/planner/SKILL.md           Restricted lead/planner guidance
 skills/adoption/SKILL.md          Install/adoption guidance and rubric
 tickets/proposed/                 Human-adopted proposal staging area
 reports/planning/                 Lead packets and planning notes
+roles/active/                     Optional active repo authority roles
+roles/proposed/                   Proposed roles awaiting adoption
+roles/revoked/                    Revoked role records
 tests/golden/                     Fixtures that prove the flow works
 ```
 

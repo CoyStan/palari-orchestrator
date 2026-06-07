@@ -1,3 +1,5 @@
+# shellcheck shell=bash
+# shellcheck disable=SC2034 # Core globals are consumed by other sourced Palari modules.
 VALID_STATUSES="open claimed blocked needs-human in-review reopened accepted"
 VALID_RISKS="R0 R1 R2 R3 R4"
 VALID_PRIORITIES="P0 P1 P2 P3"
@@ -24,6 +26,7 @@ ADOPTION_PATHS=(
 	"contracts"
 	"skills"
 	"schemas"
+	"roles"
 	"adapters"
 	"examples"
 	"palari.config.yaml"
@@ -119,6 +122,9 @@ HANDOFFS_DIR="$(cfg handoffs_dir "handoffs")"
 AGENT_SKILLS_DIR="$(cfg agent_skills_dir "agent-skills")"
 STATE_DIR="$(cfg state_dir ".palari")"
 EVIDENCE_DIR="$(cfg evidence_dir "reports/evidence")"
+ROLES_ACTIVE_DIR="$(cfg roles_active_dir "roles/active")"
+ROLES_PROPOSED_DIR="$(cfg roles_proposed_dir "roles/proposed")"
+ROLES_REVOKED_DIR="$(cfg roles_revoked_dir "roles/revoked")"
 DEFAULT_BRANCH="$(cfg default_branch "main")"
 WORKTREE_BASE="$(cfg worktree_base "../$(basename "$ROOT")-worktrees")"
 CLAIM_LEASE_SECONDS="$(cfg claim_lease_seconds "300")"
@@ -773,33 +779,61 @@ ruleset_activation_command() {
 		"$repo" "$(shell_quote "$file")" "$repo" "$(shell_quote "$file")"
 }
 
-ignored_overlap_patterns() {
-	local item count=0
+OVERLAP_IGNORED_PATTERNS_LOADED="false"
+OVERLAP_IGNORED_PATTERNS=()
+OVERLAP_IGNORED_PREFIXES=()
+
+load_ignored_overlap_patterns() {
+	[[ "$OVERLAP_IGNORED_PATTERNS_LOADED" == "true" ]] && return 0
+	local item prefix count=0
 	while IFS= read -r item; do
 		[[ -n "$item" ]] || continue
-		printf '%s\n' "$item"
+		OVERLAP_IGNORED_PATTERNS+=("$item")
 		count=$((count + 1))
 	done < <(config_list concurrency_ignored_overlap_paths || true)
 	if ((count == 0)); then
-		printf 'tickets/**\nreports/**\nreports/human/**\nhandoffs/**\n.palari/**\n'
+		OVERLAP_IGNORED_PATTERNS=("tickets/**" "reports/**" "reports/human/**" "handoffs/**" ".palari/**")
 	fi
+	for item in "${OVERLAP_IGNORED_PATTERNS[@]}"; do
+		pattern_prefix_to_var "$item" prefix
+		OVERLAP_IGNORED_PREFIXES+=("$prefix")
+	done
+	OVERLAP_IGNORED_PATTERNS_LOADED="true"
+}
+
+ignored_overlap_patterns() {
+	local item
+	load_ignored_overlap_patterns
+	for item in "${OVERLAP_IGNORED_PATTERNS[@]}"; do
+		printf '%s\n' "$item"
+	done
+}
+
+pattern_prefix_to_var() {
+	local pattern="${1#./}"
+	local var_name="$2"
+	pattern="${pattern%/**}"
+	pattern="${pattern%/*}"
+	printf -v "$var_name" '%s' "$pattern"
 }
 
 pattern_prefix() {
-	local pattern="${1#./}"
-	pattern="${pattern%/**}"
-	pattern="${pattern%/*}"
-	printf '%s\n' "$pattern"
+	local prefix
+	pattern_prefix_to_var "$1" prefix
+	printf '%s\n' "$prefix"
 }
 
 pattern_ignored_for_overlap() {
 	local pattern="$1"
-	local ignored
-	while IFS= read -r ignored; do
+	local pattern_prefix_value ignored index
+	load_ignored_overlap_patterns
+	pattern_prefix_to_var "$pattern" pattern_prefix_value
+	for index in "${!OVERLAP_IGNORED_PATTERNS[@]}"; do
+		ignored="${OVERLAP_IGNORED_PATTERNS[$index]}"
 		[[ -n "$ignored" ]] || continue
 		[[ "$pattern" == "$ignored" ]] && return 0
-		[[ "$(pattern_prefix "$pattern")" == "$(pattern_prefix "$ignored")" ]] && return 0
-	done < <(ignored_overlap_patterns)
+		[[ "$pattern_prefix_value" == "${OVERLAP_IGNORED_PREFIXES[$index]}" ]] && return 0
+	done
 	return 1
 }
 
@@ -810,8 +844,8 @@ patterns_overlap() {
 	pattern_ignored_for_overlap "$left" && return 1
 	pattern_ignored_for_overlap "$right" && return 1
 	[[ "$left" == "$right" ]] && return 0
-	lp="$(pattern_prefix "$left")"
-	rp="$(pattern_prefix "$right")"
+	pattern_prefix_to_var "$left" lp
+	pattern_prefix_to_var "$right" rp
 	[[ -n "$lp" && -n "$rp" ]] || return 1
 	[[ "$lp" == "$rp" ]] && return 0
 	[[ "$lp" == "$rp/"* || "$rp" == "$lp/"* ]]

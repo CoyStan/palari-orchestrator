@@ -25,6 +25,12 @@ palari_require_module() {
 palari_require_module "$PALARI_LIB_DIR/core.bash"
 # shellcheck source=lib/palari/core.bash
 source "$PALARI_LIB_DIR/core.bash"
+palari_require_module "$PALARI_LIB_DIR/authority_lifecycle.bash"
+# shellcheck source=lib/palari/authority_lifecycle.bash
+source "$PALARI_LIB_DIR/authority_lifecycle.bash"
+palari_require_module "$PALARI_LIB_DIR/roles.bash"
+# shellcheck source=lib/palari/roles.bash
+source "$PALARI_LIB_DIR/roles.bash"
 palari_require_module "$PALARI_LIB_DIR/init_adopt.bash"
 # shellcheck source=lib/palari/init_adopt.bash
 source "$PALARI_LIB_DIR/init_adopt.bash"
@@ -53,15 +59,19 @@ commands:
   init [--ci] [--hooks]        Create configured directories and optional adapters.
   adopt TARGET [--ci] [--hooks]
                                Copy Palari into an existing git repository.
-  doctor                       Check whether Palari is installed cleanly.
-  status                       Show compact orchestration status.
+  doctor [lifecycle]           Check install health or active ticket lifecycle.
+  status [--next]              Show compact orchestration status.
   snapshot --json              Print the repo-native JSON state model.
+  authority [show|check]       Show or check the active agent authority profile.
+  role list|show|lint|graph    Inspect optional repo-native authority roles.
+  role packet|propose|adopt    Create role packets and governed role proposals.
   propose create ID TITLE ...  Create a lead/planner proposal.
   propose list|show|packet     Inspect proposed work before adoption.
   propose adopt ID --ticket T  Adopt a proposal into an executable ticket.
   lead [propose] ...           Alias for propose.
   ticket create ID TITLE ...   Create a scoped ticket.
   ticket claim ID [BY]         Claim an open/reopened ticket.
+  ticket audit                 Explain active ticket next actions.
   ticket heartbeat ID [TTL]    Renew a claimed ticket lease.
   ticket ready ID              Move claimed/reopened ticket to in-review.
   ticket block ID              Move ticket to blocked.
@@ -103,6 +113,15 @@ adopt options:
   --force                      Overwrite existing copied Palari files.
   --dry-run                    Print planned writes without copying files.
 
+authority options:
+  check ACTION                 ACTION is commit, push-branch, open-pr, merge-main, or accept.
+  --user-explicit              Allow user-explicit actions such as solo-founder accept.
+
+role options:
+  propose ROLE TITLE --by-role PARENT
+  adopt ROLE --by ACTOR
+  revoke ROLE --by ACTOR
+
 github options:
   ci --base REF                 Diff changed ticket files against REF...HEAD.
   ci --repo-only                Explicit non-merge-gate repository check.
@@ -126,7 +145,7 @@ propose adopt options:
 ticket create options:
   --stream NAME --risk R1 --priority P2 --allowed GLOB --forbidden GLOB
   --verify CHECK --review --human --contract --required-report NAME
-  --target-branch main
+  --target-branch main --by-role ROLE-ID --delegate-to-role ROLE-ID
 
 ticket claim options:
   --ttl SECONDS                Lease duration; default from claim_lease_seconds.
@@ -158,11 +177,25 @@ adopt)
 	shift
 	cmd_adopt "$@"
 	;;
-doctor) cmd_doctor ;;
-status) cmd_status ;;
+doctor)
+	shift
+	cmd_doctor "$@"
+	;;
+status)
+	shift
+	cmd_status "$@"
+	;;
 snapshot)
 	shift
 	cmd_snapshot "${1:-"--json"}"
+	;;
+authority)
+	shift
+	cmd_authority "$@"
+	;;
+role)
+	shift
+	cmd_role "$@"
 	;;
 propose | proposal)
 	shift

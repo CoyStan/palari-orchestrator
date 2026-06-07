@@ -22,7 +22,7 @@ cmd_init() {
 		*) die "unknown init option: $1" ;;
 		esac
 	done
-	for dir in "$PROPOSED_DIR" "$OPEN_DIR" "$CLOSED_DIR" "$REPORTS_DIR" "$HUMAN_REPORTS_DIR" "$PLANNING_REPORTS_DIR" "$EVIDENCE_DIR" "$HANDOFFS_DIR"; do
+	for dir in "$PROPOSED_DIR" "$OPEN_DIR" "$CLOSED_DIR" "$REPORTS_DIR" "$HUMAN_REPORTS_DIR" "$PLANNING_REPORTS_DIR" "$EVIDENCE_DIR" "$HANDOFFS_DIR" "$ROLES_ACTIVE_DIR" "$ROLES_PROPOSED_DIR" "$ROLES_REVOKED_DIR"; do
 		mkdir -p "$ROOT/$dir"
 		: >"$ROOT/$dir/.gitkeep"
 	done
@@ -31,6 +31,7 @@ cmd_init() {
 	printf 'root: %s\n' "$ROOT"
 	printf 'tickets: %s, %s, %s\n' "$PROPOSED_DIR" "$OPEN_DIR" "$CLOSED_DIR"
 	printf 'evidence: %s\n' "$EVIDENCE_DIR"
+	printf 'roles: %s, %s, %s\n' "$ROLES_ACTIVE_DIR" "$ROLES_PROPOSED_DIR" "$ROLES_REVOKED_DIR"
 	if [[ "$with_ci" == "true" ]]; then
 		install_template_file "adapters/github/workflows/palari.yml" ".github/workflows/palari.yml" "$force"
 		install_template_file "adapters/github/rulesets/palari-required-checks.json" ".github/palari-required-checks.ruleset.json" "$force"
@@ -45,8 +46,165 @@ cmd_init() {
 	fi
 }
 
+cmd_authority() {
+	local sub="${1:-show}"
+	shift || true
+	local action="" user_explicit="false" key value
+	case "$sub" in
+	show | "")
+		printf 'Palari authority profile\n'
+		printf 'profile: %s\n' "$AUTHORITY_PROFILE"
+		printf 'agent_can_commit: %s\n' "$(authority_value agent_can_commit)"
+		printf 'agent_can_push_branch: %s\n' "$(authority_value agent_can_push_branch)"
+		printf 'agent_can_open_pr: %s\n' "$(authority_value agent_can_open_pr)"
+		printf 'agent_can_merge_main: %s\n' "$(authority_value agent_can_merge_main)"
+		printf 'agent_can_accept: %s\n' "$(authority_value agent_can_accept)"
+		printf 'note: these permissions describe autonomous agent authority; humans can still run explicit Palari gates.\n'
+		;;
+	check)
+		action="${1:-}"
+		shift || true
+		while (($# > 0)); do
+			case "$1" in
+			--user-explicit)
+				user_explicit="true"
+				shift
+				;;
+			*) die "unknown authority check option: $1" ;;
+			esac
+		done
+		[[ -n "$action" ]] || die "authority check requires an action"
+		key="$(authority_action_key "$action")" || die "unknown authority action: $action"
+		value="$(authority_value "$key")"
+		case "$value" in
+		true | allowed | yes)
+			printf 'authority: ok for %s under %s\n' "$action" "$AUTHORITY_PROFILE"
+			;;
+		user-explicit)
+			if [[ "$user_explicit" == "true" ]]; then
+				printf 'authority: ok for %s under %s with explicit user instruction\n' "$action" "$AUTHORITY_PROFILE"
+			else
+				printf 'authority: refused for %s under %s; requires --user-explicit\n' "$action" "$AUTHORITY_PROFILE" >&2
+				return 1
+			fi
+			;;
+		*)
+			printf 'authority: refused for %s under %s\n' "$action" "$AUTHORITY_PROFILE" >&2
+			return 1
+			;;
+		esac
+		;;
+	*) die "unknown authority command: $sub" ;;
+	esac
+}
+
+ticket_evidence_present_quiet() {
+	local ticket_id="$1"
+	local dir="$ROOT/$EVIDENCE_DIR/$ticket_id"
+	local name
+	for name in verification.log junit.xml palari.sarif manifest.json; do
+		[[ -s "$dir/$name" ]] || return 1
+	done
+	return 0
+}
+
+ticket_report_lint_quiet() {
+	local ticket_id="$1"
+	local code
+	set +e
+	cmd_report_lint "$ticket_id" >/dev/null 2>&1
+	code=$?
+	set -e
+	return "$code"
+}
+
+ticket_next_action() {
+	local file="$1"
+	local id status target title
+	id="$(frontmatter_value "$file" id)"
+	title="$(frontmatter_value "$file" title)"
+	status="$(frontmatter_value "$file" status)"
+	target="$(frontmatter_value "$file" target_branch)"
+	[[ -n "$id" ]] || id="$(ticket_title_from_file "$file")"
+	[[ -n "$target" ]] || target="$DEFAULT_BRANCH"
+	case "$status" in
+	open)
+		printf 'claim and isolate: palari ticket claim %s YOUR-NAME && palari worktree %s\n' "$id" "$id"
+		;;
+	claimed)
+		if ticket_evidence_present_quiet "$id" && ticket_report_lint_quiet "$id"; then
+			printf 'move to review: palari ticket ready %s\n' "$id"
+		else
+			printf 'finish evidence: palari worktree %s; palari packet %s specialist; palari ci %s --base %s\n' "$id" "$id" "$id" "$target"
+		fi
+		;;
+	in-review)
+		if ! ticket_evidence_present_quiet "$id"; then
+			printf 'create evidence: palari ci %s --base %s\n' "$id" "$target"
+		elif ! ticket_report_lint_quiet "$id"; then
+			printf 'complete review reports: palari packet %s reviewer\n' "$id"
+		else
+			printf 'accept or reopen: palari accept %s --by founder\n' "$id"
+		fi
+		;;
+	blocked)
+		printf 'resolve blocker or hand off: inspect %s and add a handoff note\n' "${file#"$ROOT"/}"
+		;;
+	needs-human)
+		printf 'human decision required: add report under %s for %s\n' "$HUMAN_REPORTS_DIR" "$id"
+		;;
+	reopened)
+		printf 'continue revised work: palari ticket claim %s YOUR-NAME && palari packet %s specialist\n' "$id" "$id"
+		;;
+	*)
+		printf 'inspect ticket state: %s has status %s\n' "$id" "${status:-missing}"
+		;;
+	esac
+	: "$title"
+}
+
+cmd_lifecycle_audit() {
+	require_base_folders
+	local limit="" count=0 file id status title next
+	while (($# > 0)); do
+		case "$1" in
+		--limit)
+			limit="$2"
+			shift 2
+			;;
+		*) die "unknown lifecycle audit option: $1" ;;
+		esac
+	done
+	printf 'Lifecycle audit\n'
+	while IFS= read -r file; do
+		[[ -n "$file" ]] || continue
+		id="$(frontmatter_value "$file" id)"
+		status="$(frontmatter_value "$file" status)"
+		title="$(frontmatter_value "$file" title)"
+		[[ -n "$id" ]] || id="$(ticket_title_from_file "$file")"
+		next="$(ticket_next_action "$file")"
+		printf '%s [%s] %s\n' "$id" "${status:-missing}" "${title:-}"
+		printf '  next: %s\n' "$next"
+		count=$((count + 1))
+		[[ -n "$limit" && "$count" -ge "$limit" ]] && break
+	done < <(ticket_files)
+	if ((count == 0)); then
+		printf 'next: no active tickets; create or adopt the next scoped ticket.\n'
+	fi
+}
+
 cmd_status() {
 	require_base_folders
+	local show_next="false"
+	while (($# > 0)); do
+		case "$1" in
+		--next)
+			show_next="true"
+			shift
+			;;
+		*) die "unknown status option: $1" ;;
+		esac
+	done
 	local proposals active accepted reports human evidence changed
 	proposals="$(proposal_files | wc -l | tr -d ' ')"
 	active="$(ticket_files | wc -l | tr -d ' ')"
@@ -70,6 +228,10 @@ cmd_status() {
 	printf 'reports: %s specialist/reviewer, %s human\n' "$reports" "$human"
 	printf 'evidence: %s files\n' "$evidence"
 	printf 'git: %s changed paths in workspace\n' "$changed"
+	if [[ "$show_next" == "true" ]]; then
+		printf '\nNext required action\n'
+		cmd_lifecycle_audit --limit 1 | sed '1d'
+	fi
 }
 
 doctor_check_file() {
@@ -95,6 +257,12 @@ doctor_check_dir() {
 }
 
 cmd_doctor() {
+	if [[ "${1:-}" == "lifecycle" ]]; then
+		shift
+		cmd_lifecycle_audit "$@"
+		return 0
+	fi
+	[[ -z "${1:-}" ]] || die "unknown doctor command: $1"
 	local errors=0
 	printf 'Palari adoption doctor\n'
 	printf 'root: %s\n' "$ROOT"
@@ -117,6 +285,8 @@ cmd_doctor() {
 		errors=$((errors + 1))
 	fi
 	doctor_check_file "lib/palari/core.bash" errors
+	doctor_check_file "lib/palari/authority_lifecycle.bash" errors
+	doctor_check_file "lib/palari/roles.bash" errors
 	doctor_check_file "lib/palari/init_adopt.bash" errors
 	doctor_check_file "lib/palari/proposals.bash" errors
 	doctor_check_file "lib/palari/tickets_workspace.bash" errors
@@ -134,6 +304,7 @@ cmd_doctor() {
 	fi
 	doctor_check_file "contracts/ticket-lifecycle.md" errors
 	doctor_check_file "contracts/adoption.md" errors
+	doctor_check_file "contracts/authority-and-lifecycle.md" errors
 	doctor_check_file "templates/technical-report.md" errors
 	doctor_check_file "skills/orchestrator/SKILL.md" errors
 	doctor_check_file "skills/adoption/SKILL.md" errors
@@ -145,6 +316,13 @@ cmd_doctor() {
 	doctor_check_dir "$PLANNING_REPORTS_DIR" errors
 	doctor_check_dir "$EVIDENCE_DIR" errors
 	doctor_check_dir "$HANDOFFS_DIR" errors
+	if [[ -d "$ROOT/$ROLES_ACTIVE_DIR" || -d "$ROOT/$ROLES_PROPOSED_DIR" || -d "$ROOT/$ROLES_REVOKED_DIR" ]]; then
+		doctor_check_dir "$ROLES_ACTIVE_DIR" errors
+		doctor_check_dir "$ROLES_PROPOSED_DIR" errors
+		doctor_check_dir "$ROLES_REVOKED_DIR" errors
+	else
+		printf 'doctor: optional role directories not installed; run ./bin/palari init to add them\n'
+	fi
 	if [[ -f "$ROOT/.github/workflows/palari.yml" ]]; then
 		printf 'doctor: ok optional GitHub workflow\n'
 	else

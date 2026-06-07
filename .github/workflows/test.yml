@@ -24,7 +24,9 @@ jobs:
           bash -n tests/run-golden.sh
           bash -n tests/run-adoption.sh
           bash -n tests/run-proposals.sh
+          bash -n tests/run-roles.sh
           bash -n tests/run-agent-wrapper.sh
+          bash -n tests/run-authority-lifecycle.sh
           bash -n tests/run-github-ci.sh
           bash -n tests/run-dashboard-rubric.sh
 
@@ -37,8 +39,14 @@ jobs:
       - name: Proposals
         run: tests/run-proposals.sh
 
+      - name: Roles
+        run: tests/run-roles.sh
+
       - name: Agent wrapper
         run: tests/run-agent-wrapper.sh
+
+      - name: Authority and lifecycle
+        run: tests/run-authority-lifecycle.sh
 
       - name: GitHub CI discovery
         run: tests/run-github-ci.sh

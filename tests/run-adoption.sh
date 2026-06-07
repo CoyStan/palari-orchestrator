@@ -46,6 +46,7 @@ grep -Fq "./bin/palari github ruleset-command --repo OWNER/REPO" "$TMP_ROOT/adop
 test -x bin/palari
 test -x scripts/palari
 test -f lib/palari/core.bash
+test -f lib/palari/roles.bash
 test -f lib/palari/init_adopt.bash
 test -f palari.config.yaml
 test -f AGENTS.md
@@ -54,6 +55,10 @@ test -f contracts/adoption.md
 test -f skills/adoption/SKILL.md
 test -f templates/proposal.md
 test -d tickets/proposed
+test -d roles/active
+test -d roles/proposed
+test -d roles/revoked
+test -f roles/active/ROLE-ROOT.md
 test -d reports/planning
 test -f reports/evidence/.gitkeep
 test -f .github/workflows/palari.yml
@@ -67,6 +72,7 @@ grep -Fq "# Palari Orchestration Agent Template" AGENTS.palari.md
 grep -Fq "Palari adoption doctor" "$TMP_ROOT/doctor.out"
 grep -Fq "doctor: ok executable bin/palari" "$TMP_ROOT/doctor.out"
 grep -Fq "doctor: ok file lib/palari/core.bash" "$TMP_ROOT/doctor.out"
+grep -Fq "doctor: ok file lib/palari/roles.bash" "$TMP_ROOT/doctor.out"
 grep -Fq "doctor: ok file contracts/adoption.md" "$TMP_ROOT/doctor.out"
 grep -Fq "doctor: ok file skills/adoption/SKILL.md" "$TMP_ROOT/doctor.out"
 grep -Fq "doctor: ok" "$TMP_ROOT/doctor.out"

@@ -9,6 +9,7 @@ cmd_ticket_create() {
 	local stream="process" risk="R1" priority="P2" with_contract="false"
 	local requires_review="false" requires_human="false"
 	local target_branch="$DEFAULT_BRANCH"
+	local by_role="" delegate_to_role=""
 	local -a allowed=()
 	local -a forbidden=()
 	local -a verification=()
@@ -61,6 +62,14 @@ cmd_ticket_create() {
 			target_branch="$2"
 			shift 2
 			;;
+		--by-role)
+			by_role="$2"
+			shift 2
+			;;
+		--delegate-to-role)
+			delegate_to_role="$2"
+			shift 2
+			;;
 		*) die "unknown ticket create option: $arg" ;;
 		esac
 	done
@@ -74,6 +83,9 @@ cmd_ticket_create() {
 	fi
 	in_words "$risk" "$VALID_RISKS" || die "invalid risk: $risk"
 	in_words "$priority" "$VALID_PRIORITIES" || die "invalid priority: $priority"
+	if [[ -n "$delegate_to_role" && -z "$by_role" ]]; then
+		die "--delegate-to-role requires --by-role so authority can be checked"
+	fi
 	case "$risk" in
 	R2)
 		with_contract="true"
@@ -93,6 +105,57 @@ cmd_ticket_create() {
 	created="$(today_utc)"
 	branch="$(ticket_default_branch "$id")"
 	worktree="$(ticket_default_worktree "$id")"
+
+	if [[ -n "$by_role" ]]; then
+		local parent_role_file candidate authority_result escalation_file
+		valid_role_id "$by_role" || die "invalid by-role id: $by_role"
+		if [[ -n "$delegate_to_role" ]]; then
+			valid_role_id "$delegate_to_role" || die "invalid delegate-to-role id: $delegate_to_role"
+		fi
+		parent_role_file="$(find_active_role_file "$by_role")" || die "active role not found: $by_role"
+		candidate="$(mktemp "${TMPDIR:-/tmp}/palari-ticket-candidate.XXXXXX")"
+		{
+			printf -- '---\n'
+			printf 'id: %s\n' "$id"
+			printf 'title: %s\n' "$title"
+			printf 'status: open\n'
+			printf 'risk: %s\n' "$risk"
+			write_yaml_list allowed_paths "${allowed[@]}"
+			write_yaml_list forbidden_paths "${forbidden[@]}"
+			printf 'created_by_role: %s\n' "$by_role"
+			printf 'delegated_to_role: %s\n' "$delegate_to_role"
+			printf -- '---\n'
+		} >"$candidate"
+		authority_result="$(role_authorize_grant "$parent_role_file" ticket "$candidate")"
+		rm -f "$candidate"
+		case "$authority_result" in
+		accept) ;;
+		escalate:*)
+			mkdir -p "$ROOT/$PLANNING_REPORTS_DIR"
+			escalation_file="$ROOT/$PLANNING_REPORTS_DIR/$id-role-escalation.md"
+			{
+				printf '# %s role authority escalation\n\n' "$id"
+				printf 'Ticket: %s - %s\n\n' "$id" "$title"
+				printf 'Created by role: %s\n' "$by_role"
+				printf 'Delegated to role: %s\n' "${delegate_to_role:-none}"
+				printf 'Escalation reason: %s\n\n' "${authority_result#escalate:}"
+				printf 'Requested allowed paths:\n'
+				for arg in "${allowed[@]}"; do printf -- '- %s\n' "$arg"; done
+				printf '\nRequested forbidden paths:\n'
+				for arg in "${forbidden[@]}"; do printf -- '- %s\n' "$arg"; done
+			} >"$escalation_file"
+			printf 'ticket create escalated: %s\n' "${authority_result#escalate:}" >&2
+			printf 'planning report: %s\n' "${escalation_file#"$ROOT"/}" >&2
+			return 1
+			;;
+		reject:*)
+			die "ticket create rejected by role authority: ${authority_result#reject:}"
+			;;
+		*)
+			die "ticket create received invalid role authority result: $authority_result"
+			;;
+		esac
+	fi
 
 	{
 		printf -- '---\n'
@@ -118,6 +181,10 @@ cmd_ticket_create() {
 		printf 'target_branch: %s\n' "$target_branch"
 		printf 'branch: %s\n' "$branch"
 		printf 'worktree: %s\n' "$worktree"
+		if [[ -n "$by_role" ]]; then
+			printf 'created_by_role: %s\n' "$by_role"
+			printf 'delegated_to_role: %s\n' "$delegate_to_role"
+		fi
 		printf 'accepted_by:\n'
 		printf 'accepted_at:\n'
 		printf 'created: %s\n' "$created"
@@ -287,6 +354,7 @@ cmd_ticket() {
 	create | new) cmd_ticket_create "$@" ;;
 	claim) cmd_ticket_claim "$@" ;;
 	heartbeat) cmd_ticket_heartbeat "$@" ;;
+	audit) cmd_lifecycle_audit "$@" ;;
 	ready) set_ticket_status "${1:-}" in-review ;;
 	block) set_ticket_status "${1:-}" blocked ;;
 	needs-human) set_ticket_status "${1:-}" needs-human ;;
