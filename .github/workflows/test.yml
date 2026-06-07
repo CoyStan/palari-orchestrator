@@ -20,9 +20,13 @@ jobs:
         run: |
           bash -n bin/palari
           bash -n tests/run-golden.sh
+          bash -n tests/run-adoption.sh
           bash -n tests/run-proposals.sh
           bash -n tests/run-agent-wrapper.sh
           bash -n tests/run-dashboard-rubric.sh
+
+      - name: Adoption
+        run: tests/run-adoption.sh
 
       - name: Proposals
         run: tests/run-proposals.sh

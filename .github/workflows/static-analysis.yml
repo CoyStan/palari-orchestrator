@@ -37,10 +37,10 @@ jobs:
           sudo "$RUNNER_TEMP/bats-core/install.sh" /usr/local
 
       - name: ShellCheck
-        run: shellcheck bin/palari scripts/palari tests/run-proposals.sh tests/run-agent-wrapper.sh tests/run-golden.sh tests/run-memory.sh
+        run: shellcheck bin/palari scripts/palari tests/run-adoption.sh tests/run-proposals.sh tests/run-agent-wrapper.sh tests/run-golden.sh tests/run-memory.sh
 
       - name: shfmt
-        run: shfmt -d bin/palari scripts/palari tests/run-proposals.sh tests/run-agent-wrapper.sh tests/run-golden.sh tests/run-memory.sh
+        run: shfmt -d bin/palari scripts/palari tests/run-adoption.sh tests/run-proposals.sh tests/run-agent-wrapper.sh tests/run-golden.sh tests/run-memory.sh
 
       - name: actionlint
         run: actionlint

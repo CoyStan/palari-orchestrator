@@ -100,16 +100,16 @@ tests/run-golden.sh
 Adopt it in another repo:
 
 ```bash
-cp -R bin scripts templates contracts skills schemas adapters examples AGENTS.md palari.config.yaml /path/to/repo/
+./bin/palari adopt /path/to/repo
 cd /path/to/repo
-./bin/palari init
+./bin/palari doctor
 ./bin/palari status
 ```
 
 Add optional GitHub and local hook adapters:
 
 ```bash
-./bin/palari init --ci --hooks
+./bin/palari adopt /path/to/repo --ci --hooks
 ```
 
 The workflow file alone does not protect merges. Install the ruleset when you
@@ -118,6 +118,10 @@ want GitHub to require the Palari check:
 ```bash
 palari github install-ruleset --repo OWNER/REPO
 ```
+
+`adopt` refuses non-git targets, keeps existing files by default, writes
+`AGENTS.palari.md` instead of overwriting an existing `AGENTS.md`, runs
+`palari init`, and finishes with `palari doctor`.
 
 ## First Ticket
 
@@ -254,6 +258,8 @@ palari packet WEB-0002 specialist
 | Command | Purpose |
 | --- | --- |
 | `palari init` | Create the ticket, report, and handoff directories expected by the workflow. |
+| `palari adopt /path/to/repo` | Copy Palari into an existing git repo, initialize it, and run the doctor. |
+| `palari doctor` | Check whether the current repo has the required Palari files and directories. |
 | `palari status` | Show current tickets and workflow health at a glance. |
 | `palari snapshot --json` | Print the repo-native JSON state model used by adapters. |
 | `palari propose create ID TITLE` | Create a restricted lead/planner proposal before executable ticket work exists. |
@@ -303,6 +309,7 @@ ship as adapters:
 
 - GitHub Actions: `palari init --ci` writes `.github/workflows/palari.yml`.
 - GitHub rulesets: `palari init --ci` writes `.github/palari-required-checks.ruleset.json`.
+- Adoption: `palari adopt TARGET` copies the portable package into an existing git repository and runs `palari doctor`.
 - Local hooks: `palari init --hooks` writes `lefthook.yml` for fast advisory checks.
 - Lead proposals: `palari propose create`, `palari propose packet`, and `palari propose adopt` separate planning authority from implementation authority.
 - Executor wrappers: `palari agent run TICKET-ID --executor opencode` invokes opencode from a Palari packet and records executor evidence.
@@ -350,6 +357,7 @@ contracts/                        Portable workflow contracts
 adapters/                         Optional GitHub, hooks, MCP, opencode, OpenClaude, and web templates
 skills/orchestrator/SKILL.md      Orchestrator usage guidance
 skills/planner/SKILL.md           Restricted lead/planner guidance
+skills/adoption/SKILL.md          Install/adoption guidance and rubric
 tickets/proposed/                 Human-adopted proposal staging area
 reports/planning/                 Lead packets and planning notes
 tests/golden/                     Fixtures that prove the flow works
@@ -361,6 +369,7 @@ tests/golden/                     Fixtures that prove the flow works
 
 ```bash
 tests/run-golden.sh
+tests/run-adoption.sh
 tests/run-agent-wrapper.sh
 tests/run-dashboard-rubric.sh
 ./bin/palari lint

@@ -31,6 +31,8 @@ test -f adapters/web/static/app.js
 test -f reports/evidence/.gitkeep
 test -f tickets/proposed/.gitkeep
 test -f reports/planning/.gitkeep
+test -f contracts/adoption.md
+test -f skills/adoption/SKILL.md
 grep -Fq "workflow alone does not protect merges" "$TMP_ROOT/init.out"
 grep -Fq "gh api --method PATCH repos/OWNER/REPO/rulesets" "$TMP_ROOT/init.out"
 grep -Fq "gh api --method POST repos/OWNER/REPO/rulesets" "$TMP_ROOT/init.out"

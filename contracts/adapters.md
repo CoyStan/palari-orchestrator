@@ -41,6 +41,21 @@ Local hooks are fast feedback only. They can run `palari lint` and
 `palari scope-overlaps`, but they are not an authority boundary because users
 can skip hooks.
 
+## Adoption Adapter
+
+Adoption is a copy-and-check flow, not a package manager or hosted installer.
+Use:
+
+```bash
+palari adopt /path/to/repo
+palari doctor
+```
+
+The adoption flow copies the portable package into an existing git repository,
+runs `palari init`, and prints next commands. It must keep existing files by
+default, write `AGENTS.palari.md` instead of overwriting an existing
+`AGENTS.md`, and keep GitHub workflows/hooks opt-in.
+
 ## Evidence Adapter
 
 CI evidence belongs under `reports/evidence/`. The standard bundle is:
