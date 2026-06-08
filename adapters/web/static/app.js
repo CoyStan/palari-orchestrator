@@ -1,6 +1,6 @@
 const state = {
   snapshot: null,
-  filter: "all",
+  queueFilter: "attention",
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -8,6 +8,14 @@ const $ = (selector) => document.querySelector(selector);
 const statusLabels = {
   "needs-human": "Needs human",
   "in-review": "In review",
+};
+
+const severityLabels = {
+  blocked: "Blocked",
+  waiting: "Waiting",
+  watch: "Watch",
+  next: "Next",
+  clear: "Clear",
 };
 
 function setStatusMessage(message) {
@@ -31,12 +39,16 @@ function emptyNode(message = "No records yet", detail = "The console will popula
   return template;
 }
 
-function statusPill(status) {
+function statusPill(status, text = label(status)) {
   const span = document.createElement("span");
   span.className = `status ${status || "open"}`;
-  span.textContent = label(status);
-  span.setAttribute("aria-label", `Status: ${span.textContent}`);
+  span.textContent = text;
+  span.setAttribute("aria-label", `Status: ${text}`);
   return span;
+}
+
+function severityPill(severity) {
+  return statusPill(severity, severityLabels[severity] || label(severity));
 }
 
 function meta(items) {
@@ -50,7 +62,7 @@ function meta(items) {
   return row;
 }
 
-function pathList(paths, limit = 4) {
+function pathList(paths, limit = 3) {
   const row = document.createElement("div");
   row.className = "path-list";
   paths.slice(0, limit).forEach((path) => {
@@ -66,16 +78,42 @@ function pathList(paths, limit = 4) {
   return row;
 }
 
+function activeTickets(snapshot) {
+  return snapshot.tickets.filter((ticket) => ticket.status !== "accepted");
+}
+
+function actionSeverity(ticket) {
+  return ticket.next_action?.severity || "watch";
+}
+
+function ticketQueue(ticket) {
+  if (ticket.status === "accepted") return "done";
+  if (ticket.status === "in-review") return "review";
+  if (["blocked", "needs-human"].includes(ticket.status)) return "attention";
+  if (["blocked", "waiting", "watch"].includes(actionSeverity(ticket))) return "attention";
+  return "active";
+}
+
+function ticketOwner(ticket) {
+  return ticket.claimed_by || ticket.accepted_by || "Unassigned";
+}
+
+function ticketRole(ticket) {
+  return ticket.delegated_to_role || ticket.created_by_role || "No role";
+}
+
 function renderMetrics(snapshot) {
-  $("#countOpen").textContent = snapshot.counts.open || 0;
-  $("#countClaimed").textContent = snapshot.counts.claimed || 0;
+  const tickets = snapshot.tickets || [];
+  const attention = tickets.filter((ticket) => ticketQueue(ticket) === "attention").length;
+  $("#countAttention").textContent = attention;
+  $("#countActive").textContent = activeTickets(snapshot).length;
   $("#countReview").textContent = snapshot.counts["in-review"] || 0;
   $("#countAccepted").textContent = snapshot.counts.accepted || 0;
 }
 
 function healthIssues(snapshot) {
   const issues = [];
-  const firstActive = snapshot.tickets.find((ticket) => ticket.status !== "accepted");
+  const firstActive = activeTickets(snapshot)[0];
   const ticket = firstActive?.id || "TICKET-ID";
 
   if (!snapshot.workflow.workflow_installed) {
@@ -100,6 +138,14 @@ function healthIssues(snapshot) {
       detail: "Review the Palari workflow before treating evidence as verifiable.",
       command: "sed -n '1,220p' .github/workflows/palari.yml",
       severity: "watch",
+    });
+  }
+  if (snapshot.roles && snapshot.roles.lint && !snapshot.roles.lint.ok) {
+    issues.push({
+      label: `${snapshot.roles.lint.issues} role issue${snapshot.roles.lint.issues === 1 ? "" : "s"}`,
+      detail: "Role authority should be lint-clean before delegation is trusted.",
+      command: snapshot.roles.lint.command || "./bin/palari role lint",
+      severity: "blocked",
     });
   }
   if (snapshot.health.overlaps) {
@@ -143,8 +189,10 @@ function makeCopyButton(command, labelText = "Copy command") {
   button.className = "copy";
   button.type = "button";
   button.textContent = "Copy";
-  button.setAttribute("aria-label", `${labelText}: ${command}`);
+  button.disabled = !command;
+  button.setAttribute("aria-label", `${labelText}: ${command || "no command"}`);
   button.addEventListener("click", async () => {
+    if (!command) return;
     try {
       await navigator.clipboard.writeText(command);
       button.textContent = "Copied";
@@ -173,9 +221,10 @@ function health(snapshot) {
       : "Clear";
   document.body.dataset.health = grade.toLowerCase();
   $("#healthGrade").textContent = grade;
-  $("#healthSummary").textContent = issues.length ? issues.map((issue) => issue.label).join(" · ") : "Workflow, evidence, claims, and scope look clean.";
+  $("#healthSummary").textContent = issues.length ? issues.map((issue) => issue.label).join(" · ") : "Workflow, evidence, roles, claims, and scope look clean.";
   $("#railState").textContent = grade;
   $("#railDetail").textContent = issues.length ? issues[0].label : "Governance model is clean";
+  $("#warningPill").textContent = `${issues.length} warning${issues.length === 1 ? "" : "s"}`;
 }
 
 function renderHealthActions(snapshot) {
@@ -187,9 +236,9 @@ function renderHealthActions(snapshot) {
     const node = document.createElement("article");
     node.className = "health-action clear";
     const strong = document.createElement("strong");
-    strong.textContent = "No action required";
+    strong.textContent = "No system warning";
     const detail = document.createElement("span");
-    detail.textContent = "Workflow, evidence, claims, and scope are in a clean state.";
+    detail.textContent = "Workflow, evidence, role authority, claims, and scope are clean.";
     node.append(strong, detail);
     list.append(node);
     return;
@@ -214,34 +263,195 @@ function renderHealthActions(snapshot) {
   });
 }
 
-function renderTickets(snapshot) {
-  const list = $("#ticketList");
+function renderOperatorSummary(snapshot) {
+  const action = snapshot.operator?.next_action || {};
+  const waitingHuman = activeTickets(snapshot).filter((ticket) => ticket.next_action?.actor === "human" || ticket.status === "needs-human");
+  const roleCount = snapshot.roles?.counts?.active || 0;
+  const roleLintOk = snapshot.roles?.lint?.ok !== false;
+
+  $("#operatorNext").textContent = action.label || "Inspect repository";
+  $("#operatorDetail").textContent = action.detail || "Open the queue for the next ticket action.";
+  $("#humanGate").textContent = waitingHuman.length ? `${waitingHuman.length} waiting` : "Clear";
+  $("#humanGateDetail").textContent = waitingHuman.length
+    ? waitingHuman.map((ticket) => ticket.id).join(", ")
+    : "No active ticket is waiting on a human decision.";
+  $("#roleSystem").textContent = roleLintOk ? `${roleCount} active` : "Needs review";
+  $("#roleSystemDetail").textContent = roleLintOk
+    ? "Role authority is lint-clean."
+    : "Run role lint before trusting delegation.";
+}
+
+function queueItems(snapshot) {
+  const tickets = snapshot.tickets || [];
+  if (state.queueFilter === "all") return tickets;
+  return tickets.filter((ticket) => ticketQueue(ticket) === state.queueFilter);
+}
+
+function renderQueue(snapshot) {
+  const list = $("#queueList");
   list.replaceChildren();
-  const tickets = snapshot.tickets.filter((ticket) => state.filter === "all" || ticket.status === state.filter);
+  const tickets = queueItems(snapshot);
 
   if (!tickets.length) {
+    const action = snapshot.operator?.next_action;
+    if (state.queueFilter === "attention" && action && !snapshot.operator.has_active_work) {
+      const node = document.createElement("article");
+      node.className = "queue-item clear";
+      const top = document.createElement("div");
+      top.className = "queue-top";
+      const title = document.createElement("strong");
+      title.textContent = action.label;
+      top.append(title, severityPill(action.severity || "clear"));
+      const detail = document.createElement("p");
+      detail.textContent = action.detail;
+      node.append(top, detail);
+      if (action.command) node.append(commandInline(action.command, action.label));
+      list.append(node);
+      return;
+    }
     list.append(emptyNode("No matching tickets", "Change the filter or create a scoped ticket."));
     return;
   }
 
   tickets.forEach((ticket) => {
+    const action = ticket.next_action || {};
     const node = document.createElement("article");
-    node.className = "ticket";
-    node.setAttribute("aria-label", `${ticket.id} ${ticket.title}, status ${label(ticket.status)}`);
-
+    node.className = `queue-item ${action.severity || ticket.status}`;
     const top = document.createElement("div");
-    top.className = "ticket-top";
+    top.className = "queue-top";
     const title = document.createElement("div");
     const strong = document.createElement("strong");
     strong.textContent = `${ticket.id} · ${ticket.title}`;
-    title.append(strong);
-    title.append(meta([ticket.stream, ticket.risk, ticket.priority, ticket.claimed_by && `claimed by ${ticket.claimed_by}`]));
-    top.append(title, statusPill(ticket.status));
+    title.append(strong, meta([ticket.stream, ticket.risk, ticket.priority, ticketOwner(ticket), ticketRole(ticket)]));
+    top.append(title, severityPill(action.severity || ticket.status));
 
-    const lease = ticket.lease.status !== "none" ? `lease ${ticket.lease.status}` : "";
-    node.append(top);
-    node.append(meta([ticket.path, ticket.branch, lease]));
-    node.append(pathList(ticket.allowed_paths || []));
+    const detail = document.createElement("p");
+    detail.textContent = action.detail || "Inspect this ticket before continuing.";
+    node.append(top, detail, progressRail(ticket));
+    if (action.command) node.append(commandInline(action.command, action.label || ticket.id));
+    list.append(node);
+  });
+}
+
+function progressRail(ticket) {
+  const row = document.createElement("div");
+  row.className = "progress-rail";
+  const steps = [
+    ["Ticket", true],
+    ["Claim", Boolean(ticket.claimed_by || ticket.status === "accepted")],
+    ["Evidence", ticket.evidence.file_count > 0],
+    ["Review", Boolean(ticket.reports.reviewer || ticket.status === "accepted")],
+    ["Accept", ticket.status === "accepted"],
+  ];
+  steps.forEach(([name, done]) => {
+    const span = document.createElement("span");
+    span.className = done ? "done" : "";
+    span.textContent = name;
+    row.append(span);
+  });
+  return row;
+}
+
+function commandInline(command, labelText) {
+  const action = document.createElement("div");
+  action.className = "inline-command";
+  const code = document.createElement("code");
+  code.textContent = command;
+  action.append(code, makeCopyButton(command, labelText));
+  return action;
+}
+
+function evidenceState(ticket) {
+  const evidence = ticket.evidence;
+  const complete = evidence.has_log && evidence.has_junit && evidence.has_sarif && ticket.evidence.has_manifest;
+  if (complete) return "Complete";
+  if (evidence.file_count > 0) return "Partial";
+  return "Missing";
+}
+
+function renderTicketRows(snapshot) {
+  const body = $("#ticketRows");
+  body.replaceChildren();
+  const tickets = snapshot.tickets || [];
+  $("#ticketPill").textContent = `${tickets.length} ticket${tickets.length === 1 ? "" : "s"}`;
+
+  if (!tickets.length) {
+    const row = document.createElement("tr");
+    const cell = document.createElement("td");
+    cell.colSpan = 6;
+    cell.append(emptyNode("No tickets yet", "Create or adopt a scoped ticket to begin."));
+    row.append(cell);
+    body.append(row);
+    return;
+  }
+
+  tickets.forEach((ticket) => {
+    const row = document.createElement("tr");
+    const ticketCell = document.createElement("td");
+    const title = document.createElement("strong");
+    title.textContent = ticket.id;
+    const subtitle = document.createElement("span");
+    subtitle.textContent = ticket.title;
+    ticketCell.append(title, subtitle, meta([ticket.stream, ticket.risk, ticket.status]));
+
+    const owner = document.createElement("td");
+    owner.textContent = ticketOwner(ticket);
+
+    const role = document.createElement("td");
+    role.textContent = ticketRole(ticket);
+
+    const progress = document.createElement("td");
+    progress.append(progressRail(ticket));
+
+    const evidence = document.createElement("td");
+    evidence.append(statusPill(evidenceState(ticket).toLowerCase(), evidenceState(ticket)));
+
+    const next = document.createElement("td");
+    const nextStrong = document.createElement("strong");
+    nextStrong.textContent = ticket.next_action?.label || "Inspect";
+    next.append(nextStrong);
+    row.append(ticketCell, owner, role, progress, evidence, next);
+    body.append(row);
+  });
+}
+
+function renderRoles(snapshot) {
+  const list = $("#roleList");
+  list.replaceChildren();
+  const roles = snapshot.roles?.items || [];
+  const active = roles.filter((role) => role.status === "active");
+  $("#rolesPill").textContent = `${active.length} active`;
+
+  if (!roles.length) {
+    list.append(emptyNode("No roles configured", "Use role proposals when delegation needs a named authority boundary."));
+    return;
+  }
+
+  roles.forEach((role) => {
+    const node = document.createElement("article");
+    node.className = "role-row";
+    const top = document.createElement("div");
+    top.className = "role-top";
+    const title = document.createElement("div");
+    const strong = document.createElement("strong");
+    strong.textContent = role.title || role.id;
+    title.append(strong, meta([role.id, `tier ${role.tier || "?"}`, `max ${role.max_risk || "?"}`, role.parent_role && `parent ${role.parent_role}`]));
+    top.append(title, statusPill(role.status || "unknown"));
+    const caps = document.createElement("div");
+    caps.className = "capability-row";
+    [
+      ["Create", role.capabilities?.may_create_tickets],
+      ["Execute", role.capabilities?.may_execute_tickets],
+      ["Review", role.capabilities?.may_review_tickets],
+      ["Accept", role.capabilities?.may_accept_tickets],
+    ].forEach(([name, enabled]) => {
+      const span = document.createElement("span");
+      span.className = enabled ? "enabled" : "";
+      span.textContent = name;
+      caps.append(span);
+    });
+    node.append(top, caps);
+    if (role.can_delegate_to?.length) node.append(pathList(role.can_delegate_to, 4));
     list.append(node);
   });
 }
@@ -257,7 +467,7 @@ function renderEvidence(snapshot) {
     : `${bundles.length} bundle${bundles.length === 1 ? "" : "s"}`;
 
   if (!tickets.length) {
-    list.append(emptyNode("No evidence bundles", "Run palari ci TICKET-ID to create logs, JUnit, and SARIF."));
+    list.append(emptyNode("No evidence bundles", "Run palari ci TICKET-ID to create logs, JUnit, SARIF, and manifest."));
     return;
   }
 
@@ -270,10 +480,9 @@ function renderEvidence(snapshot) {
     const title = document.createElement("div");
     const strong = document.createElement("strong");
     strong.textContent = ticket.id;
-    const evidenceState = ticket.evidence.file_count > 0 ? `${ticket.evidence.file_count} files` : "missing evidence";
-    title.append(strong);
-    title.append(meta([ticket.evidence.path || "reports/evidence", evidenceState]));
-    top.append(title, ticket.evidence.file_count > 0 ? statusPill(ticket.status) : statusPill("blocked"));
+    const evidenceText = ticket.evidence.file_count > 0 ? `${ticket.evidence.file_count} files` : "missing evidence";
+    title.append(strong, meta([ticket.evidence.path || "reports/evidence", evidenceText]));
+    top.append(title, statusPill(evidenceState(ticket).toLowerCase(), evidenceState(ticket)));
 
     const grid = document.createElement("div");
     grid.className = "evidence-grid";
@@ -292,12 +501,7 @@ function renderEvidence(snapshot) {
     node.append(top, grid);
     if (ticket.evidence.file_count === 0) {
       const command = `./bin/palari ci ${ticket.id} --base ${snapshot.config.default_branch}`;
-      const action = document.createElement("div");
-      action.className = "evidence-action";
-      const code = document.createElement("code");
-      code.textContent = command;
-      action.append(code, makeCopyButton(command, `Create evidence for ${ticket.id}`));
-      node.append(action);
+      node.append(commandInline(command, `Create evidence for ${ticket.id}`));
     }
     list.append(node);
   });
@@ -339,16 +543,22 @@ function renderScope(snapshot) {
 }
 
 function commandRows(snapshot) {
-  const firstActive = snapshot.tickets.find((ticket) => ticket.status !== "accepted");
+  const firstActive = activeTickets(snapshot)[0];
   const ticket = firstActive?.id || "TICKET-ID";
-  return [
-    ["Status", "./bin/palari status"],
-    ["Lint", `./bin/palari lint ${firstActive ? ticket : ""}`.trim()],
-    ["Scope", `./bin/palari scope-check ${ticket}`],
-    ["CI evidence", `./bin/palari ci ${ticket} --base ${snapshot.config.default_branch}`],
-    ["Reviewer packet", `./bin/palari packet ${ticket} reviewer`],
+  const rows = [
+    ["Status", "./bin/palari status --next"],
+    ["Role lint", "./bin/palari role lint"],
+    ["Lifecycle audit", "./bin/palari ticket audit"],
     ["Ruleset activation", "./bin/palari github ruleset-command --repo OWNER/REPO"],
   ];
+  if (firstActive?.next_action?.command) {
+    rows.unshift([firstActive.next_action.label, firstActive.next_action.command]);
+  } else if (snapshot.operator?.next_action?.command) {
+    rows.unshift([snapshot.operator.next_action.label, snapshot.operator.next_action.command]);
+  }
+  rows.push(["Scope", `./bin/palari scope-check ${ticket}`]);
+  rows.push(["CI evidence", `./bin/palari ci ${ticket} --base ${snapshot.config.default_branch}`]);
+  return rows;
 }
 
 function renderCommands(snapshot) {
@@ -370,8 +580,32 @@ function renderCommands(snapshot) {
   });
 }
 
+function renderHumanSummary(snapshot) {
+  const node = $("#humanSummary");
+  node.replaceChildren();
+  const waiting = activeTickets(snapshot).filter((ticket) => ticket.next_action?.actor === "human" || ticket.status === "needs-human");
+  $("#humanPill").textContent = waiting.length ? `${waiting.length} waiting` : "clear";
+
+  if (!waiting.length) {
+    node.append(emptyNode("No human decision queued", "When a ticket needs acceptance, product direction, or authority, it will appear here."));
+    return;
+  }
+
+  waiting.forEach((ticket) => {
+    const item = document.createElement("article");
+    item.className = "human-item";
+    const strong = document.createElement("strong");
+    strong.textContent = `${ticket.id}: ${ticket.next_action?.label || "Human decision"}`;
+    const detail = document.createElement("p");
+    detail.textContent = ticket.next_action?.detail || "Inspect this ticket before continuing.";
+    item.append(strong, detail);
+    if (ticket.next_action?.command) item.append(commandInline(ticket.next_action.command, ticket.id));
+    node.append(item);
+  });
+}
+
 function renderStatus(snapshot) {
-  $("#branchPill").textContent = snapshot.git.branch;
+  $("#branchPill").textContent = snapshot.git.branch || "detached";
   const palari = snapshot.palari_status.stdout || snapshot.palari_status.stderr || "No palari status output.";
   const git = snapshot.git.status || "No git status output.";
   $("#statusOutput").textContent = `${palari}\n\n${git}`;
@@ -380,15 +614,21 @@ function renderStatus(snapshot) {
 function render(snapshot) {
   state.snapshot = snapshot;
   $("#projectName").textContent = snapshot.project;
+  $("#railProject").textContent = snapshot.project;
   $("#timestamp").textContent = formatTimestamp(snapshot.generated_at);
   $("#timestamp").title = `Updated ${snapshot.generated_at}`;
+  $("#authorityChip").textContent = `authority: ${snapshot.authority.profile}`;
   renderMetrics(snapshot);
   health(snapshot);
   renderHealthActions(snapshot);
-  renderTickets(snapshot);
+  renderOperatorSummary(snapshot);
+  renderQueue(snapshot);
+  renderTicketRows(snapshot);
+  renderRoles(snapshot);
   renderEvidence(snapshot);
   renderScope(snapshot);
   renderCommands(snapshot);
+  renderHumanSummary(snapshot);
   renderStatus(snapshot);
   document.body.classList.add("has-loaded");
 }
@@ -427,9 +667,9 @@ async function load(options = {}) {
 }
 
 $("#refreshButton").addEventListener("click", () => load({ fresh: true }));
-$("#ticketFilter").addEventListener("change", (event) => {
-  state.filter = event.target.value;
-  if (state.snapshot) renderTickets(state.snapshot);
+$("#queueFilter").addEventListener("change", (event) => {
+  state.queueFilter = event.target.value;
+  if (state.snapshot) renderQueue(state.snapshot);
 });
 window.addEventListener("hashchange", updateActiveNavigation);
 

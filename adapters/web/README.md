@@ -37,22 +37,26 @@ The server is a local stdlib viewer. It refuses non-loopback hosts unless
 
 ## What It Shows
 
-- lifecycle ticket board
+- operator queue with the next allowed action
+- lifecycle ticket board with owners, roles, and progress
+- active role authority and delegation summary
 - claim lease and heartbeat state
 - path-scope overlap findings
 - CI evidence bundle presence
+- human decision and acceptance surface
 - GitHub workflow/ruleset/attestation signals
 - Palari and git status output
 - copyable next-step commands
 
 ## Design Notes
 
-The console borrows product principles from modern developer tools:
+The console borrows product principles from modern operational tools:
 
-- soft app-shell navigation with a canvas workspace and inspector pane
-- fast-feeling transitions
+- app-shell navigation with a queue workspace and inspector pane
+- accessible tables for ticket ledgers
 - row-based operational surfaces instead of heavy card stacks
-- evidence-first workflow surfaces
+- evidence-first and human-decision-first workflow surfaces
+- plain-language status labels for non-technical operators
 - reduced-motion support
 
 The visual layer is deliberately self-contained so adopters can replace it

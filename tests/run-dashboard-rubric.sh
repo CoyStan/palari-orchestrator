@@ -28,6 +28,11 @@ check_contains "$HTML" 'role="status" aria-live="polite"' "assistive status upda
 check_contains "$HTML" 'aria-current="page"' "current navigation state"
 check_contains "$HTML" 'id="healthActionsList"' "health action surface"
 check_contains "$HTML" 'Repository-governed agent work' "five-second purpose signal"
+check_contains "$HTML" 'Operator Console' "operator console title"
+check_contains "$HTML" 'id="queueList"' "operator queue surface"
+check_contains "$HTML" 'class="ticket-table"' "accessible ticket table"
+check_contains "$HTML" 'id="roleList"' "role authority surface"
+check_contains "$HTML" 'id="humanSummary"' "human decision surface"
 
 check_contains "$CSS" 'grid-template-columns: 252px minmax(0, 1fr) 324px' "three-pane app shell"
 check_contains "$CSS" 'overflow-x: hidden;' "320px horizontal overflow guard"
@@ -49,6 +54,11 @@ check_contains "$CSS" '.command-dock {' "command surface block"
 check_contains "$CSS" 'position: relative;' "non-overlapping command surface"
 check_contains "$CSS" '.topbar {' "top control bar"
 check_contains "$CSS" '.command-dock {' "command dock"
+check_contains "$CSS" '.operator-strip {' "operator summary strip"
+check_contains "$CSS" '.ticket-table {' "ticket table styling"
+check_contains "$CSS" '.progress-rail {' "ticket progress rail"
+check_contains "$CSS" '.role-row,' "role authority rows"
+check_contains "$CSS" '.human-summary {' "human decision styling"
 check_contains "$CSS" 'max-height: min(420px, 58vh);' "mobile command dock height guard"
 check_contains "$CSS" 'white-space: nowrap;' "timestamp nowrap/truncation guard"
 check_contains "$JS" 'function formatTimestamp' "compact timestamp formatting"
@@ -74,7 +84,15 @@ for selector in (".topbar", ".command-dock"):
 PY
 
 check_contains "$JS" 'function healthIssues' "issue-to-action model"
+check_contains "$JS" 'function renderOperatorSummary' "operator summary renderer"
+check_contains "$JS" 'function renderTicketRows' "ticket table renderer"
+check_contains "$JS" 'function renderRoles' "role renderer"
 check_contains "$JS" 'snapshot.health.missing_evidence' "missing evidence visibility"
+check_contains "$JS" 'snapshot.roles' "role snapshot consumption"
+check_contains "$JS" 'ticket.next_action' "structured next action consumption"
+check_contains "$JS" 'ticket.created_by_role' "ticket creator role visibility"
+check_contains "$JS" 'ticket.delegated_to_role' "ticket delegated role visibility"
+check_contains "$JS" 'ticket.accepted_by' "ticket acceptance actor visibility"
 check_contains "$JS" 'ticket.evidence.has_manifest' "manifest evidence visibility"
 check_contains "$JS" 'function makeCopyButton' "copy command control"
 check_contains "$JS" 'setAttribute("aria-busy", "true")' "loading busy state"
@@ -91,7 +109,8 @@ check_contains "$SERVER" 'target.relative_to(static_root)' "path containment use
 check_contains "$SERVER" 'not is_loopback_host(args.host) and not args.unsafe_bind' "non-loopback bind refusal"
 check_contains "$SERVER" '"--unsafe-bind"' "explicit unsafe bind override"
 check_contains "$SERVER" '"snapshot", "--json"' "server delegates state to palari snapshot"
-check_contains "$README" 'soft app-shell navigation with a canvas workspace and inspector pane' "documented dashboard style"
+check_contains "$README" 'app-shell navigation with a queue workspace and inspector pane' "documented dashboard style"
+check_contains "$README" 'operator queue with the next allowed action' "documented operator queue"
 
 if grep -Eq 'tickets/open|tickets/closed|frontmatter|palari.config' "$SERVER"; then
 	printf 'dashboard-rubric: web server must not parse ticket/config state directly\n' >&2
@@ -152,5 +171,23 @@ compile(path.read_text(encoding="utf-8"), str(path), "exec")
 PY
 (cd "$ROOT" && ./bin/palari web --check >"$TMP")
 grep -Fq '"project": "Palari Orchestrator"' "$TMP"
+python3 - "$TMP" <<'PY'
+import json
+import sys
+
+snapshot = json.load(open(sys.argv[1], encoding="utf-8"))
+assert "operator" in snapshot
+assert "next_action" in snapshot["operator"]
+assert "roles" in snapshot
+assert "items" in snapshot["roles"]
+assert "lint" in snapshot["roles"]
+active_tickets = [ticket for ticket in snapshot["tickets"] if ticket["status"] != "accepted"]
+assert snapshot["health"]["stale_claims"] <= len(active_tickets)
+for ticket in snapshot["tickets"]:
+    assert "next_action" in ticket
+    assert "created_by_role" in ticket
+    assert "delegated_to_role" in ticket
+    assert "accepted_by" in ticket
+PY
 
 printf 'dashboard-rubric: ok (static layout checks + contrast)\n'
