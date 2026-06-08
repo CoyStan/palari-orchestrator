@@ -24,6 +24,7 @@ modules=(
 	tickets_workspace
 	agents_review_scope
 	ci_accept
+	dashboard_snapshot
 	adapters_snapshot
 )
 

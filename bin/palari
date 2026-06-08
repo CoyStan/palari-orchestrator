@@ -46,6 +46,9 @@ source "$PALARI_LIB_DIR/agents_review_scope.bash"
 palari_require_module "$PALARI_LIB_DIR/ci_accept.bash"
 # shellcheck source=lib/palari/ci_accept.bash
 source "$PALARI_LIB_DIR/ci_accept.bash"
+palari_require_module "$PALARI_LIB_DIR/dashboard_snapshot.bash"
+# shellcheck source=lib/palari/dashboard_snapshot.bash
+source "$PALARI_LIB_DIR/dashboard_snapshot.bash"
 palari_require_module "$PALARI_LIB_DIR/adapters_snapshot.bash"
 # shellcheck source=lib/palari/adapters_snapshot.bash
 source "$PALARI_LIB_DIR/adapters_snapshot.bash"
