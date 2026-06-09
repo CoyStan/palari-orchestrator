@@ -1,0 +1,66 @@
+# Palari CI Evidence
+
+- Ticket: POS-0029
+- Base ref: local working tree
+- Created: 2026-06-09T16:48:43Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0029 (65 changed path(s))
+```
+
+## lint
+
+```text
+report-lint: ok for POS-0029
+lint: ok for POS-0029
+```
+
+## verification 1
+
+Command: `test -f research/pilots/deepseek-full-pilot/runs/palari-dsf-doc-01/prompt.md`
+
+```text
+
+```
+
+## verification 2
+
+Command: `test -f research/pilots/deepseek-full-pilot/runs/palari-dsf-cli-02/prompt.md`
+
+```text
+
+```
+
+## verification 3
+
+Command: `test -f research/pilots/deepseek-full-pilot/runs/palari-dsf-web-01/prompt.md`
+
+```text
+
+```
+
+## verification 4
+
+Command: `grep -q 'DSF-DOC-01' research/pilots/deepseek-full-pilot/data-capture.md`
+
+```text
+
+```
+
+## verification 5
+
+Command: `grep -q 'DSF-CLI-02' research/pilots/deepseek-full-pilot/data-capture.md`
+
+```text
+
+```
+
+## verification 6
+
+Command: `grep -q 'DSF-WEB-01' research/pilots/deepseek-full-pilot/data-capture.md`
+
+```text
+
+```

@@ -1,0 +1,1 @@
+(cd /home/quetza/palari-pilot-workspaces/deepseek-full-palari-dsf-doc-01 && timeout 900 opencode run --model deepseek/deepseek-v4-flash --format json --file /home/quetza/palari-orchestrator-worktrees/POS-0029-run/research/pilots/deepseek-full-pilot/runs/palari-dsf-doc-01/prompt.md --title DSF-DOC-01 "Execute the attached Palari-governed benchmark task prompt.")

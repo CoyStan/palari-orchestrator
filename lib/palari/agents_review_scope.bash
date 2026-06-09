@@ -534,8 +534,10 @@ cmd_scope_check() {
 		fi
 		pattern="$(check_path_against_patterns "$path" "${allowed[@]}" || true)"
 		if [[ -z "$pattern" ]]; then
-			printf 'scope-check: %s outside allowed_paths for ticket %s\n' "$path" "$ticket_id" >&2
-			printf 'scope-check: allowed rules: %s\n' "${allowed[*]}" >&2
+			printf 'scope-check: path "%s" is outside allowed_paths for ticket %s\n' "$path" "$ticket_id" >&2
+			for _rule in "${allowed[@]}"; do
+				printf 'scope-check:   allowed_paths: %s\n' "$_rule" >&2
+			done
 			errors=$((errors + 1))
 		fi
 	done < <(git_changed_paths "$base_ref")
@@ -599,8 +601,10 @@ scope_check_ticket_set() {
 		fi
 		pattern="$(check_path_against_patterns "$path" "${allowed[@]}" || true)"
 		if [[ -z "$pattern" ]]; then
-			printf 'scope-check: %s outside union allowed_paths for ticket set %s\n' "$path" "$label" >&2
-			printf 'scope-check: allowed rules: %s\n' "${allowed[*]}" >&2
+			printf 'scope-check: path "%s" is outside union allowed_paths for ticket set %s\n' "$path" "$label" >&2
+			for _rule in "${allowed[@]}"; do
+				printf 'scope-check:   allowed_paths: %s\n' "$_rule" >&2
+			done
 			errors=$((errors + 1))
 		fi
 	done < <(git_changed_paths "$base_ref")
