@@ -1,18 +1,19 @@
 ---
 id: POS-0030
 title: DeepSeek baseline wave 2
-status: open
+status: accepted
 risk: R1
 priority: P1
 stream: research
-claimed_by:
-claimed_at:
-claim_ref:
-claim_heartbeat_at:
-claim_expires_at:
+claimed_by: Codex
+claimed_at: 2026-06-09T17:01:26Z
+claim_ref: refs/palari/claims/POS-0030
+claim_heartbeat_at: 2026-06-09T17:55:28Z
+claim_expires_at: 2026-06-09T18:10:28Z
 allowed_paths:
   - research/pilots/deepseek-full-pilot/**
   - tickets/open/POS-0030-*.md
+  - tickets/closed/POS-0030-*.md
   - reports/POS-0030-technical-report.md
   - reports/evidence/POS-0030/**
   - tests/run-roles.sh
@@ -43,8 +44,8 @@ branch: ticket/POS-0030
 worktree: /home/quetza/palari-orchestrator/../palari-orchestrator-worktrees/POS-0030
 created_by_role: ROLE-RESEARCH-LEAD
 delegated_to_role: ROLE-RESEARCH-EVALUATOR
-accepted_by:
-accepted_at:
+accepted_by: founder
+accepted_at: 2026-06-09T17:55:29Z
 created: 2026-06-09
 updated: 2026-06-09
 ---

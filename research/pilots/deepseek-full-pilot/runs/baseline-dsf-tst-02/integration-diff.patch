@@ -1,0 +1,19 @@
+diff --git a/tests/run-roles.sh b/tests/run-roles.sh
+index ac35898..92bd41a 100755
+--- a/tests/run-roles.sh
++++ b/tests/run-roles.sh
+@@ -84,6 +84,14 @@ fi
+ grep -Fq "active role missing accepted_by" "$TMP_ROOT/missing-auth.out"
+ rm -f roles/active/ROLE-MISSING-AUTH.md
+ 
++cp roles/active/ROLE-SPECIALIST.md roles/active/ROLE-WEAK-FORBIDDEN.md
++perl -0pi -e 's/id: ROLE-SPECIALIST/id: ROLE-WEAK-FORBIDDEN/; s/title: Specialist/title: Weak Forbidden/; s/  - infra\/prod\/\*\*\n  - prod\/\*\*\n/  - infra\/prod\/\*\*\n/' roles/active/ROLE-WEAK-FORBIDDEN.md
++if ./bin/palari role lint >"$TMP_ROOT/weak-forbidden.out" 2>&1; then
++	fail "weak forbidden should fail lint"
++fi
++grep -Fq "authority check failed: reject:child weakens forbidden path: prod/**" "$TMP_ROOT/weak-forbidden.out"
++rm -f roles/active/ROLE-WEAK-FORBIDDEN.md
++
+ cp roles/active/ROLE-ENGINEERING-LEAD.md roles/active/ROLE-AUTHORITY-TESTER.md
+ perl -0pi -e 's/id: ROLE-ENGINEERING-LEAD/id: ROLE-AUTHORITY-TESTER/; s/title: Engineering Lead/title: Authority Tester/; s/allowed_paths:\n(?:  - .+\n)+forbidden_paths:/allowed_paths:\n  - roles\/active\/**\n  - lib\/palari\/**\n  - docs\/**\n  - tickets\/**\n  - reports\/**\nforbidden_paths:/s' roles/active/ROLE-AUTHORITY-TESTER.md
+ ./bin/palari role lint >"$TMP_ROOT/authority-tester-lint.out"
