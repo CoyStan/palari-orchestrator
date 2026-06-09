@@ -1,0 +1,12 @@
+diff --git a/adapters/web/README.md b/adapters/web/README.md
+index f91b4ed..6fe1930 100644
+--- a/adapters/web/README.md
++++ b/adapters/web/README.md
+@@ -11,6 +11,7 @@ It is intentionally an adapter:
+ - commands are shown as copyable CLI actions
+ - acceptance authority stays in `palari accept`
+ - no database, package manager, or frontend build step is required
++- read-only proof surface; does not accept, merge, push, or mutate critical lifecycle state
+ 
+ ## Run
+ 

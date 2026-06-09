@@ -1,18 +1,19 @@
 ---
 id: POS-0029
 title: DeepSeek Palari-governed wave 1
-status: open
+status: accepted
 risk: R1
 priority: P1
 stream: research
-claimed_by:
-claimed_at:
-claim_ref:
-claim_heartbeat_at:
-claim_expires_at:
+claimed_by: codex
+claimed_at: 2026-06-09T16:05:40Z
+claim_ref: refs/palari/claims/POS-0029
+claim_heartbeat_at: 2026-06-09T16:05:48Z
+claim_expires_at: 2026-06-09T18:05:48Z
 allowed_paths:
   - research/pilots/deepseek-full-pilot/**
   - tickets/open/POS-0029-*.md
+  - tickets/closed/POS-0029-*.md
   - reports/POS-0029-technical-report.md
   - reports/POS-0029-reviewer-note.md
   - reports/evidence/POS-0029/**
@@ -43,13 +44,13 @@ verification:
   - grep -q 'DSF-DOC-01' research/pilots/deepseek-full-pilot/data-capture.md
   - grep -q 'DSF-CLI-02' research/pilots/deepseek-full-pilot/data-capture.md
   - grep -q 'DSF-WEB-01' research/pilots/deepseek-full-pilot/data-capture.md
-target_branch: main
-branch: ticket/POS-0029
-worktree: /home/quetza/palari-orchestrator/../palari-orchestrator-worktrees/POS-0029
+target_branch: origin/main
+branch: ticket/POS-0029-run
+worktree: /home/quetza/palari-orchestrator-worktrees/POS-0029-run
 created_by_role: ROLE-RESEARCH-LEAD
 delegated_to_role: ROLE-RESEARCH-EVALUATOR
-accepted_by:
-accepted_at:
+accepted_by: founder
+accepted_at: 2026-06-09T16:25:37Z
 created: 2026-06-09
 updated: 2026-06-09
 ---

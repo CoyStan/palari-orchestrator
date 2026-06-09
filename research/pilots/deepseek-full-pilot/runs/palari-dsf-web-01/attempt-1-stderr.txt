@@ -1,0 +1,6 @@
+[93m[1m! [0mpermission requested: external_directory (/home/quetza/palari-orchestrator-worktrees/POS-0029-run/research/pilots/deepseek-full-pilot/runs/palari-dsf-web-01/adapters/web/static/*); auto-rejecting
+[93m[1m! [0mpermission requested: external_directory (/home/quetza/palari-orchestrator-worktrees/POS-0029-run/research/pilots/deepseek-full-pilot/runs/palari-dsf-web-01/adapters/web/static/*); auto-rejecting
+[93m[1m! [0mpermission requested: external_directory (/home/quetza/palari-orchestrator-worktrees/POS-0029-run/research/pilots/deepseek-full-pilot/runs/palari-dsf-web-01/adapters/web/static/*); auto-rejecting
+[93m[1m! [0mpermission requested: external_directory (/home/quetza/palari-orchestrator-worktrees/POS-0029-run/research/pilots/deepseek-full-pilot/runs/palari-dsf-web-01/adapters/web/static/*); auto-rejecting
+[93m[1m! [0mpermission requested: external_directory (/home/quetza/palari-orchestrator-worktrees/POS-0029-run/research/pilots/deepseek-full-pilot/runs/palari-dsf-web-01/tests/*); auto-rejecting
+[93m[1m! [0mpermission requested: external_directory (/home/quetza/palari-orchestrator-worktrees/POS-0029-run/research/pilots/deepseek-full-pilot/runs/palari-dsf-web-01/adapters/web/*); auto-rejecting
