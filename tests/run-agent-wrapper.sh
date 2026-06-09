@@ -90,7 +90,7 @@ fi
 TICKET_FILE="$(ls tickets/open/LAB-0202-*.md)"
 sed -i 's/^status: .*/status: in-review/' "$TICKET_FILE"
 
-cat > "reports/LAB-0202-technical-report.md" << 'REPORT'
+cat >"reports/LAB-0202-technical-report.md" <<'REPORT'
 # LAB-0202 Technical Report
 
 ## Files Changed

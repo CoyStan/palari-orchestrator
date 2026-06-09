@@ -72,11 +72,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          sarif="$(
+          sarif_entry="$(
             find reports/evidence -type f -name palari.sarif -printf '%T@ %p\n' |
               sort -nr |
-              awk 'NR == 1 { sub(/^[^ ]+ /, ""); print }'
+              head -n 1
           )"
+          sarif="${sarif_entry#* }"
           if [[ -z "$sarif" ]]; then
             printf 'No Palari SARIF found\n' >&2
             exit 1
