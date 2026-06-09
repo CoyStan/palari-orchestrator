@@ -63,6 +63,7 @@ jobs:
 
       - name: Attest Palari evidence
         if: ${{ always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        continue-on-error: true
         uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4
         with:
           subject-path: palari-evidence.tgz

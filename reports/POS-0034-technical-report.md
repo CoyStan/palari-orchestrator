@@ -18,6 +18,8 @@ tickets/open/POS-0034-merge-gate-ci-compatibility-fixes.md
 
 - Updated the Palari workflow SARIF upload to select one current Palari SARIF
   file instead of uploading every historical evidence SARIF in the repository.
+- Kept Palari evidence attestation enabled but non-blocking so a Sigstore/Rekor
+  network timeout does not fail an otherwise valid governance check.
 - Kept ticket discovery inside `palari github ci` while filtering out merely
   routed future open tickets that have no ticket-specific work in the PR.
 - Updated Palari CI so accepted tickets with valid stored evidence reuse that
@@ -46,6 +48,8 @@ tickets/open/POS-0034-merge-gate-ci-compatibility-fixes.md
 
 - POS-0034 is a merge-gate compatibility fix, not a pilot execution ticket.
 - The workflow remains read-only except for evidence packaging, attestation, and
-  SARIF upload.
+  SARIF upload. Evidence attestation is attempted, but external attestation
+  service outages are treated as non-blocking CI noise rather than governance
+  failures.
 - POS-0031, POS-0032, and POS-0033 remain future pilot work and should not be
   treated as completed until their own tickets run and pass review.
