@@ -106,7 +106,10 @@ cat > "reports/LAB-0202-technical-report.md" << 'REPORT'
 - None
 REPORT
 
-./bin/palari lint LAB-0202 2>"$TMP_ROOT/lint-heading.err" && exit 1 || true
+if ./bin/palari lint LAB-0202 2>"$TMP_ROOT/lint-heading.err"; then
+	printf 'agent-wrapper: missing heading lint should fail\n' >&2
+	exit 1
+fi
 grep -Fq "LAB-0202-technical-report.md" "$TMP_ROOT/lint-heading.err"
 grep -Fq "missing" "$TMP_ROOT/lint-heading.err"
 grep -Fq "CI Evidence" "$TMP_ROOT/lint-heading.err"
