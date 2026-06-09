@@ -8,6 +8,9 @@ lib/palari/adapters_snapshot.bash
 lib/palari/ci_accept.bash
 tests/run-agent-wrapper.sh
 tests/run-github-ci.sh
+reports/POS-0034-reviewer-note.md
+reports/POS-0034-technical-report.md
+reports/evidence/POS-0034/
 tickets/open/POS-0034-merge-gate-ci-compatibility-fixes.md
 ```
 
