@@ -63,13 +63,33 @@ jobs:
 
       - name: Attest Palari evidence
         if: ${{ always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        continue-on-error: true
         uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4
         with:
           subject-path: palari-evidence.tgz
+
+      - name: Select Palari SARIF
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          sarif_entry="$(
+            find reports/evidence -type f -name palari.sarif -printf '%T@ %p\n' |
+              sort -nr |
+              head -n 1
+          )"
+          sarif="${sarif_entry#* }"
+          if [[ -z "$sarif" ]]; then
+            printf 'No Palari SARIF found\n' >&2
+            exit 1
+          fi
+          mkdir -p reports/evidence/current
+          cp "$sarif" reports/evidence/current/palari.sarif
+          printf 'Selected SARIF: %s\n' "$sarif"
 
       - name: Upload Palari SARIF
         if: ${{ always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
         uses: github/codeql-action/upload-sarif@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # v4
         with:
-          sarif_file: reports/evidence
+          sarif_file: reports/evidence/current/palari.sarif
           category: palari

@@ -1,0 +1,5 @@
+ci evidence: reports/evidence/PLT-1001
+ci junit: reports/evidence/PLT-1001/junit.xml
+ci sarif: reports/evidence/PLT-1001/palari.sarif
+ci manifest: reports/evidence/PLT-1001/manifest.json
+ci: ok for PLT-1001

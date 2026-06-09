@@ -1,0 +1,16 @@
+diff --git a/adapters/opencode/README.md b/adapters/opencode/README.md
+index 05f9d12..eecec6a 100644
+--- a/adapters/opencode/README.md
++++ b/adapters/opencode/README.md
+@@ -16,8 +16,9 @@ The command:
+   under `reports/evidence/TICKET-ID/executor/opencode/`
+ - runs Palari `scope-check` and `ci` after execution
+
+-It does not move the ticket to `in-review`, accept work, merge, push, deploy, or
+-replace a reviewer.
++## Limitations
++
++The opencode wrapper records executor evidence but does not accept, merge, push, deploy, or bypass human acceptance.
+
+ Tickets that use this wrapper should allow `reports/**`; Palari writes the
+ packet and executor evidence there before running scope and CI gates.

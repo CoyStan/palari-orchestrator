@@ -1,0 +1,73 @@
+diff --git a/adapters/web/static/app.js b/adapters/web/static/app.js
+index b795cc1..b679712 100644
+--- a/adapters/web/static/app.js
++++ b/adapters/web/static/app.js
+@@ -392,8 +392,8 @@ function renderQueue(snapshot) {
+       return;
+     }
+     const detail = state.query.trim()
+-      ? "The search matched tickets, but this queue filter hides them. Try All tickets or clear the search."
+-      : "Change the filter or create a scoped ticket.";
++      ? "Search terms matched tickets, but the current filter hides them. Try switching to All tickets or clearing the search."
++      : "No tickets match this queue filter. Change the filter or create a scoped ticket.";
+     list.append(emptyNode("No matching tickets", detail));
+     return;
+   }
+@@ -467,6 +467,18 @@ function evidenceState(ticket) {
+   return "Missing";
+ }
+ 
++function evidenceDetail(ticket) {
++  const evidence = ticket.evidence;
++  if (evidence.file_count === 0) return "No evidence files attached.";
++  const missing = [];
++  if (!evidence.has_log) missing.push("log");
++  if (!evidence.has_junit) missing.push("JUnit");
++  if (!evidence.has_sarif) missing.push("SARIF");
++  if (!evidence.has_manifest) missing.push("manifest");
++  if (!missing.length) return `${evidence.file_count} artifact${evidence.file_count === 1 ? "" : "s"}, all present.`;
++  return `Missing: ${missing.join(", ")}.`;
++}
++
+ function renderTicketRows(snapshot) {
+   const body = $("#ticketRows");
+   body.replaceChildren();
+@@ -480,7 +492,9 @@ function renderTicketRows(snapshot) {
+     const row = document.createElement("tr");
+     const cell = document.createElement("td");
+     cell.colSpan = 6;
+-    cell.append(emptyNode("No tickets yet", "Create or adopt a scoped ticket to begin."));
++    const hasTickets = snapshot.tickets?.length > 0;
++    const isFiltered = state.query.trim() && hasTickets;
++    cell.append(emptyNode(isFiltered ? "No tickets match search" : "No tickets yet", isFiltered ? "Adjust or clear search terms to see all tickets." : "Create or adopt a scoped ticket to begin."));
+     row.append(cell);
+     body.append(row);
+     return;
+@@ -774,8 +788,8 @@ function renderTicketFocus(snapshot) {
+   const ticket = (snapshot.tickets || []).find((item) => item.id === state.selectedTicketId);
+ 
+   if (!ticket) {
+-    $("#focusPill").textContent = "empty";
+-    host.append(emptyNode("No ticket selected", "Create or search for a ticket to see its review surface."));
++    $("#focusPill").textContent = "none";
++    host.append(emptyNode("No ticket selected", "Select a ticket from the queue or table to inspect its readiness, evidence, evidence artifacts, and acceptance eligibility."));
+     return;
+   }
+ 
+@@ -808,11 +822,12 @@ function renderTicketFocus(snapshot) {
+ 
+   const readiness = document.createElement("div");
+   readiness.className = "readiness-grid";
++  const missingReports = reportItems(ticket).filter(([, yes]) => !yes).map(([name]) => name);
+   readiness.append(
+-    readinessCard("Evidence", evidence, `${ticket.evidence.file_count} artifact${ticket.evidence.file_count === 1 ? "" : "s"}`, evidence.toLowerCase()),
+-    readinessCard("Reports", reportSummary(ticket), reportItems(ticket).filter(([, yes]) => !yes).length ? "Some review material is missing." : "Required notes are present.", reportItems(ticket).every(([, yes]) => yes) ? "complete" : "partial"),
+-    readinessCard("Human gate", humanGate ? "Waiting" : "Clear", acceptReady ? "Acceptance is ready for an authorized person." : "No browser-side authority is granted.", humanGate ? "waiting" : "complete"),
+-    readinessCard("Lease", label(ticket.lease?.status), ticket.claim_heartbeat_at ? `Heartbeat ${ticket.claim_heartbeat_at}` : "No active heartbeat.", ticket.lease?.status === "expired" ? "missing" : "complete"),
++    readinessCard("Evidence", evidence, evidenceDetail(ticket), evidence.toLowerCase()),
++    readinessCard("Review", reportSummary(ticket), missingReports.length ? `Needs: ${missingReports.join(", ")}.` : "All required review notes are present.", reportItems(ticket).every(([, yes]) => yes) ? "complete" : "partial"),
++    readinessCard("Human gate", humanGate ? "Waiting" : "Clear", acceptReady ? "Acceptance is ready for an authorized person." : humanGate ? "Waiting on human decision." : "No human gate is blocking this ticket.", humanGate ? "waiting" : "complete"),
++    readinessCard("Lease", ticket.lease?.status ? label(ticket.lease.status) : "No lease", ticket.claim_heartbeat_at ? `Heartbeat ${ticket.claim_heartbeat_at}` : "No active lease on this ticket.", !ticket.lease?.status || ticket.lease?.status === "expired" ? "missing" : "complete"),
+   );
+ 
+   const timeline = document.createElement("ol");

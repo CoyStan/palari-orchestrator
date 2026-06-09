@@ -1,0 +1,16 @@
+executor: opencode
+ticket: PLT-1001
+worktree: /home/quetza/palari-pilot-workspaces/deepseek-palari-doc-01-root-20260609T132645Z/../palari-orchestrator-worktrees/PLT-1001
+packet: /home/quetza/palari-pilot-workspaces/deepseek-palari-doc-01-root-20260609T132645Z/../palari-orchestrator-worktrees/PLT-1001/reports/PLT-1001-opencode-packet.md
+model: deepseek/deepseek-v4-flash
+command: opencode run --dir '/home/quetza/palari-pilot-workspaces/deepseek-palari-doc-01-root-20260609T132645Z/../palari-orchestrator-worktrees/PLT-1001' --file '/home/quetza/palari-pilot-workspaces/deepseek-palari-doc-01-root-20260609T132645Z/../palari-orchestrator-worktrees/PLT-1001/reports/PLT-1001-opencode-packet.md' --format json --title palari-PLT-1001 --model 'deepseek/deepseek-v4-flash' '
+Use the Palari ticket packet for the exact scope and lifecycle boundaries.
+
+Product intent:
+
+Update `adapters/opencode/README.md` with a concise `## Limitations` section
+explaining that the opencode wrapper records executor evidence but does not
+accept, merge, push, deploy, or bypass human acceptance.
+
+Keep the edit small, preserve existing wording, and run the objective checks.'
+denied: palari *, ./bin/palari *, bin/palari *, git commit*, git push*, git merge*, gh pr merge*, rm *

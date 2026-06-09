@@ -657,6 +657,12 @@ h2 {
   font-weight: 720;
 }
 
+.queue-item strong,
+.human-item strong {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 .health-action > span,
 .queue-item p,
 .human-item p,
@@ -683,6 +689,9 @@ h2 {
   display: block;
   min-width: 0;
   overflow: auto;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
   padding: 8px 9px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -838,6 +847,8 @@ h2 {
 .ticket-link span {
   color: var(--muted);
   line-height: 1.35;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .ticket-table td > span {
@@ -904,6 +915,8 @@ h3 {
   font-size: 16px;
   line-height: 1.2;
   font-weight: 760;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .focus-next {

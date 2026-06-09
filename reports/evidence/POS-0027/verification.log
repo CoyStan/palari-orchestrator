@@ -1,0 +1,90 @@
+# Palari CI Evidence
+
+- Ticket: POS-0027
+- Base ref: origin/main
+- Created: 2026-06-09T14:51:42Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0027 (76 changed path(s))
+```
+
+## lint
+
+```text
+report-lint: ok for POS-0027
+lint: ok for POS-0027
+```
+
+## verification 1
+
+Command: `test -f research/pilots/deepseek-full-pilot/data-capture.md`
+
+```text
+
+```
+
+## verification 2
+
+Command: `test -d research/pilots/deepseek-full-pilot/runs`
+
+```text
+
+```
+
+## verification 3
+
+Command: `grep -q 'DSF-DOC-01' research/pilots/deepseek-full-pilot/data-capture.md`
+
+```text
+
+```
+
+## verification 4
+
+Command: `test -f tickets/open/POS-0028-deepseek-baseline-wave-1.md`
+
+```text
+
+```
+
+## verification 5
+
+Command: `test -f tickets/open/POS-0029-deepseek-palari-wave-1.md`
+
+```text
+
+```
+
+## verification 6
+
+Command: `test -f tickets/open/POS-0030-deepseek-baseline-wave-2.md`
+
+```text
+
+```
+
+## verification 7
+
+Command: `test -f tickets/open/POS-0031-deepseek-palari-wave-2.md`
+
+```text
+
+```
+
+## verification 8
+
+Command: `test -f tickets/open/POS-0032-deepseek-pilot-fresh-review-and-scoring.md`
+
+```text
+
+```
+
+## verification 9
+
+Command: `test -f tickets/open/POS-0033-deepseek-pilot-synthesis-and-claims-review.md`
+
+```text
+
+```

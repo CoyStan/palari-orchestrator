@@ -1,0 +1,1 @@
+timeout 900 opencode run --dir /home/quetza/palari-pilot-workspaces/deepseek-full-baseline-dsf-web-02 --model deepseek/deepseek-v4-flash --format json --file /home/quetza/palari-orchestrator-worktrees/POS-0028-run/research/pilots/deepseek-full-pilot/runs/baseline-dsf-web-02/prompt.md --title DSF-WEB-02 "Execute the attached benchmark task prompt."

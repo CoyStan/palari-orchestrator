@@ -79,4 +79,40 @@ if grep -Fq "palari_accept" adapters/mcp/tools.json; then
 	exit 1
 fi
 
+# --- report-lint missing-heading diagnostic ---
+./bin/palari ticket create LAB-0202 "Report heading test" \
+	--stream lab \
+	--risk R2 \
+	--allowed "reports/**" \
+	--allowed "tickets/**" \
+	--verify "true" >/dev/null
+
+TICKET_FILE="$(ls tickets/open/LAB-0202-*.md)"
+sed -i 's/^status: .*/status: in-review/' "$TICKET_FILE"
+
+cat >"reports/LAB-0202-technical-report.md" <<'REPORT'
+# LAB-0202 Technical Report
+
+## Files Changed
+
+- None
+
+## Verification
+
+- None
+
+## Risks / Follow-Ups
+
+- None
+REPORT
+
+if ./bin/palari lint LAB-0202 2>"$TMP_ROOT/lint-heading.err"; then
+	printf 'agent-wrapper: missing heading lint should fail\n' >&2
+	exit 1
+fi
+grep -Fq "LAB-0202-technical-report.md" "$TMP_ROOT/lint-heading.err"
+grep -Fq "missing" "$TMP_ROOT/lint-heading.err"
+grep -Fq "CI Evidence" "$TMP_ROOT/lint-heading.err"
+grep -Fq "add this heading" "$TMP_ROOT/lint-heading.err"
+
 printf 'agent-wrapper: ok\n'

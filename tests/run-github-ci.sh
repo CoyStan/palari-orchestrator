@@ -122,11 +122,51 @@ run_multi_ticket_case() {
 	grep -Fq "ci: ok for LAB-0305+LAB-0306" "$TMP_ROOT/multi-ticket.out"
 }
 
+run_accepted_evidence_and_future_open_case() {
+	local work ticket_file aggregate_log
+	work="$(new_repo accepted-evidence)"
+	cd "$work"
+	git switch -c feature/accepted-evidence >/dev/null
+	./bin/palari ticket create LAB-0307 "Accepted evidence reuse" \
+		--stream test \
+		--risk R1 \
+		--allowed "docs/transient.md" \
+		--allowed "tickets/**" \
+		--allowed "reports/**" \
+		--verify "test -f docs/transient.md" >/dev/null
+	mkdir -p docs
+	printf 'transient\n' >docs/transient.md
+	./bin/palari ci LAB-0307 >/dev/null
+	rm -f docs/transient.md
+	ticket_file="$(find tickets/open -maxdepth 1 -name 'LAB-0307-*.md' | head -n 1)"
+	sed -i 's/^status: open$/status: accepted/' "$ticket_file"
+	mkdir -p tickets/closed
+	mv "$ticket_file" tickets/closed/
+	./bin/palari ticket create LAB-0308 "Future open ticket" \
+		--stream test \
+		--risk R1 \
+		--allowed "docs/future.md" \
+		--allowed "tickets/**" \
+		--allowed "reports/**" \
+		--verify "test -f docs/future.md" >/dev/null
+	commit_case "accepted evidence and future open ticket"
+	./bin/palari github ci --base main >"$TMP_ROOT/accepted-evidence.out"
+	grep -Fq "github ci: tickets: LAB-0307" "$TMP_ROOT/accepted-evidence.out"
+	if grep -Fq "LAB-0308" "$TMP_ROOT/accepted-evidence.out"; then
+		printf 'github-ci: future open ticket should not run as completed work\n' >&2
+		exit 1
+	fi
+	grep -Fq "ci: ok for LAB-0307" "$TMP_ROOT/accepted-evidence.out"
+	aggregate_log="reports/evidence/LAB-0307/verification.log"
+	grep -Fq "stored evidence LAB-0307" "$aggregate_log"
+}
+
 run_no_ticket_case
 run_env_case
 run_branch_case
 run_changed_open_case
 run_changed_closed_case
 run_multi_ticket_case
+run_accepted_evidence_and_future_open_case
 
 printf 'github-ci: ok\n'

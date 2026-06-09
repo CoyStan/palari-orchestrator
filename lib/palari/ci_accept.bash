@@ -163,6 +163,86 @@ ci_write_manifest() {
 	} >"$manifest"
 }
 
+ci_existing_evidence_valid() {
+	local ticket_id="$1"
+	local dir="$ROOT/$EVIDENCE_DIR/$ticket_id"
+	local manifest="$dir/manifest.json"
+	[[ -s "$manifest" ]] || return 1
+	command -v python3 >/dev/null 2>&1 || return 1
+
+	python3 - "$manifest" "$dir" "$ticket_id" <<'PY'
+import hashlib
+import json
+import pathlib
+import sys
+
+manifest_path = pathlib.Path(sys.argv[1])
+evidence_dir = pathlib.Path(sys.argv[2])
+ticket_id = sys.argv[3]
+required = {"verification.log", "junit.xml", "palari.sarif"}
+
+try:
+    data = json.loads(manifest_path.read_text(encoding="utf-8"))
+except Exception:
+    raise SystemExit(1)
+
+if data.get("schema_version") != "1":
+    raise SystemExit(1)
+if data.get("generator") != "palari-ci":
+    raise SystemExit(1)
+if data.get("ticket") != ticket_id:
+    raise SystemExit(1)
+if data.get("status") != "passed":
+    raise SystemExit(1)
+
+artifacts = data.get("artifacts")
+if not isinstance(artifacts, list):
+    raise SystemExit(1)
+
+seen = set()
+root = evidence_dir.resolve()
+for item in artifacts:
+    if not isinstance(item, dict):
+        raise SystemExit(1)
+    name = item.get("name")
+    digest = item.get("sha256")
+    if name not in required:
+        continue
+    if not isinstance(digest, str) or len(digest) != 64:
+        raise SystemExit(1)
+    path = (evidence_dir / name).resolve()
+    try:
+        path.relative_to(root)
+    except ValueError:
+        raise SystemExit(1)
+    if not path.is_file() or path.stat().st_size == 0:
+        raise SystemExit(1)
+    if hashlib.sha256(path.read_bytes()).hexdigest() != digest:
+        raise SystemExit(1)
+    seen.add(name)
+
+if seen != required:
+    raise SystemExit(1)
+PY
+}
+
+ci_use_existing_evidence() {
+	local ticket_id="$1"
+	ci_existing_evidence_valid "$ticket_id" || return 1
+	ci_record_existing_evidence "$ticket_id"
+	return 0
+}
+
+ci_record_existing_evidence() {
+	local ticket_id="$1"
+	ci_add_junit_case "stored evidence $ticket_id" pass
+	{
+		printf '\n## stored evidence %s\n\n' "$ticket_id"
+		printf 'Reused accepted ticket evidence from `%s/%s`.\n' "$EVIDENCE_DIR" "$ticket_id"
+	} >>"$CI_LOG"
+	return 0
+}
+
 cmd_ci() {
 	require_base_folders
 	local ticket="" base_ref="" evidence_dir="$EVIDENCE_DIR" repo_only="false" arg
@@ -213,6 +293,15 @@ cmd_ci() {
 			printf '%s' "${tickets[*]}"
 		)"
 	fi
+	local reuse_single_evidence="false" single_ticket_file=""
+	if ((${#tickets[@]} == 1)); then
+		single_ticket_file="$(find_ticket_file "${tickets[0]}" || true)"
+		if [[ -n "$single_ticket_file" ]] &&
+			[[ "$(frontmatter_value "$single_ticket_file" status)" == "accepted" ]] &&
+			ci_existing_evidence_valid "${tickets[0]}"; then
+			reuse_single_evidence="true"
+		fi
+	fi
 	local out_dir="$ROOT/$evidence_dir/$ticket_label"
 	local log="$out_dir/verification.log"
 	local junit="$out_dir/junit.xml"
@@ -239,7 +328,8 @@ cmd_ci() {
 	local failed=0 file check index=0 current_ticket
 	if ((${#tickets[@]} == 1)); then
 		current_ticket="${tickets[0]}"
-		file="$(find_ticket_file "$current_ticket")" || die "ticket not found: $current_ticket"
+		file="$single_ticket_file"
+		[[ -n "$file" ]] || file="$(find_ticket_file "$current_ticket")" || die "ticket not found: $current_ticket"
 		CI_SARIF_LOCATION="${file#"$ROOT"/}"
 		if [[ -n "$base_ref" ]]; then
 			ci_run_step "scope-check" cmd_scope_check "$current_ticket" --base "$base_ref" || failed=1
@@ -247,6 +337,22 @@ cmd_ci() {
 			ci_run_step "scope-check" cmd_scope_check "$current_ticket" || failed=1
 		fi
 		ci_run_step "lint" cmd_lint "$current_ticket" || failed=1
+		if [[ "$reuse_single_evidence" == "true" ]]; then
+			ci_record_existing_evidence "$current_ticket"
+			ci_write_artifacts "$junit" "$sarif"
+			ci_write_manifest "$manifest" "$ticket_label" "$base_ref" "$failed" "$log" "$junit" "$sarif"
+			rm -f "$CI_JUNIT_CASES" "$CI_SARIF_RESULTS"
+			printf 'ci evidence: %s\n' "${out_dir#"$ROOT"/}"
+			printf 'ci junit: %s\n' "${junit#"$ROOT"/}"
+			printf 'ci sarif: %s\n' "${sarif#"$ROOT"/}"
+			printf 'ci manifest: %s\n' "${manifest#"$ROOT"/}"
+			if ((failed != 0 || CI_FAILURES != 0)); then
+				printf 'ci: failed for %s\n' "$ticket_label" >&2
+				exit 1
+			fi
+			printf 'ci: ok for %s\n' "$ticket_label"
+			return
+		fi
 		while IFS= read -r check; do
 			[[ -n "$check" ]] || continue
 			index=$((index + 1))
@@ -267,6 +373,9 @@ cmd_ci() {
 		for current_ticket in "${tickets[@]}"; do
 			file="$(find_ticket_file "$current_ticket")" || die "ticket not found: $current_ticket"
 			ci_run_step "lint $current_ticket" cmd_lint "$current_ticket" || failed=1
+			if [[ "$(frontmatter_value "$file" status)" == "accepted" ]] && ci_use_existing_evidence "$current_ticket"; then
+				continue
+			fi
 			index=0
 			while IFS= read -r check; do
 				[[ -n "$check" ]] || continue

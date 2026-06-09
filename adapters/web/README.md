@@ -11,6 +11,7 @@ It is intentionally an adapter:
 - commands are shown as copyable CLI actions
 - acceptance authority stays in `palari accept`
 - no database, package manager, or frontend build step is required
+- read-only proof surface; does not accept, merge, push, or mutate critical lifecycle state
 
 ## Run
 

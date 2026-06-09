@@ -1,0 +1,42 @@
+# Palari CI Evidence
+
+- Ticket: PLT-1001
+- Base ref: local working tree
+- Created: 2026-06-09T13:27:30Z
+
+## scope-check
+
+```text
+scope-check: ok for PLT-1001 (18 changed path(s))
+```
+
+## lint
+
+```text
+report-lint: ok for PLT-1001
+lint: ok for PLT-1001
+```
+
+## verification 1
+
+Command: `grep -q '## Limitations' adapters/opencode/README.md`
+
+```text
+
+```
+
+## verification 2
+
+Command: `grep -q 'does not accept, merge, push, deploy, or bypass human acceptance' adapters/opencode/README.md`
+
+```text
+
+```
+
+## verification 3
+
+Command: `git diff --check`
+
+```text
+
+```

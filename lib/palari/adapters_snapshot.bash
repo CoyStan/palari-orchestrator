@@ -110,19 +110,41 @@ github_ci_ticket_id_from_file() {
 
 github_ci_changed_ticket_ids() {
 	local base_ref="$1"
-	local path id
+	local path id file
 	[[ -n "$base_ref" ]] || return 0
 	git -C "$ROOT" rev-parse --verify "$base_ref" >/dev/null 2>&1 ||
 		die "github ci base ref not found: $base_ref"
 	while IFS= read -r path; do
 		[[ -n "$path" ]] || continue
 		id="$(github_ci_ticket_id_from_file "$path" || true)"
-		[[ -n "$id" ]] && printf '%s\n' "$id"
+		[[ -n "$id" ]] || continue
+		file="$(find_ticket_file "$id" || true)"
+		[[ -n "$file" ]] || continue
+		github_ci_should_include_changed_ticket "$base_ref" "$id" "$file" &&
+			printf '%s\n' "$id"
 	done < <(
 		git -C "$ROOT" diff --name-only "$base_ref"...HEAD -- \
 			"$OPEN_DIR/*.md" "$OPEN_DIR/*.markdown" \
 			"$CLOSED_DIR/*.md" "$CLOSED_DIR/*.markdown"
 	)
+}
+
+github_ci_should_include_changed_ticket() {
+	local base_ref="$1"
+	local ticket_id="$2"
+	local file="$3"
+	local status path
+	status="$(frontmatter_value "$file" status)"
+	[[ "$status" == "open" ]] || return 0
+
+	while IFS= read -r path; do
+		[[ -n "$path" ]] || continue
+		case "$path" in
+		"$OPEN_DIR/$ticket_id"-* | "$CLOSED_DIR/$ticket_id"-*) continue ;;
+		esac
+		[[ "$path" == *"$ticket_id"* ]] && return 0
+	done < <(git_changed_paths "$base_ref")
+	return 1
 }
 
 github_ci_no_ticket_message() {
