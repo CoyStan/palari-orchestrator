@@ -1,0 +1,17 @@
+{
+  "schema_version": "1",
+  "generator": "palari-ci",
+  "ticket": "PLT-1001",
+  "base_ref": "local working tree",
+  "head_sha": "f3022d3d8212760f6e304db992067ef715a736fc",
+  "created_at": "2026-06-09T13:27:30Z",
+  "status": "passed",
+  "tests": 5,
+  "failures": 0,
+  "skipped": 0,
+  "artifacts": [
+    {"name":"verification.log","sha256":"8f203895e10827436401e90aa7624d9b039908116c7ee24e21bfd10e8d39f973"},
+    {"name":"junit.xml","sha256":"205262d268e9e6ce5090c4816394e33c08c1e07c3152e35271fb9220f8eb5a6a"},
+    {"name":"palari.sarif","sha256":"33078e545c1e30d4f7aabecb76439d1fd83e16f463b844470b2947abe683f7d7"}
+  ]
+}

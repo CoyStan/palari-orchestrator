@@ -1,0 +1,1 @@
+opencode run --model deepseek/deepseek-v4-flash --dir /home/quetza/palari-pilot-workspaces/deepseek-baseline-doc-01 --file /home/quetza/palari-orchestrator/research/pilots/deepseek-first-pilot/runs/baseline-doc-01/prompt.md --format json --title deepseek-baseline-doc-01 'Complete the attached baseline task.'
