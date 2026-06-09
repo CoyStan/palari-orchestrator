@@ -1,0 +1,50 @@
+# Palari CI Evidence
+
+- Ticket: POS-0020
+- Base ref: origin/main
+- Created: 2026-06-09T12:22:25Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0020 (0 changed path(s))
+```
+
+## lint
+
+```text
+report-lint: ok for POS-0020
+lint: ok for POS-0020
+```
+
+## verification 1
+
+Command: `test -f research/evidence-matrix.md`
+
+```text
+
+```
+
+## verification 2
+
+Command: `grep -q 'NIST AI RMF' research/evidence-matrix.md`
+
+```text
+
+```
+
+## verification 3
+
+Command: `grep -q 'OWASP' research/evidence-matrix.md`
+
+```text
+
+```
+
+## verification 4
+
+Command: `grep -q 'SWE-bench' research/evidence-matrix.md`
+
+```text
+
+```

@@ -22,6 +22,9 @@ may_review_tickets: true
 may_accept_tickets: true
 can_delegate_to:
   - ROLE-ENGINEERING-LEAD
+  - ROLE-RESEARCH-LEAD
+  - ROLE-RESEARCH-EVALUATOR
+  - ROLE-SAFETY-REVIEWER
   - ROLE-SPECIALIST
   - ROLE-REVIEWER
 must_escalate_when:
