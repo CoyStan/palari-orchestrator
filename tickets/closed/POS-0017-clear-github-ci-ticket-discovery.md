@@ -1,15 +1,15 @@
 ---
 id: POS-0017
 title: Clear GitHub CI ticket discovery
-status: claimed
+status: accepted
 risk: R1
 priority: P2
 stream: governance
 claimed_by: codex
-claimed_at: 2026-06-07T09:53:23Z
+claimed_at: 2026-06-07T19:40:29Z
 claim_ref: refs/palari/claims/POS-0017
-claim_heartbeat_at: 2026-06-07T09:53:23Z
-claim_expires_at: 2026-06-07T09:58:23Z
+claim_heartbeat_at: 2026-06-07T19:40:54Z
+claim_expires_at: 2026-06-07T20:40:54Z
 allowed_paths:
   - .github/workflows/**
   - adapters/github/workflows/palari.yml
@@ -37,8 +37,8 @@ verification:
 target_branch: main
 branch: ticket/POS-0017
 worktree: /home/quetza/palari-orchestrator/../palari-orchestrator-worktrees/POS-0017
-accepted_by:
-accepted_at:
+accepted_by: founder
+accepted_at: 2026-06-07T19:43:22Z
 created: 2026-06-07
 updated: 2026-06-07
 ---

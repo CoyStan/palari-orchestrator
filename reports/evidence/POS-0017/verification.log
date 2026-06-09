@@ -1,0 +1,57 @@
+# Palari CI Evidence
+
+- Ticket: POS-0017
+- Base ref: local working tree
+- Created: 2026-06-07T19:41:34Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0017 (8 changed path(s))
+```
+
+## lint
+
+```text
+report-lint: ok for POS-0017
+lint: ok for POS-0017
+```
+
+## verification 1
+
+Command: `tests/run-github-ci.sh`
+
+```text
+Switched to a new branch 'feature/env-ticket'
+Switched to a new branch 'feature/branch-ticket'
+Switched to a new branch 'feature/changed-open'
+Switched to a new branch 'feature/changed-closed'
+Switched to a new branch 'feature/multi-ticket'
+github-ci: ok
+```
+
+## verification 2
+
+Command: `tests/run-golden.sh`
+
+```text
+Preparing worktree (new branch 'ticket/POS-0001')
+Preparing worktree (new branch 'ticket/APP-0001')
+golden: ok
+```
+
+## verification 3
+
+Command: `shellcheck -x bin/palari scripts/palari tests/run-github-ci.sh tests/run-golden.sh`
+
+```text
+
+```
+
+## verification 4
+
+Command: `shfmt -d bin/palari scripts/palari lib/palari/*.bash tests/run-github-ci.sh tests/run-golden.sh`
+
+```text
+
+```
