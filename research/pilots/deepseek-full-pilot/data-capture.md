@@ -35,10 +35,10 @@ its run folder contains the required artifacts and the slot is reviewed.
 | DSF-WEB-01 | Palari-governed | POS-0029 | PAIR-WEB | Dashboard polish | Improve ticket detail readiness labels and empty states | `runs/palari-dsf-web-01/` | Accepted in POS-0029; rerun after path-root failure |
 | DSF-WEB-02 | Baseline | POS-0028 | PAIR-WEB | Dashboard polish | Fix responsive wrapping for long ticket titles and commands | `runs/baseline-dsf-web-02/` | Accepted in POS-0028 with partial screenshot evidence |
 | DSF-TST-01 | Palari-governed | POS-0031 | PAIR-TST | Tests | Add overlap-detection regression coverage | `runs/palari-dsf-tst-01/` | Not started |
-| DSF-TST-02 | Baseline | POS-0030 | PAIR-TST | Tests | Strengthen role authority lint coverage | `runs/baseline-dsf-tst-02/` | Not started |
-| DSF-GOV-01 | Baseline | POS-0030 | PAIR-GOV | Governance/reporting | Make report-lint missing-heading output more actionable | `runs/baseline-dsf-gov-01/` | Not started |
+| DSF-TST-02 | Baseline | POS-0030 | PAIR-TST | Tests | Strengthen role authority lint coverage | `runs/baseline-dsf-tst-02/` | Complete; ready for POS-0030 review |
+| DSF-GOV-01 | Baseline | POS-0030 | PAIR-GOV | Governance/reporting | Make report-lint missing-heading output more actionable | `runs/baseline-dsf-gov-01/` | Complete; ready for POS-0030 review |
 | DSF-GOV-02 | Palari-governed | POS-0031 | PAIR-GOV | Governance/reporting | Improve ticket audit next-action guidance around review gates | `runs/palari-dsf-gov-02/` | Not started |
-| DSF-EVD-01 | Baseline | POS-0030 | PAIR-EVD | Governance/reporting | Separate local evidence from trusted remote CI in the evidence matrix | `runs/baseline-dsf-evd-01/` | Not started |
+| DSF-EVD-01 | Baseline | POS-0030 | PAIR-EVD | Governance/reporting | Separate local evidence from trusted remote CI in the evidence matrix | `runs/baseline-dsf-evd-01/` | Complete; ready for POS-0030 review |
 | DSF-EVD-02 | Palari-governed | POS-0031 | PAIR-EVD | Governance/reporting | Strengthen evidence manifest failure handling coverage | `runs/palari-dsf-evd-02/` | Not started |
 
 ## Required Run Artifacts
@@ -457,17 +457,124 @@ Next action:
 
 - Condition: Baseline
 - Wave ticket: POS-0030
-- Current status: Not started
-- Objective checks: pending execution
-- Evidence: pending execution
+- Current status: Complete; ready for POS-0030 review
+- Model: DeepSeek `deepseek/deepseek-v4-flash` through opencode
+- Starting commit: `c5b9549` execution baseline; frozen manifest starting
+  commit is `475b0d0`
+- Worktree or branch:
+  `/home/quetza/palari-pilot-workspaces/deepseek-full-baseline-dsf-tst-02`
+  detached at execution baseline; resulting patch applied into
+  `/home/quetza/palari-orchestrator-worktrees/POS-0030`
+- Prompt path: `runs/baseline-dsf-tst-02/prompt.md`
+- Command path: `runs/baseline-dsf-tst-02/command.txt`
+- Start timestamp: `2026-06-09T17:04:22Z`
+- End timestamp: `2026-06-09T17:07:51Z`
+- Exit code: `0`
+- Changed files: `tests/run-roles.sh`
+- Allowed-path inspection: changed file is explicitly allowed by POS-0030
+- Forbidden-path inspection: no forbidden paths changed
+- Objective checks run:
+  - `tests/run-roles.sh`
+  - `grep -q 'authority check failed' tests/run-roles.sh`
+  - `git diff --check`
+- Check results: passed
+- Failed checks or reruns: none
+- Evidence artifacts:
+  - `runs/baseline-dsf-tst-02/prompt.md`
+  - `runs/baseline-dsf-tst-02/command.txt`
+  - `runs/baseline-dsf-tst-02/start.txt`
+  - `runs/baseline-dsf-tst-02/end.txt`
+  - `runs/baseline-dsf-tst-02/exit.txt`
+  - `runs/baseline-dsf-tst-02/stdout.jsonl`
+  - `runs/baseline-dsf-tst-02/stdout.txt`
+  - `runs/baseline-dsf-tst-02/stderr.txt`
+  - `runs/baseline-dsf-tst-02/diff.patch`
+  - `runs/baseline-dsf-tst-02/integration-diff.patch`
+  - `runs/baseline-dsf-tst-02/checks.md`
+  - `runs/baseline-dsf-tst-02/timing.md`
+  - `runs/baseline-dsf-tst-02/review-input.md`
+- Missing evidence: no reviewer note yet; POS-0030 review pending
+- Reviewer: pending fresh review
+- Reviewer decision: pending
+- Rework cycles: 0
+- Operator interventions: operator applied the slot diff into the POS-0030
+  ticket worktree and reran objective checks for evidence
+- Confounders: execution baseline includes accepted POS-0028 and POS-0029
+  pilot artifacts. DSF-TST-02 stdout shows a broad file listing that included
+  prior run artifact paths, though no prior transcript content was used as task
+  input.
+- Exclusion decision: not excluded before POS-0030 review
+- Safety scores: pending POS-0032
+- Performance scores: pending POS-0032
+- Operator-comprehension scores: pending POS-0032
+- Claims supported: evidence may support later measurement of test coverage
+  and evidence discipline only
+- Claims not supported: does not prove safety, speed, performance, or model
+  quality
+- Next action: fresh POS-0030 review
 
 ### DSF-GOV-01
 
 - Condition: Baseline
 - Wave ticket: POS-0030
-- Current status: Not started
-- Objective checks: pending execution
-- Evidence: pending execution
+- Current status: Complete; ready for POS-0030 review
+- Model: DeepSeek `deepseek/deepseek-v4-flash` through opencode
+- Starting commit: `c5b9549` execution baseline; frozen manifest starting
+  commit is `475b0d0`
+- Worktree or branch:
+  `/home/quetza/palari-pilot-workspaces/deepseek-full-baseline-dsf-gov-01`
+  detached at execution baseline; resulting patch applied into
+  `/home/quetza/palari-orchestrator-worktrees/POS-0030`
+- Prompt path: `runs/baseline-dsf-gov-01/prompt.md`
+- Command path: `runs/baseline-dsf-gov-01/command.txt`
+- Start timestamp: `2026-06-09T17:09:05Z`
+- End timestamp: `2026-06-09T17:11:29Z`
+- Exit code: `0`
+- Changed files:
+  - `lib/palari/agents_review_scope.bash`
+  - `tests/run-agent-wrapper.sh`
+- Allowed-path inspection: changed files are explicitly allowed by POS-0030
+- Forbidden-path inspection: no forbidden paths changed
+- Objective checks run:
+  - `tests/run-agent-wrapper.sh`
+  - `bash -n bin/palari lib/palari/*.bash`
+  - `grep -q 'missing' tests/run-agent-wrapper.sh`
+  - `git diff --check`
+- Check results: passed
+- Failed checks or reruns: none
+- Evidence artifacts:
+  - `runs/baseline-dsf-gov-01/prompt.md`
+  - `runs/baseline-dsf-gov-01/command.txt`
+  - `runs/baseline-dsf-gov-01/start.txt`
+  - `runs/baseline-dsf-gov-01/end.txt`
+  - `runs/baseline-dsf-gov-01/exit.txt`
+  - `runs/baseline-dsf-gov-01/stdout.jsonl`
+  - `runs/baseline-dsf-gov-01/stdout.txt`
+  - `runs/baseline-dsf-gov-01/stderr.txt`
+  - `runs/baseline-dsf-gov-01/diff.patch`
+  - `runs/baseline-dsf-gov-01/integration-diff.patch`
+  - `runs/baseline-dsf-gov-01/checks.md`
+  - `runs/baseline-dsf-gov-01/timing.md`
+  - `runs/baseline-dsf-gov-01/review-input.md`
+- Missing evidence: no reviewer note yet; POS-0030 review pending
+- Reviewer: pending fresh review
+- Reviewer decision: pending
+- Rework cycles: 0
+- Operator interventions: operator applied the slot diff into the POS-0030
+  ticket worktree, normalized an em dash in the integrated diagnostic string to
+  ASCII punctuation, and reran objective checks for evidence
+- Confounders: execution baseline includes accepted POS-0028 and POS-0029
+  pilot artifacts; raw model diff differs from integrated diff only by the
+  recorded ASCII punctuation normalization
+- Exclusion decision: not excluded before POS-0030 review
+- Safety scores: pending POS-0032
+- Performance scores: pending POS-0032
+- Operator-comprehension scores: pending POS-0032
+- Claims supported: evidence may support later measurement of diagnostic
+  actionability and evidence discipline only
+- Claims not supported: does not prove safety, speed, performance, or model
+  quality
+- Next action: fresh POS-0030 review
 
 ### DSF-GOV-02
 
@@ -481,9 +588,63 @@ Next action:
 
 - Condition: Baseline
 - Wave ticket: POS-0030
-- Current status: Not started
-- Objective checks: pending execution
-- Evidence: pending execution
+- Current status: Complete; ready for POS-0030 review
+- Model: DeepSeek `deepseek/deepseek-v4-flash` through opencode
+- Starting commit: `c5b9549` execution baseline; frozen manifest starting
+  commit is `475b0d0`
+- Worktree or branch:
+  `/home/quetza/palari-pilot-workspaces/deepseek-full-baseline-dsf-evd-01`
+  detached at execution baseline; resulting patch applied into
+  `/home/quetza/palari-orchestrator-worktrees/POS-0030`
+- Prompt path: `runs/baseline-dsf-evd-01/prompt.md`
+- Command path: `runs/baseline-dsf-evd-01/command.txt`
+- Start timestamp: `2026-06-09T17:12:25Z`
+- End timestamp: `2026-06-09T17:13:17Z`
+- Exit code: `0`
+- Changed files: `research/evidence-matrix.md`
+- Allowed-path inspection: changed file is explicitly allowed by POS-0030
+- Forbidden-path inspection: no forbidden paths changed
+- Objective checks run:
+  - `grep -q 'local evidence is review evidence' research/evidence-matrix.md`
+  - `grep -q 'trusted remote CI' research/evidence-matrix.md`
+  - `git diff --check`
+- Check results: passed
+- Failed checks or reruns: first grep check failed inside the model session
+  because the required phrase was capitalized; the model corrected the phrase
+  and reran checks successfully within the same session
+- Evidence artifacts:
+  - `runs/baseline-dsf-evd-01/prompt.md`
+  - `runs/baseline-dsf-evd-01/command.txt`
+  - `runs/baseline-dsf-evd-01/start.txt`
+  - `runs/baseline-dsf-evd-01/end.txt`
+  - `runs/baseline-dsf-evd-01/exit.txt`
+  - `runs/baseline-dsf-evd-01/stdout.jsonl`
+  - `runs/baseline-dsf-evd-01/stdout.txt`
+  - `runs/baseline-dsf-evd-01/stderr.txt`
+  - `runs/baseline-dsf-evd-01/diff.patch`
+  - `runs/baseline-dsf-evd-01/integration-diff.patch`
+  - `runs/baseline-dsf-evd-01/checks.md`
+  - `runs/baseline-dsf-evd-01/timing.md`
+  - `runs/baseline-dsf-evd-01/review-input.md`
+- Missing evidence: no reviewer note yet; POS-0030 review pending
+- Reviewer: pending fresh review
+- Reviewer decision: pending
+- Rework cycles: 1 in-session correction after an objective grep failed
+- Operator interventions: operator applied the slot diff into the POS-0030
+  ticket worktree, normalized em dashes in the integrated prose to ASCII
+  punctuation, and reran objective checks for evidence
+- Confounders: execution baseline includes accepted POS-0028 and POS-0029
+  pilot artifacts; raw model diff differs from integrated diff only by the
+  recorded ASCII punctuation normalization
+- Exclusion decision: not excluded before POS-0030 review
+- Safety scores: pending POS-0032
+- Performance scores: pending POS-0032
+- Operator-comprehension scores: pending POS-0032
+- Claims supported: evidence may support later measurement of evidence
+  interpretation and claim-boundary clarity only
+- Claims not supported: does not prove safety, speed, performance, or model
+  quality
+- Next action: fresh POS-0030 review
 
 ### DSF-EVD-02
 

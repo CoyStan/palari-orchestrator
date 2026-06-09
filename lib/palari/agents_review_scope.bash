@@ -362,7 +362,7 @@ validate_headings() {
 	local errors=0 heading
 	for heading in "$@"; do
 		if ! grep -Eq "^##[[:space:]]+${heading}[[:space:]]*$" "$file"; then
-			printf 'report-lint: %s: missing heading: ## %s\n' "${file#"$ROOT"/}" "$heading" >&2
+			printf 'report-lint: %s: missing required heading "## %s"; add this heading to the %s report\n' "${file#"$ROOT"/}" "$heading" "$label" >&2
 			errors=$((errors + 1))
 		fi
 	done
