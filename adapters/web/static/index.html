@@ -3,44 +3,45 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Palari Console</title>
+    <title>Palari Operator Console</title>
     <link rel="stylesheet" href="/styles.css">
     <link rel="stylesheet" href="/app-shell.css">
   </head>
   <body>
-    <a class="skip-link" href="#main-content">Skip to dashboard workspace</a>
+    <a class="skip-link" href="#main-content">Skip to operator workspace</a>
     <div class="shell">
-      <aside class="rail" aria-label="Palari Console navigation">
+      <aside class="rail" aria-label="Palari Console status">
         <div class="brand">
           <span class="mark" aria-hidden="true"></span>
           <div>
             <span>Palari</span>
-            <strong>Console</strong>
+            <strong>Operator Console</strong>
           </div>
         </div>
 
         <div class="workspace-title">
           <span>Workspace</span>
-          <strong>Orchestration</strong>
+          <strong id="railProject">Orchestration</strong>
         </div>
 
-        <nav aria-label="Dashboard sections">
-          <a href="#overview" class="active" aria-current="page">Overview</a>
-          <a href="#tickets">Tickets</a>
-          <a href="#evidence">Evidence</a>
-          <a href="#scope">Scope</a>
-          <a href="#commands">Commands</a>
-        </nav>
+        <div class="rail-guide" aria-label="Console layout">
+          <p class="section-label">Console Flow</p>
+          <ol>
+            <li><span>1</span> Pick a ticket</li>
+            <li><span>2</span> Review proof</li>
+            <li><span>3</span> Copy the safe command</li>
+          </ol>
+        </div>
 
-        <section class="metrics" aria-label="Ticket lifecycle counts">
-          <p class="section-label">Lifecycle</p>
+        <section class="metrics" aria-label="Operational counts">
+          <p class="section-label">Operations</p>
           <article>
-            <span>Open</span>
-            <strong id="countOpen">0</strong>
+            <span>Attention</span>
+            <strong id="countAttention">0</strong>
           </article>
           <article>
-            <span>Claimed</span>
-            <strong id="countClaimed">0</strong>
+            <span>Active</span>
+            <strong id="countActive">0</strong>
           </article>
           <article>
             <span>Review</span>
@@ -63,78 +64,148 @@
 
       <main class="workspace" id="main-content" tabindex="-1">
         <header class="topbar">
-          <nav class="mode-switcher" aria-label="Console modes">
-            <a href="#overview" class="active" aria-current="page">Triage</a>
-            <a href="#tickets">Review</a>
-            <a href="#commands">Accept</a>
-          </nav>
+          <div class="view-title" aria-label="Current console view">
+            <span>Command center</span>
+            <strong>Queue + Review</strong>
+          </div>
           <div class="top-actions">
+            <span class="authority-chip" id="authorityChip">authority</span>
+            <button class="ghost" id="themeButton" type="button" aria-pressed="false">Theme</button>
             <button class="ghost" id="refreshButton" type="button">Refresh</button>
             <span class="timestamp" id="timestamp">--</span>
           </div>
         </header>
 
         <section class="canvas" id="overview" aria-label="Palari orchestration workspace">
-          <div class="canvas-frame">
-            <div class="canvas-head">
+          <div class="canvas-head">
+            <div>
+              <p class="eyebrow">Local adapter · repository authority</p>
+              <h1 id="projectName">Palari Orchestrator</h1>
+              <p>Repository-governed agent work</p>
+            </div>
+            <div class="health-tile" aria-label="Current orchestration health">
+              <span class="state-dot" aria-hidden="true"></span>
               <div>
-                <p class="eyebrow">Local adapter · repository authority</p>
-                <h1 id="projectName">Palari Orchestrator</h1>
-                <p>Repository-governed agent work</p>
-              </div>
-              <div class="signal-panel" aria-label="Current orchestration health">
-                <div class="signal-ring" aria-hidden="true">
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                </div>
-                <div>
-                  <strong id="healthGrade">--</strong>
-                  <span id="healthSummary">Loading health model</span>
-                </div>
+                <strong id="healthGrade">--</strong>
+                <span id="healthSummary">Loading health model</span>
               </div>
             </div>
+          </div>
 
+          <section class="operator-strip" aria-label="Operator summary">
+            <article>
+              <span>Next Action</span>
+              <strong id="operatorNext">Loading</strong>
+              <small id="operatorDetail">Reading repository state.</small>
+            </article>
+            <article>
+              <span>Human Gate</span>
+              <strong id="humanGate">--</strong>
+              <small id="humanGateDetail">No human gate loaded yet.</small>
+            </article>
+            <article>
+              <span>Role System</span>
+              <strong id="roleSystem">--</strong>
+              <small id="roleSystemDetail">Checking active roles.</small>
+            </article>
+          </section>
+
+          <section class="workbench" aria-label="Ticket queue and selected ticket review">
+            <div class="queue-column">
+              <section class="panel queue-panel" id="queue">
+                <div class="section-head">
+                  <div>
+                    <p class="eyebrow">Operator Queue</p>
+                    <h2>Pick What Needs Attention</h2>
+                  </div>
+                  <div class="queue-controls">
+                    <input id="ticketSearch" type="search" autocomplete="off" placeholder="Search tickets, roles, owners, paths" aria-label="Search tickets, roles, owners, and paths">
+                    <select id="queueFilter" aria-label="Filter tickets by action queue">
+                      <option value="attention">Needs attention</option>
+                      <option value="active">Active work</option>
+                      <option value="review">Review</option>
+                      <option value="done">Accepted</option>
+                      <option value="all">All tickets</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="result-line" id="queueResultLine">Loading tickets</div>
+                <div class="queue-list" id="queueList"></div>
+              </section>
+
+              <section class="panel ticket-surface" id="tickets">
+                <div class="section-head">
+                  <div>
+                    <p class="eyebrow">Ticket Ledger</p>
+                    <h2>All Tickets</h2>
+                  </div>
+                  <span class="pill" id="ticketPill">0 tickets</span>
+                </div>
+                <div class="table-wrap">
+                  <table class="ticket-table">
+                    <thead>
+                      <tr>
+                        <th scope="col">Ticket</th>
+                        <th scope="col">Owner</th>
+                        <th scope="col">Role</th>
+                        <th scope="col">Progress</th>
+                        <th scope="col">Evidence</th>
+                        <th scope="col">Next</th>
+                      </tr>
+                    </thead>
+                    <tbody id="ticketRows"></tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+
+            <div class="review-column">
+              <section class="panel focus-panel" id="review">
+                <div class="section-head">
+                  <div>
+                    <p class="eyebrow">Review Surface</p>
+                    <h2>Selected Ticket</h2>
+                  </div>
+                  <span class="pill" id="focusPill">ticket</span>
+                </div>
+                <div class="ticket-focus" id="ticketFocus"></div>
+              </section>
+
+              <section class="command-dock" id="commands" aria-label="Next CLI actions">
+                <div class="dock-head">
+                  <span>Safe Commands</span>
+                  <span class="pill">copy only</span>
+                </div>
+                <div class="command-list" id="commandList"></div>
+              </section>
+            </div>
+          </section>
+
+          <section class="support-grid" aria-label="Supporting proof panels">
             <section class="health-actions" aria-labelledby="healthActionsTitle">
+            <div class="section-head">
               <div>
                 <p class="eyebrow">Attention</p>
-                <h2 id="healthActionsTitle">Next required action</h2>
+                <h2 id="healthActionsTitle">System Warnings</h2>
               </div>
-              <div class="health-action-list" id="healthActionsList"></div>
-            </section>
+              <span class="pill" id="warningPill">0 warnings</span>
+            </div>
+            <div class="health-action-list" id="healthActionsList"></div>
+          </section>
 
-            <section class="panel ticket-surface" id="tickets">
-              <div class="panel-head">
-                <div>
-                  <p class="eyebrow">Ticket Ledger</p>
-                  <h2>Lifecycle</h2>
-                </div>
-                <select id="ticketFilter" aria-label="Filter tickets by status">
-                  <option value="all">All statuses</option>
-                  <option value="open">Open</option>
-                  <option value="claimed">Claimed</option>
-                  <option value="in-review">In review</option>
-                  <option value="blocked">Blocked</option>
-                  <option value="accepted">Accepted</option>
-                </select>
-              </div>
-              <div class="ticket-list" id="ticketList"></div>
-            </section>
-
-            <section class="command-dock" id="commands" aria-label="Next CLI actions">
-              <div class="dock-head">
-                <span>Commands</span>
-                <span class="pill">local</span>
-              </div>
-              <div class="command-list" id="commandList"></div>
-            </section>
+          <section class="panel" id="roles">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Roles</p>
+              <h2>Authority Map</h2>
+            </div>
+            <span class="pill" id="rolesPill">0 active</span>
           </div>
+          <div class="role-list" id="roleList"></div>
         </section>
-      </main>
 
-      <aside class="inspector" aria-label="Palari Console inspector">
-        <section class="panel" id="evidence">
-          <div class="panel-head">
+          <section class="panel" id="evidence">
+          <div class="section-head">
             <div>
               <p class="eyebrow">Evidence</p>
               <h2>CI Artifacts</h2>
@@ -144,8 +215,8 @@
           <div class="evidence-list" id="evidenceList"></div>
         </section>
 
-        <section class="panel" id="scope">
-          <div class="panel-head">
+          <section class="panel" id="scope">
+          <div class="section-head">
             <div>
               <p class="eyebrow">Scope</p>
               <h2>Path Partitions</h2>
@@ -155,8 +226,19 @@
           <div id="scopeMap" class="scope-map"></div>
         </section>
 
-        <section class="panel mono-panel">
-          <div class="panel-head">
+          <section class="panel human-panel">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Human Summary</p>
+              <h2>Decision Surface</h2>
+            </div>
+            <span class="pill" id="humanPill">ready</span>
+          </div>
+          <div class="human-summary" id="humanSummary"></div>
+        </section>
+
+          <section class="panel mono-panel">
+          <div class="section-head">
             <div>
               <p class="eyebrow">Repository</p>
               <h2>Status</h2>
@@ -165,7 +247,9 @@
           </div>
           <pre id="statusOutput">Loading...</pre>
         </section>
-      </aside>
+          </section>
+        </section>
+      </main>
     </div>
 
     <template id="emptyTemplate">

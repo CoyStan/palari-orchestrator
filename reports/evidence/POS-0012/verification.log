@@ -1,0 +1,53 @@
+# Palari CI Evidence
+
+- Ticket: POS-0012
+- Base ref: origin/main
+- Created: 2026-06-07T09:21:28Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0012 (0 changed path(s))
+```
+
+## lint
+
+```text
+report-lint: ok for POS-0012
+lint: ok for POS-0012
+```
+
+## verification 1
+
+Command: `tests/run-agent-wrapper.sh`
+
+```text
+Preparing worktree (new branch 'ticket/LAB-0201')
+agent-wrapper: ok
+```
+
+## verification 2
+
+Command: `tests/run-golden.sh`
+
+```text
+Preparing worktree (new branch 'ticket/POS-0001')
+Preparing worktree (new branch 'ticket/APP-0001')
+golden: ok
+```
+
+## verification 3
+
+Command: `shellcheck -x bin/palari scripts/palari tests/run-agent-wrapper.sh`
+
+```text
+
+```
+
+## verification 4
+
+Command: `shfmt -d bin/palari scripts/palari lib/palari/*.bash tests/run-agent-wrapper.sh`
+
+```text
+
+```

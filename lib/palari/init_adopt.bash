@@ -290,8 +290,10 @@ cmd_doctor() {
 	doctor_check_file "lib/palari/init_adopt.bash" errors
 	doctor_check_file "lib/palari/proposals.bash" errors
 	doctor_check_file "lib/palari/tickets_workspace.bash" errors
+	doctor_check_file "lib/palari/demo.bash" errors
 	doctor_check_file "lib/palari/agents_review_scope.bash" errors
 	doctor_check_file "lib/palari/ci_accept.bash" errors
+	doctor_check_file "lib/palari/dashboard_snapshot.bash" errors
 	doctor_check_file "lib/palari/adapters_snapshot.bash" errors
 	doctor_check_file "palari.config.yaml" errors
 	if [[ -f "$ROOT/AGENTS.md" ]]; then

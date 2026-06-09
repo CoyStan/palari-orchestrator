@@ -1,0 +1,61 @@
+# Palari CI Evidence
+
+- Ticket: POS-0010
+- Base ref: origin/main
+- Created: 2026-06-07T09:20:50Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0010 (0 changed path(s))
+```
+
+## lint
+
+```text
+report-lint: ok for POS-0010
+lint: ok for POS-0010
+```
+
+## verification 1
+
+Command: `tests/run-memory.sh`
+
+```text
+Preparing worktree (new branch 'ticket/APP-0001')
+memory: ok
+```
+
+## verification 2
+
+Command: `tests/run-golden.sh`
+
+```text
+Preparing worktree (new branch 'ticket/POS-0001')
+Preparing worktree (new branch 'ticket/APP-0001')
+golden: ok
+```
+
+## verification 3
+
+Command: `shellcheck -x bin/palari scripts/palari tests/run-golden.sh tests/run-memory.sh`
+
+```text
+
+```
+
+## verification 4
+
+Command: `if command -v shfmt >/dev/null 2>&1; then shfmt -d bin/palari scripts/palari lib/palari/*.bash tests/run-golden.sh tests/run-memory.sh; else echo "shfmt unavailable in this runner; Static Analysis owns formatting"; fi`
+
+```text
+
+```
+
+## verification 5
+
+Command: `python3 -m py_compile adapters/memory/memory.py adapters/web/server.py`
+
+```text
+
+```

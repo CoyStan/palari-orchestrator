@@ -20,6 +20,7 @@ from typing import Any
 HERE = Path(__file__).resolve().parent
 STATIC_DIR = HERE / "static"
 SNAPSHOT_CACHE_TTL = 2.0
+SNAPSHOT_TIMEOUT_SECONDS = 30
 SNAPSHOT_CACHE_LOCK = threading.Lock()
 SNAPSHOT_CACHE: dict[str, Any] = {
     "root": None,
@@ -51,7 +52,7 @@ def run(root: Path, args: list[str], timeout: int = 5) -> dict[str, Any]:
 
 def snapshot(root: Path) -> dict[str, Any]:
     cli = root / "bin" / "palari"
-    result = run(root, [str(cli), "snapshot", "--json"], timeout=10)
+    result = run(root, [str(cli), "snapshot", "--json"], timeout=SNAPSHOT_TIMEOUT_SECONDS)
     if not result["ok"]:
         raise RuntimeError(result["stderr"] or result["stdout"] or "palari snapshot failed")
     try:

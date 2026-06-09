@@ -40,12 +40,18 @@ source "$PALARI_LIB_DIR/proposals.bash"
 palari_require_module "$PALARI_LIB_DIR/tickets_workspace.bash"
 # shellcheck source=lib/palari/tickets_workspace.bash
 source "$PALARI_LIB_DIR/tickets_workspace.bash"
+palari_require_module "$PALARI_LIB_DIR/demo.bash"
+# shellcheck source=lib/palari/demo.bash
+source "$PALARI_LIB_DIR/demo.bash"
 palari_require_module "$PALARI_LIB_DIR/agents_review_scope.bash"
 # shellcheck source=lib/palari/agents_review_scope.bash
 source "$PALARI_LIB_DIR/agents_review_scope.bash"
 palari_require_module "$PALARI_LIB_DIR/ci_accept.bash"
 # shellcheck source=lib/palari/ci_accept.bash
 source "$PALARI_LIB_DIR/ci_accept.bash"
+palari_require_module "$PALARI_LIB_DIR/dashboard_snapshot.bash"
+# shellcheck source=lib/palari/dashboard_snapshot.bash
+source "$PALARI_LIB_DIR/dashboard_snapshot.bash"
 palari_require_module "$PALARI_LIB_DIR/adapters_snapshot.bash"
 # shellcheck source=lib/palari/adapters_snapshot.bash
 source "$PALARI_LIB_DIR/adapters_snapshot.bash"
@@ -69,6 +75,7 @@ commands:
   propose list|show|packet     Inspect proposed work before adoption.
   propose adopt ID --ticket T  Adopt a proposal into an executable ticket.
   lead [propose] ...           Alias for propose.
+  demo [--force]               Create local sample tickets, reports, and evidence.
   ticket create ID TITLE ...   Create a scoped ticket.
   ticket claim ID [BY]         Claim an open/reopened ticket.
   ticket audit                 Explain active ticket next actions.
@@ -147,6 +154,9 @@ ticket create options:
   --verify CHECK --review --human --contract --required-report NAME
   --target-branch main --by-role ROLE-ID --delegate-to-role ROLE-ID
 
+demo options:
+  --force                      Replace existing DEM-0001/DEM-0002 demo fixtures.
+
 ticket claim options:
   --ttl SECONDS                Lease duration; default from claim_lease_seconds.
   --allow-overlap              Acknowledge overlapping allowed_paths.
@@ -207,6 +217,10 @@ lead)
 		shift
 	fi
 	cmd_propose "$@"
+	;;
+demo)
+	shift
+	cmd_demo "$@"
 	;;
 ticket)
 	shift

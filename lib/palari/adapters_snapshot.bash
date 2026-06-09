@@ -377,7 +377,8 @@ ticket_required_reports_json() {
 snapshot_ticket_json() {
 	local file="$1"
 	local state="$2"
-	local ticket_id title status risk priority stream rel claimed_by claim_ref expires heartbeat branch worktree lease_status
+	local ticket_id title status risk priority stream rel claimed_by claimed_at claim_ref expires heartbeat branch worktree lease_status
+	local created_by_role delegated_to_role accepted_by accepted_at implemented_by
 	ticket_id="$(frontmatter_value "$file" id)"
 	[[ -n "$ticket_id" ]] || ticket_id="$(ticket_title_from_file "$file")"
 	title="$(frontmatter_value "$file" title)"
@@ -389,9 +390,17 @@ snapshot_ticket_json() {
 	stream="$(frontmatter_value "$file" stream)"
 	rel="${file#"$ROOT"/}"
 	claimed_by="$(frontmatter_value "$file" claimed_by)"
+	claimed_at="$(frontmatter_value "$file" claimed_at)"
 	claim_ref="$(frontmatter_value "$file" claim_ref)"
 	expires="$(frontmatter_value "$file" claim_expires_at)"
 	heartbeat="$(frontmatter_value "$file" claim_heartbeat_at)"
+	created_by_role="$(frontmatter_value "$file" created_by_role)"
+	[[ -n "$created_by_role" ]] || created_by_role="$(frontmatter_value "$file" issued_by_role)"
+	delegated_to_role="$(frontmatter_value "$file" delegated_to_role)"
+	[[ -n "$delegated_to_role" ]] || delegated_to_role="$(frontmatter_value "$file" delegate_to_role)"
+	accepted_by="$(frontmatter_value "$file" accepted_by)"
+	accepted_at="$(frontmatter_value "$file" accepted_at)"
+	implemented_by="$(frontmatter_value "$file" implemented_by)"
 	branch="$(ticket_declared_branch "$file" "$ticket_id")"
 	worktree="$(ticket_declared_worktree "$file" "$ticket_id")"
 	lease_status="$(ticket_lease_status "$file")"
@@ -421,6 +430,18 @@ snapshot_ticket_json() {
 	ticket_required_reports_json "$file"
 	printf ',"claimed_by":'
 	json_string "$claimed_by"
+	printf ',"claimed_at":'
+	json_string "$claimed_at"
+	printf ',"created_by_role":'
+	json_string "$created_by_role"
+	printf ',"delegated_to_role":'
+	json_string "$delegated_to_role"
+	printf ',"accepted_by":'
+	json_string "$accepted_by"
+	printf ',"accepted_at":'
+	json_string "$accepted_at"
+	printf ',"implemented_by":'
+	json_string "$implemented_by"
 	printf ',"claim_ref":'
 	json_string "$claim_ref"
 	printf ',"claim_expires_at":'
@@ -438,6 +459,8 @@ snapshot_ticket_json() {
 	evidence_json "$ticket_id"
 	printf ',"reports":'
 	reports_json "$ticket_id"
+	printf ',"next_action":'
+	snapshot_next_action_json "$file" "$state"
 	printf ',"lease":{"status":'
 	json_string "$lease_status"
 	printf ',"expires_at":'
@@ -593,6 +616,9 @@ cmd_snapshot() {
 		[[ -n "$file" ]] || continue
 		lease="$(ticket_lease_status "$file")"
 		[[ "$lease" == "expired" ]] && stale=$((stale + 1))
+	done < <(ticket_files)
+	while IFS= read -r file; do
+		[[ -n "$file" ]] || continue
 		status="$(frontmatter_value "$file" status)"
 		if [[ "$status" == "in-review" || "$status" == "accepted" ]]; then
 			id="$(frontmatter_value "$file" id)"
@@ -634,6 +660,10 @@ cmd_snapshot() {
 	printf ',\n'
 	printf '  "tickets": '
 	snapshot_tickets_json
+	printf ',\n  "operator": '
+	snapshot_operator_json
+	printf ',\n  "roles": '
+	snapshot_roles_json
 	printf ',\n  "overlaps": %s,\n' "$overlaps_json"
 	printf '  "workflow": '
 	snapshot_workflow_json

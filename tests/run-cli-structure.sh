@@ -22,8 +22,10 @@ modules=(
 	init_adopt
 	proposals
 	tickets_workspace
+	demo
 	agents_review_scope
 	ci_accept
+	dashboard_snapshot
 	adapters_snapshot
 )
 

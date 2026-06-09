@@ -18,6 +18,8 @@
 
 <p align="center">
   <a href="#why-palari">Why Palari</a> ·
+  <a href="#5-minute-demo">5-minute demo</a> ·
+  <a href="#how-palari-compares">Compare</a> ·
   <a href="#how-it-works">How it works</a> ·
   <a href="#quick-start">Quick start</a> ·
   <a href="#optional-console">Console</a> ·
@@ -47,18 +49,75 @@ authority.
 | What is optional? | GitHub rulesets, hooks, MCP wrappers, opencode execution, local sandboxes, the console, and repo-memory adapters. |
 | What is it not? | A hosted agent platform, product-specific Palari app code, or a replacement for human judgment. |
 
-## Why Palari
+## Why Now / Why Palari
+
+AI coding agents are getting easier to launch in parallel. That creates a new
+operator problem: the work may be fast, but the source of truth, scope,
+evidence, reviewer context, and final permission moment can become scattered
+across chat threads, local worktrees, PR comments, and tool-specific dashboards.
+
+Palari is the repo-native control layer for that moment. It does not try to be
+the agent, the IDE, or the hosted platform. It gives agent-led coding work the
+same kind of operational shape a careful human team expects: a ticket queue,
+bounded workspaces, role authority, review packets, evidence bundles, and a
+human acceptance gate that is explicit in the repository.
 
 | Without a control layer | With Palari |
 | --- | --- |
 | The agent remembers the task in chat. | The ticket lives in the repo. |
 | Scope drift is noticed late. | Allowed and forbidden paths are checked. |
 | Work happens in the main checkout. | Work starts in a ticket worktree. |
+| Roles are vibes or prompt text. | Role authority is visible and linted. |
 | Review depends on summaries. | Review gets packets, reports, and CI evidence. |
 | "Done" can be vague. | Acceptance is explicit and recorded. |
 
 Palari is not a generic multi-agent platform. It is a few repo-native primitives
 that make agent-led coding easier to delegate, inspect, and stop.
+
+## 5-Minute Demo
+
+The fastest way to evaluate Palari is to create local demo fixtures and open the
+operator console. No external agent, hosted service, package install, or network
+access is required.
+
+```bash
+git clone https://github.com/CoyStan/palari-orchestrator.git
+cd palari-orchestrator
+./bin/palari demo
+./bin/palari web
+```
+
+Then open `http://127.0.0.1:8765`.
+
+The demo writes two sample tickets:
+
+| Ticket | What it shows |
+| --- | --- |
+| `DEM-0001` | A role-delegated ticket in review with reports and evidence, ready for human acceptance. |
+| `DEM-0002` | A higher-risk ticket stopped at `needs-human` until an operator approves the gate. |
+
+Use `./bin/palari demo --force` to replace only the demo fixtures. The command
+does not run an agent, change production paths, merge, push, or accept work.
+It exists so a founder, operator, or reviewer can see the queue, role boundary,
+evidence surface, and human gate immediately.
+
+## How Palari Compares
+
+Most popular agent tools are optimized for running agents. Palari is optimized
+for governing agent work after a human decides to delegate it.
+
+| Tool or pattern | Primary job | Where Palari fits |
+| --- | --- | --- |
+| [Emdash](https://docs.emdash.sh/) | Agent development environment with parallel agents, isolated git worktrees, Kanban, and review surfaces. | Palari can govern the repository contract around those worktrees: scoped tickets, evidence, review packets, and acceptance. |
+| [Conductor](https://www.ycombinator.com/companies/conductor) | App for running and reviewing multiple coding agents in isolated workspaces. | Palari provides a portable repo record that survives outside the app: ticket lifecycle, authority profiles, and evidence gates. |
+| [gstack](https://github.com/garrytan/gstack) | Role and skill structure for Claude Code-style engineering teams. | Palari turns role boundaries into lintable Markdown authority files tied to tickets and acceptance. |
+| [OpenHands](https://www.openhands.one/) | Full agent platform for launching software development agents. | Palari stays executor-agnostic and checks whether the resulting work is scoped, evidenced, reviewed, and accepted. |
+| [LangGraph](https://www.langchain.com/langgraph) | Framework for building controllable agent workflows and applications. | Palari governs the code repository lifecycle around agent output rather than the internal graph. |
+| Generic coding agents | Fast code edits from a prompt. | Palari adds queue discipline, path boundaries, fresh review, evidence, and an explicit human "yes." |
+
+Palari should feel complementary to agent runners, IDEs, and hosted coding
+platforms. The sharper distinction is simple: they help produce work; Palari
+helps decide whether that work was allowed, reviewed, evidenced, and accepted.
 
 ## How It Works
 
@@ -96,6 +155,10 @@ cd palari-orchestrator
 ./bin/palari status
 tests/run-golden.sh
 ```
+
+For a guided first look, run `./bin/palari demo` before `./bin/palari web`.
+That path creates sample operator-console data instead of asking you to invent a
+real ticket first.
 
 Adopt it in another repo:
 
@@ -241,15 +304,25 @@ palari sandbox create APP-0001
 
 ## Optional Console
 
-The local console is a read-only view over `palari snapshot --json`. It helps
-non-programmers see tickets, evidence, scope health, and the next command
-without turning Palari into a web app.
+The local console is the primary proof surface for non-technical operators. It
+is a read-only view over `palari snapshot --json`, so the repository remains the
+source of truth while the browser gives people a calm way to monitor work.
 
 ```bash
 palari web
 ```
 
 ![Palari Console dashboard showing ticket health, evidence status, scope partitions, and copyable commands.](assets/readme/palari-console-preview.png)
+
+From an operator's point of view, the console answers five questions:
+
+| Question | Console surface |
+| --- | --- |
+| What is waiting? | Ticket queue, status, priority, risk, and next allowed action. |
+| Who or what owns it? | Active roles, delegated role, claimed-by, and lease health. |
+| Is progress real? | Lifecycle state, reports, evidence files, and verification status. |
+| Is scope safe? | Allowed paths, forbidden paths, overlap warnings, and stale claims. |
+| Can a human accept it? | Review state, missing gates, and the exact `palari accept` command when ready. |
 
 ## Design Principles
 
@@ -291,6 +364,7 @@ palari packet WEB-0002 specialist
 | --- | --- |
 | `palari init` | Create the ticket, report, and handoff directories expected by the workflow. |
 | `palari adopt /path/to/repo` | Copy Palari into an existing git repo, initialize it, and run the doctor. |
+| `palari demo [--force]` | Create local sample tickets, reports, and evidence for the operator console. |
 | `palari doctor` | Check whether the current repo has the required Palari files and directories. |
 | `palari doctor lifecycle` | Explain the next action for active tickets. |
 | `palari status [--next]` | Show current tickets and optionally the next required lifecycle action. |
@@ -353,6 +427,7 @@ ship as adapters:
 - GitHub rulesets: `palari init --ci` writes `.github/palari-required-checks.ruleset.json`.
 - GitHub ticket discovery: `palari github ci` fails closed when no PR ticket is discoverable and prints the allowed ticketed and repo-only paths.
 - Adoption: `palari adopt TARGET` copies the portable package into an existing git repository and runs `palari doctor`.
+- Local demo: `palari demo` writes only `DEM-0001` and `DEM-0002` sample fixtures so first-time users can inspect the console without an agent runner.
 - Local hooks: `palari init --hooks` writes `lefthook.yml` for fast advisory checks.
 - Lead proposals: `palari propose create`, `palari propose packet`, and `palari propose adopt` separate planning authority from implementation authority.
 - Authority profiles: `palari authority` makes agent commit, push, PR, merge, and accept permissions explicit per repository.
@@ -419,6 +494,7 @@ tests/golden/                     Fixtures that prove the flow works
 
 ```bash
 tests/run-golden.sh
+tests/run-demo.sh
 tests/run-cli-structure.sh
 tests/run-adoption.sh
 tests/run-agent-wrapper.sh

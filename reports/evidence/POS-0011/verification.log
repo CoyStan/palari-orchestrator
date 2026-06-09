@@ -1,0 +1,66 @@
+# Palari CI Evidence
+
+- Ticket: POS-0011
+- Base ref: origin/main
+- Created: 2026-06-07T09:21:27Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0011 (0 changed path(s))
+```
+
+## lint
+
+```text
+report-lint: ok for POS-0011
+lint: ok for POS-0011
+```
+
+## verification 1
+
+Command: `grep -q 'Repo-native governance for AI coding agents' README.md`
+
+```text
+
+```
+
+## verification 2
+
+Command: `test -s assets/readme/palari-orchestrator-hero-general.png`
+
+```text
+
+```
+
+## verification 3
+
+Command: `test -s assets/readme/palari-console-preview.png`
+
+```text
+
+```
+
+## verification 4
+
+Command: `git diff --check "${GITHUB_BASE_REF:-origin/main}"...HEAD`
+
+```text
+
+```
+
+## verification 5
+
+Command: `grep -q 'assets/readme/palari-orchestrator-hero-general.png' README.md`
+
+```text
+
+```
+
+## verification 6
+
+Command: `grep -q 'assets/readme/palari-console-preview.png' README.md`
+
+```text
+
+```
