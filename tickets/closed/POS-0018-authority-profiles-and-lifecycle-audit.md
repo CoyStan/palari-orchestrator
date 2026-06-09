@@ -1,15 +1,15 @@
 ---
 id: POS-0018
 title: authority profiles and lifecycle audit
-status: claimed
+status: accepted
 risk: R1
 priority: P2
 stream: governance
 claimed_by: codex
-claimed_at: 2026-06-07T17:57:46Z
+claimed_at: 2026-06-07T19:40:30Z
 claim_ref: refs/palari/claims/POS-0018
-claim_heartbeat_at: 2026-06-07T18:12:41Z
-claim_expires_at: 2026-06-07T18:42:41Z
+claim_heartbeat_at: 2026-06-07T19:40:54Z
+claim_expires_at: 2026-06-07T20:40:54Z
 allowed_paths:
   - .github/workflows/**
   - bin/palari
@@ -40,8 +40,8 @@ verification:
 target_branch: main
 branch: ticket/POS-0018
 worktree: /home/quetza/palari-orchestrator/../palari-orchestrator-worktrees/POS-0018
-accepted_by:
-accepted_at:
+accepted_by: founder
+accepted_at: 2026-06-07T19:43:22Z
 created: 2026-06-07
 updated: 2026-06-07
 ---

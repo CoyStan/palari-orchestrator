@@ -1,0 +1,44 @@
+# Palari CI Evidence
+
+- Ticket: POS-0018
+- Base ref: local working tree
+- Created: 2026-06-07T19:42:30Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0018 (12 changed path(s))
+```
+
+## lint
+
+```text
+report-lint: ok for POS-0018
+lint: ok for POS-0018
+```
+
+## verification 1
+
+Command: `tests/run-authority-lifecycle.sh`
+
+```text
+authority-lifecycle: ok
+```
+
+## verification 2
+
+Command: `tests/run-golden.sh`
+
+```text
+Preparing worktree (new branch 'ticket/POS-0001')
+Preparing worktree (new branch 'ticket/APP-0001')
+golden: ok
+```
+
+## verification 3
+
+Command: `shellcheck -x bin/palari scripts/palari tests/run-authority-lifecycle.sh`
+
+```text
+
+```
