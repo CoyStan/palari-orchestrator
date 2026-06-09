@@ -42,6 +42,7 @@ body {
 
 button,
 select,
+input,
 table {
   font: inherit;
 }

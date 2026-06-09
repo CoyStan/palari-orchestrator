@@ -1,13 +1,19 @@
 const state = {
   snapshot: null,
   queueFilter: "attention",
+  query: "",
+  selectedTicketId: "",
 };
 
 const $ = (selector) => document.querySelector(selector);
 
 const statusLabels = {
+  accepted: "Accepted",
+  claimed: "Claimed",
+  open: "Open",
   "needs-human": "Needs human",
   "in-review": "In review",
+  reopened: "Reopened",
 };
 
 const severityLabels = {
@@ -30,6 +36,14 @@ function formatTimestamp(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return `Updated ${value}`;
   return `Updated ${date.toISOString().slice(11, 19)}Z`;
+}
+
+function compactLabel(value, limit = 28) {
+  const text = String(value || "");
+  if (text.length <= limit) return text;
+  const head = Math.max(8, Math.floor((limit - 3) * 0.58));
+  const tail = Math.max(6, limit - 3 - head);
+  return `${text.slice(0, head)}...${text.slice(-tail)}`;
 }
 
 function emptyNode(message = "No records yet", detail = "The console will populate as the repository changes.") {
@@ -100,6 +114,69 @@ function ticketOwner(ticket) {
 
 function ticketRole(ticket) {
   return ticket.delegated_to_role || ticket.created_by_role || "No role";
+}
+
+function ticketSearchText(ticket) {
+  return [
+    ticket.id,
+    ticket.title,
+    ticket.status,
+    ticket.risk,
+    ticket.priority,
+    ticket.stream,
+    ticketOwner(ticket),
+    ticketRole(ticket),
+    ticket.next_action?.label,
+    ticket.next_action?.detail,
+    ticket.path,
+    ticket.branch,
+    ticket.worktree,
+    ...(ticket.allowed_paths || []),
+    ...(ticket.forbidden_paths || []),
+    ...(ticket.required_reports || []),
+    ...(ticket.evidence?.files || []),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
+function matchesSearch(ticket) {
+  const query = state.query.trim().toLowerCase();
+  if (!query) return true;
+  return query.split(/\s+/).every((term) => ticketSearchText(ticket).includes(term));
+}
+
+function searchedTickets(snapshot) {
+  return (snapshot.tickets || []).filter(matchesSearch);
+}
+
+function defaultSelectedTicket(tickets) {
+  return tickets.find((ticket) => ticketQueue(ticket) === "attention")
+    || tickets.find((ticket) => ticketQueue(ticket) === "review")
+    || tickets.find((ticket) => ticketQueue(ticket) === "active")
+    || tickets[0]
+    || null;
+}
+
+function ensureSelectedTicket(snapshot) {
+  const tickets = snapshot.tickets || [];
+  const visible = searchedTickets(snapshot);
+  const pool = visible.length ? visible : tickets;
+  const selectedIsVisible = pool.some((ticket) => ticket.id === state.selectedTicketId);
+  if (!selectedIsVisible) {
+    const ticket = defaultSelectedTicket(pool);
+    state.selectedTicketId = ticket?.id || "";
+  }
+}
+
+function selectTicket(id) {
+  state.selectedTicketId = id;
+  if (!state.snapshot) return;
+  renderQueue(state.snapshot);
+  renderTicketRows(state.snapshot);
+  renderTicketFocus(state.snapshot);
+  setStatusMessage(`Selected ticket ${id}`);
 }
 
 function renderMetrics(snapshot) {
@@ -191,7 +268,8 @@ function makeCopyButton(command, labelText = "Copy command") {
   button.textContent = "Copy";
   button.disabled = !command;
   button.setAttribute("aria-label", `${labelText}: ${command || "no command"}`);
-  button.addEventListener("click", async () => {
+  button.addEventListener("click", async (event) => {
+    event.stopPropagation();
     if (!command) return;
     try {
       await navigator.clipboard.writeText(command);
@@ -282,7 +360,7 @@ function renderOperatorSummary(snapshot) {
 }
 
 function queueItems(snapshot) {
-  const tickets = snapshot.tickets || [];
+  const tickets = searchedTickets(snapshot);
   if (state.queueFilter === "all") return tickets;
   return tickets.filter((ticket) => ticketQueue(ticket) === state.queueFilter);
 }
@@ -291,10 +369,14 @@ function renderQueue(snapshot) {
   const list = $("#queueList");
   list.replaceChildren();
   const tickets = queueItems(snapshot);
+  const searched = searchedTickets(snapshot);
+  const total = snapshot.tickets?.length || 0;
+  const searchText = state.query.trim() ? `${searched.length} of ${total} matching` : `${total} total`;
+  $("#queueResultLine").textContent = `${tickets.length} shown · ${searchText}`;
 
-  if (!tickets.length) {
+    if (!tickets.length) {
     const action = snapshot.operator?.next_action;
-    if (state.queueFilter === "attention" && action && !snapshot.operator.has_active_work) {
+    if (!state.query.trim() && state.queueFilter === "attention" && action && !snapshot.operator.has_active_work) {
       const node = document.createElement("article");
       node.className = "queue-item clear";
       const top = document.createElement("div");
@@ -309,7 +391,10 @@ function renderQueue(snapshot) {
       list.append(node);
       return;
     }
-    list.append(emptyNode("No matching tickets", "Change the filter or create a scoped ticket."));
+    const detail = state.query.trim()
+      ? "The search matched tickets, but this queue filter hides them. Try All tickets or clear the search."
+      : "Change the filter or create a scoped ticket.";
+    list.append(emptyNode("No matching tickets", detail));
     return;
   }
 
@@ -317,13 +402,26 @@ function renderQueue(snapshot) {
     const action = ticket.next_action || {};
     const node = document.createElement("article");
     node.className = `queue-item ${action.severity || ticket.status}`;
+    if (ticket.id === state.selectedTicketId) {
+      node.classList.add("selected");
+    }
     const top = document.createElement("div");
     top.className = "queue-top";
     const title = document.createElement("div");
     const strong = document.createElement("strong");
     strong.textContent = `${ticket.id} · ${ticket.title}`;
     title.append(strong, meta([ticket.stream, ticket.risk, ticket.priority, ticketOwner(ticket), ticketRole(ticket)]));
-    top.append(title, severityPill(action.severity || ticket.status));
+    const actions = document.createElement("div");
+    actions.className = "queue-actions";
+    const focus = document.createElement("button");
+    focus.type = "button";
+    focus.className = "copy focus-ticket";
+    focus.textContent = ticket.id === state.selectedTicketId ? "Viewing" : "View";
+    focus.setAttribute("aria-label", `Show ${ticket.id} in review focus`);
+    focus.setAttribute("aria-pressed", ticket.id === state.selectedTicketId ? "true" : "false");
+    focus.addEventListener("click", () => selectTicket(ticket.id));
+    actions.append(severityPill(action.severity || ticket.status), focus);
+    top.append(title, actions);
 
     const detail = document.createElement("p");
     detail.textContent = action.detail || "Inspect this ticket before continuing.";
@@ -372,8 +470,11 @@ function evidenceState(ticket) {
 function renderTicketRows(snapshot) {
   const body = $("#ticketRows");
   body.replaceChildren();
-  const tickets = snapshot.tickets || [];
-  $("#ticketPill").textContent = `${tickets.length} ticket${tickets.length === 1 ? "" : "s"}`;
+  const tickets = searchedTickets(snapshot);
+  const total = snapshot.tickets?.length || 0;
+  $("#ticketPill").textContent = state.query.trim()
+    ? `${tickets.length} of ${total}`
+    : `${tickets.length} ticket${tickets.length === 1 ? "" : "s"}`;
 
   if (!tickets.length) {
     const row = document.createElement("tr");
@@ -387,26 +488,38 @@ function renderTicketRows(snapshot) {
 
   tickets.forEach((ticket) => {
     const row = document.createElement("tr");
+    if (ticket.id === state.selectedTicketId) row.className = "selected";
     const ticketCell = document.createElement("td");
+    ticketCell.dataset.label = "Ticket";
+    const link = document.createElement("button");
+    link.type = "button";
+    link.className = "ticket-link";
+    link.addEventListener("click", () => selectTicket(ticket.id));
     const title = document.createElement("strong");
     title.textContent = ticket.id;
     const subtitle = document.createElement("span");
     subtitle.textContent = ticket.title;
-    ticketCell.append(title, subtitle, meta([ticket.stream, ticket.risk, ticket.status]));
+    link.append(title, subtitle);
+    ticketCell.append(link, meta([ticket.stream, ticket.risk, ticket.status]));
 
     const owner = document.createElement("td");
+    owner.dataset.label = "Owner";
     owner.textContent = ticketOwner(ticket);
 
     const role = document.createElement("td");
+    role.dataset.label = "Role";
     role.textContent = ticketRole(ticket);
 
     const progress = document.createElement("td");
+    progress.dataset.label = "Progress";
     progress.append(progressRail(ticket));
 
     const evidence = document.createElement("td");
+    evidence.dataset.label = "Evidence";
     evidence.append(statusPill(evidenceState(ticket).toLowerCase(), evidenceState(ticket)));
 
     const next = document.createElement("td");
+    next.dataset.label = "Next";
     const nextStrong = document.createElement("strong");
     nextStrong.textContent = ticket.next_action?.label || "Inspect";
     next.append(nextStrong);
@@ -604,8 +717,150 @@ function renderHumanSummary(snapshot) {
   });
 }
 
+function reportItems(ticket) {
+  const custom = ticket.reports?.custom || [];
+  const required = new Set(ticket.required_reports || []);
+  const reports = [["Specialist", ticket.reports?.technical]];
+  if (ticket.requires_review !== false || required.has("reviewer")) {
+    reports.push(["Reviewer", ticket.reports?.reviewer]);
+  }
+  if (ticket.requires_human_confirmation || required.has("human") || ticket.status === "needs-human") {
+    reports.push(["Human", ticket.reports?.human]);
+  }
+  custom.forEach((report) => {
+    reports.push([label(report.name), report.present]);
+  });
+  return reports;
+}
+
+function reportSummary(ticket) {
+  const reports = reportItems(ticket);
+  const present = reports.filter(([, yes]) => yes).length;
+  return `${present} of ${reports.length} reports`;
+}
+
+function readinessCard(labelText, value, detail, stateName) {
+  const card = document.createElement("article");
+  card.className = `readiness ${stateName}`;
+  const span = document.createElement("span");
+  span.textContent = labelText;
+  const strong = document.createElement("strong");
+  strong.textContent = value;
+  const small = document.createElement("small");
+  small.textContent = detail;
+  card.append(span, strong, small);
+  return card;
+}
+
+function timelineStep(name, done, detail) {
+  const item = document.createElement("li");
+  item.className = done ? "done" : "pending";
+  const marker = document.createElement("i");
+  marker.setAttribute("aria-hidden", "true");
+  const body = document.createElement("div");
+  const strong = document.createElement("strong");
+  strong.textContent = name;
+  const span = document.createElement("span");
+  span.textContent = detail;
+  body.append(strong, span);
+  item.append(marker, body);
+  return item;
+}
+
+function renderTicketFocus(snapshot) {
+  const host = $("#ticketFocus");
+  host.replaceChildren();
+  ensureSelectedTicket(snapshot);
+  const ticket = (snapshot.tickets || []).find((item) => item.id === state.selectedTicketId);
+
+  if (!ticket) {
+    $("#focusPill").textContent = "empty";
+    host.append(emptyNode("No ticket selected", "Create or search for a ticket to see its review surface."));
+    return;
+  }
+
+  const action = ticket.next_action || {};
+  const evidence = evidenceState(ticket);
+  const humanGate = ticket.requires_human_confirmation || action.actor === "human" || ticket.status === "needs-human";
+  const acceptReady = action.actor === "human" && /accept/i.test(action.label || "");
+  $("#focusPill").textContent = label(ticket.status);
+
+  const header = document.createElement("article");
+  header.className = "focus-hero";
+  const title = document.createElement("div");
+  const strong = document.createElement("strong");
+  strong.textContent = ticket.id;
+  const heading = document.createElement("h3");
+  heading.textContent = ticket.title;
+  title.append(strong, heading, meta([ticket.stream, ticket.risk, ticket.priority, ticketOwner(ticket), ticketRole(ticket)]));
+  header.append(title, statusPill(ticket.status));
+
+  const next = document.createElement("article");
+  next.className = "focus-next";
+  const nextLabel = document.createElement("span");
+  nextLabel.textContent = "Next action";
+  const nextTitle = document.createElement("strong");
+  nextTitle.textContent = action.label || "Inspect ticket";
+  const nextDetail = document.createElement("p");
+  nextDetail.textContent = action.detail || "Review the ticket state before continuing.";
+  next.append(nextLabel, nextTitle, nextDetail);
+  if (action.command) next.append(commandInline(action.command, action.label || ticket.id));
+
+  const readiness = document.createElement("div");
+  readiness.className = "readiness-grid";
+  readiness.append(
+    readinessCard("Evidence", evidence, `${ticket.evidence.file_count} artifact${ticket.evidence.file_count === 1 ? "" : "s"}`, evidence.toLowerCase()),
+    readinessCard("Reports", reportSummary(ticket), reportItems(ticket).filter(([, yes]) => !yes).length ? "Some review material is missing." : "Required notes are present.", reportItems(ticket).every(([, yes]) => yes) ? "complete" : "partial"),
+    readinessCard("Human gate", humanGate ? "Waiting" : "Clear", acceptReady ? "Acceptance is ready for an authorized person." : "No browser-side authority is granted.", humanGate ? "waiting" : "complete"),
+    readinessCard("Lease", label(ticket.lease?.status), ticket.claim_heartbeat_at ? `Heartbeat ${ticket.claim_heartbeat_at}` : "No active heartbeat.", ticket.lease?.status === "expired" ? "missing" : "complete"),
+  );
+
+  const timeline = document.createElement("ol");
+  timeline.className = "timeline";
+  timeline.append(
+    timelineStep("Ticket", true, ticket.path || "Ticket file exists."),
+    timelineStep("Claim", Boolean(ticket.claimed_by || ticket.status === "accepted"), ticket.claimed_by ? `${ticket.claimed_by} owns the work.` : "No owner has claimed this ticket."),
+    timelineStep("Evidence", ticket.evidence.file_count > 0, `${evidence} evidence bundle.`),
+    timelineStep("Review", Boolean(ticket.reports?.reviewer || ticket.status === "accepted"), ticket.reports?.reviewer ? "Reviewer note is present." : "Fresh reviewer note is still needed."),
+    timelineStep("Human gate", humanGate || ticket.status === "accepted", humanGate ? action.label || "Human decision required." : "No human gate is blocking this ticket."),
+    timelineStep("Accepted", ticket.status === "accepted", ticket.accepted_by ? `Accepted by ${ticket.accepted_by}.` : "Not accepted yet."),
+  );
+
+  const scope = document.createElement("article");
+  scope.className = "focus-section";
+  const scopeTitle = document.createElement("strong");
+  scopeTitle.textContent = "Scope";
+  scope.append(scopeTitle);
+  if (ticket.allowed_paths?.length) scope.append(pathList(ticket.allowed_paths, 5));
+  if (ticket.forbidden_paths?.length) {
+    const forbidden = document.createElement("div");
+    forbidden.className = "forbidden-note";
+    forbidden.textContent = `Forbidden: ${ticket.forbidden_paths.slice(0, 4).join(", ")}${ticket.forbidden_paths.length > 4 ? "..." : ""}`;
+    scope.append(forbidden);
+  }
+
+  const artifacts = document.createElement("article");
+  artifacts.className = "focus-section";
+  const artifactTitle = document.createElement("strong");
+  artifactTitle.textContent = "Artifacts";
+  artifacts.append(artifactTitle);
+  const artifactMeta = meta([
+    ticket.evidence.path || "No evidence path",
+    ticket.evidence.has_log && "log",
+    ticket.evidence.has_junit && "JUnit",
+    ticket.evidence.has_sarif && "SARIF",
+    ticket.evidence.has_manifest && "manifest",
+  ]);
+  artifacts.append(artifactMeta);
+  if (ticket.evidence.files?.length) artifacts.append(pathList(ticket.evidence.files, 6));
+
+  host.append(header, next, readiness, timeline, scope, artifacts);
+}
+
 function renderStatus(snapshot) {
-  $("#branchPill").textContent = snapshot.git.branch || "detached";
+  const branch = snapshot.git.branch || "detached";
+  $("#branchPill").textContent = compactLabel(branch);
+  $("#branchPill").title = branch;
   const palari = snapshot.palari_status.stdout || snapshot.palari_status.stderr || "No palari status output.";
   const git = snapshot.git.status || "No git status output.";
   $("#statusOutput").textContent = `${palari}\n\n${git}`;
@@ -618,12 +873,14 @@ function render(snapshot) {
   $("#timestamp").textContent = formatTimestamp(snapshot.generated_at);
   $("#timestamp").title = `Updated ${snapshot.generated_at}`;
   $("#authorityChip").textContent = `authority: ${snapshot.authority.profile}`;
+  ensureSelectedTicket(snapshot);
   renderMetrics(snapshot);
   health(snapshot);
   renderHealthActions(snapshot);
   renderOperatorSummary(snapshot);
   renderQueue(snapshot);
   renderTicketRows(snapshot);
+  renderTicketFocus(snapshot);
   renderRoles(snapshot);
   renderEvidence(snapshot);
   renderScope(snapshot);
@@ -633,23 +890,13 @@ function render(snapshot) {
   document.body.classList.add("has-loaded");
 }
 
-function updateActiveNavigation() {
-  const current = window.location.hash || "#overview";
-  document.querySelectorAll("nav a[href^='#']").forEach((link) => {
-    const isActive = link.getAttribute("href") === current;
-    link.classList.toggle("active", isActive);
-    if (isActive) {
-      link.setAttribute("aria-current", "page");
-    } else {
-      link.removeAttribute("aria-current");
-    }
-  });
-}
-
 async function load(options = {}) {
   const fresh = Boolean(options.fresh);
   $("#refreshButton").disabled = true;
+  $("#refreshButton").textContent = "Refreshing";
+  $("#timestamp").textContent = "Refreshing...";
   $("#main-content").setAttribute("aria-busy", "true");
+  setStatusMessage("Refreshing repository snapshot.");
   try {
     const response = await fetch(`/api/snapshot${fresh ? "?fresh=1" : ""}`, { cache: "no-store" });
     if (!response.ok) throw new Error(`snapshot failed: ${response.status}`);
@@ -662,17 +909,64 @@ async function load(options = {}) {
     setStatusMessage(`Dashboard snapshot failed: ${error.message}`);
   } finally {
     $("#refreshButton").disabled = false;
+    $("#refreshButton").textContent = "Refresh";
     $("#main-content").removeAttribute("aria-busy");
   }
 }
 
+function readSavedTheme() {
+  try {
+    return localStorage.getItem("palari-theme") || "";
+  } catch (error) {
+    return "";
+  }
+}
+
+function writeSavedTheme(theme) {
+  try {
+    localStorage.setItem("palari-theme", theme);
+  } catch (error) {
+    return;
+  }
+}
+
+function preferredTheme() {
+  const saved = readSavedTheme();
+  if (saved === "dark" || saved === "light") return saved;
+  return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+function applyTheme(theme) {
+  document.body.dataset.theme = theme;
+  const button = $("#themeButton");
+  const dark = theme === "dark";
+  button.setAttribute("aria-pressed", dark ? "true" : "false");
+  button.textContent = dark ? "Light" : "Dark";
+  setStatusMessage(`${dark ? "Dark" : "Light"} theme enabled`);
+}
+
+function toggleTheme() {
+  const next = document.body.dataset.theme === "dark" ? "light" : "dark";
+  writeSavedTheme(next);
+  applyTheme(next);
+}
+
 $("#refreshButton").addEventListener("click", () => load({ fresh: true }));
+$("#themeButton").addEventListener("click", toggleTheme);
+$("#ticketSearch").addEventListener("input", (event) => {
+  state.query = event.target.value;
+  if (state.snapshot) {
+    ensureSelectedTicket(state.snapshot);
+    renderQueue(state.snapshot);
+    renderTicketRows(state.snapshot);
+    renderTicketFocus(state.snapshot);
+  }
+});
 $("#queueFilter").addEventListener("change", (event) => {
   state.queueFilter = event.target.value;
   if (state.snapshot) renderQueue(state.snapshot);
 });
-window.addEventListener("hashchange", updateActiveNavigation);
 
-updateActiveNavigation();
+applyTheme(preferredTheme());
 load();
 setInterval(load, 30000);

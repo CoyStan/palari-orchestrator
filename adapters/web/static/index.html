@@ -10,7 +10,7 @@
   <body>
     <a class="skip-link" href="#main-content">Skip to operator workspace</a>
     <div class="shell">
-      <aside class="rail" aria-label="Palari Console navigation">
+      <aside class="rail" aria-label="Palari Console status">
         <div class="brand">
           <span class="mark" aria-hidden="true"></span>
           <div>
@@ -24,13 +24,14 @@
           <strong id="railProject">Orchestration</strong>
         </div>
 
-        <nav aria-label="Dashboard sections">
-          <a href="#overview" class="active" aria-current="page">Overview</a>
-          <a href="#queue">Queue</a>
-          <a href="#tickets">Tickets</a>
-          <a href="#roles">Roles</a>
-          <a href="#evidence">Evidence</a>
-        </nav>
+        <div class="rail-guide" aria-label="Console layout">
+          <p class="section-label">Console Flow</p>
+          <ol>
+            <li><span>1</span> Pick a ticket</li>
+            <li><span>2</span> Review proof</li>
+            <li><span>3</span> Copy the safe command</li>
+          </ol>
+        </div>
 
         <section class="metrics" aria-label="Operational counts">
           <p class="section-label">Operations</p>
@@ -63,13 +64,13 @@
 
       <main class="workspace" id="main-content" tabindex="-1">
         <header class="topbar">
-          <nav class="mode-switcher" aria-label="Console modes">
-            <a href="#queue" class="active" aria-current="page">Operate</a>
-            <a href="#roles">Govern</a>
-            <a href="#evidence">Verify</a>
-          </nav>
+          <div class="view-title" aria-label="Current console view">
+            <span>Command center</span>
+            <strong>Queue + Review</strong>
+          </div>
           <div class="top-actions">
             <span class="authority-chip" id="authorityChip">authority</span>
+            <button class="ghost" id="themeButton" type="button" aria-pressed="false">Theme</button>
             <button class="ghost" id="refreshButton" type="button">Refresh</button>
             <span class="timestamp" id="timestamp">--</span>
           </div>
@@ -109,7 +110,79 @@
             </article>
           </section>
 
-          <section class="health-actions" aria-labelledby="healthActionsTitle">
+          <section class="workbench" aria-label="Ticket queue and selected ticket review">
+            <div class="queue-column">
+              <section class="panel queue-panel" id="queue">
+                <div class="section-head">
+                  <div>
+                    <p class="eyebrow">Operator Queue</p>
+                    <h2>Pick What Needs Attention</h2>
+                  </div>
+                  <div class="queue-controls">
+                    <input id="ticketSearch" type="search" autocomplete="off" placeholder="Search tickets, roles, owners, paths" aria-label="Search tickets, roles, owners, and paths">
+                    <select id="queueFilter" aria-label="Filter tickets by action queue">
+                      <option value="attention">Needs attention</option>
+                      <option value="active">Active work</option>
+                      <option value="review">Review</option>
+                      <option value="done">Accepted</option>
+                      <option value="all">All tickets</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="result-line" id="queueResultLine">Loading tickets</div>
+                <div class="queue-list" id="queueList"></div>
+              </section>
+
+              <section class="panel ticket-surface" id="tickets">
+                <div class="section-head">
+                  <div>
+                    <p class="eyebrow">Ticket Ledger</p>
+                    <h2>All Tickets</h2>
+                  </div>
+                  <span class="pill" id="ticketPill">0 tickets</span>
+                </div>
+                <div class="table-wrap">
+                  <table class="ticket-table">
+                    <thead>
+                      <tr>
+                        <th scope="col">Ticket</th>
+                        <th scope="col">Owner</th>
+                        <th scope="col">Role</th>
+                        <th scope="col">Progress</th>
+                        <th scope="col">Evidence</th>
+                        <th scope="col">Next</th>
+                      </tr>
+                    </thead>
+                    <tbody id="ticketRows"></tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+
+            <div class="review-column">
+              <section class="panel focus-panel" id="review">
+                <div class="section-head">
+                  <div>
+                    <p class="eyebrow">Review Surface</p>
+                    <h2>Selected Ticket</h2>
+                  </div>
+                  <span class="pill" id="focusPill">ticket</span>
+                </div>
+                <div class="ticket-focus" id="ticketFocus"></div>
+              </section>
+
+              <section class="command-dock" id="commands" aria-label="Next CLI actions">
+                <div class="dock-head">
+                  <span>Safe Commands</span>
+                  <span class="pill">copy only</span>
+                </div>
+                <div class="command-list" id="commandList"></div>
+              </section>
+            </div>
+          </section>
+
+          <section class="support-grid" aria-label="Supporting proof panels">
+            <section class="health-actions" aria-labelledby="healthActionsTitle">
             <div class="section-head">
               <div>
                 <p class="eyebrow">Attention</p>
@@ -120,60 +193,7 @@
             <div class="health-action-list" id="healthActionsList"></div>
           </section>
 
-          <section class="panel" id="queue">
-            <div class="section-head">
-              <div>
-                <p class="eyebrow">Operator Queue</p>
-                <h2>What Needs Action</h2>
-              </div>
-              <select id="queueFilter" aria-label="Filter tickets by action queue">
-                <option value="attention">Needs attention</option>
-                <option value="active">Active work</option>
-                <option value="review">Review</option>
-                <option value="done">Accepted</option>
-                <option value="all">All tickets</option>
-              </select>
-            </div>
-            <div class="queue-list" id="queueList"></div>
-          </section>
-
-          <section class="panel ticket-surface" id="tickets">
-            <div class="section-head">
-              <div>
-                <p class="eyebrow">Ticket Ledger</p>
-                <h2>Tickets, Owners, Progress</h2>
-              </div>
-              <span class="pill" id="ticketPill">0 tickets</span>
-            </div>
-            <div class="table-wrap">
-              <table class="ticket-table">
-                <thead>
-                  <tr>
-                    <th scope="col">Ticket</th>
-                    <th scope="col">Owner</th>
-                    <th scope="col">Role</th>
-                    <th scope="col">Progress</th>
-                    <th scope="col">Evidence</th>
-                    <th scope="col">Next</th>
-                  </tr>
-                </thead>
-                <tbody id="ticketRows"></tbody>
-              </table>
-            </div>
-          </section>
-
-          <section class="command-dock" id="commands" aria-label="Next CLI actions">
-            <div class="dock-head">
-              <span>Commands</span>
-              <span class="pill">copy only</span>
-            </div>
-            <div class="command-list" id="commandList"></div>
-          </section>
-        </section>
-      </main>
-
-      <aside class="inspector" aria-label="Palari Console inspector">
-        <section class="panel" id="roles">
+          <section class="panel" id="roles">
           <div class="section-head">
             <div>
               <p class="eyebrow">Roles</p>
@@ -184,7 +204,7 @@
           <div class="role-list" id="roleList"></div>
         </section>
 
-        <section class="panel" id="evidence">
+          <section class="panel" id="evidence">
           <div class="section-head">
             <div>
               <p class="eyebrow">Evidence</p>
@@ -195,7 +215,7 @@
           <div class="evidence-list" id="evidenceList"></div>
         </section>
 
-        <section class="panel" id="scope">
+          <section class="panel" id="scope">
           <div class="section-head">
             <div>
               <p class="eyebrow">Scope</p>
@@ -206,7 +226,7 @@
           <div id="scopeMap" class="scope-map"></div>
         </section>
 
-        <section class="panel human-panel">
+          <section class="panel human-panel">
           <div class="section-head">
             <div>
               <p class="eyebrow">Human Summary</p>
@@ -217,7 +237,7 @@
           <div class="human-summary" id="humanSummary"></div>
         </section>
 
-        <section class="panel mono-panel">
+          <section class="panel mono-panel">
           <div class="section-head">
             <div>
               <p class="eyebrow">Repository</p>
@@ -227,7 +247,9 @@
           </div>
           <pre id="statusOutput">Loading...</pre>
         </section>
-      </aside>
+          </section>
+        </section>
+      </main>
     </div>
 
     <template id="emptyTemplate">

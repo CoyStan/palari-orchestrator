@@ -1,6 +1,8 @@
 # Palari Console
 
-Palari Console is an optional local web dashboard for Palari Orchestrator.
+Palari Console is an optional local web dashboard for Palari Orchestrator. It is
+the easiest way for a founder, operator, or reviewer to understand what agents
+are doing without reading every Markdown file by hand.
 
 It is intentionally an adapter:
 
@@ -11,6 +13,15 @@ It is intentionally an adapter:
 - no database, package manager, or frontend build step is required
 
 ## Run
+
+For a first look with sample data:
+
+```bash
+./bin/palari demo
+./bin/palari web
+```
+
+For an existing Palari repo:
 
 ```bash
 ./bin/palari web
@@ -38,6 +49,9 @@ The server is a local stdlib viewer. It refuses non-loopback hosts unless
 ## What It Shows
 
 - operator queue with the next allowed action
+- split queue/review workbench where selecting a ticket updates the proof surface
+- searchable ticket queue by ticket, owner, role, path, and artifact
+- selected-ticket review focus with readiness, lifecycle, scope, and artifacts
 - lifecycle ticket board with owners, roles, and progress
 - active role authority and delegation summary
 - claim lease and heartbeat state
@@ -47,13 +61,27 @@ The server is a local stdlib viewer. It refuses non-loopback hosts unless
 - GitHub workflow/ruleset/attestation signals
 - Palari and git status output
 - copyable next-step commands
+- light/dark operator theme toggle
+
+For non-technical operators, the console should read as a control room:
+
+| Operator question | Console answer |
+| --- | --- |
+| What work is active? | Queue rows group tickets by status, risk, priority, and stream; search narrows the view without hiding the source-of-truth ticket. |
+| Who is responsible? | Role and claim fields show the delegated role, claimant, and heartbeat. |
+| Is there proof? | Evidence, report, readiness, and artifact views show whether logs, JUnit, SARIF, manifests, and reviewer notes exist. |
+| What needs me? | Human-gate surfaces call out `needs-human`, missing evidence, stale claims, and acceptance readiness. |
+| What do I do next? | Command chips copy the next Palari action without granting browser-side authority. |
+| Why did a panel move? | The first screen is now a queue plus selected-ticket review surface; roles, evidence, scope, human gates, and repo status are supporting proof below it. |
 
 ## Design Notes
 
 The console borrows product principles from modern operational tools:
 
-- app-shell navigation with a queue workspace and inspector pane
+- split queue/review workbench instead of section-jump navigation
 - accessible tables for ticket ledgers
+- search-first queue filtering and selected-ticket review focus
+- readiness grids and lifecycle timelines for quick decision scans
 - row-based operational surfaces instead of heavy card stacks
 - evidence-first and human-decision-first workflow surfaces
 - plain-language status labels for non-technical operators
