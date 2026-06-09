@@ -28,12 +28,12 @@ its run folder contains the required artifacts and the slot is reviewed.
 
 | Slot | Condition | Wave ticket | Pair | Class | Title | Run folder | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| DSF-DOC-01 | Palari-governed | POS-0029 | PAIR-DOC | Docs | Clarify console authority boundaries for operators | `runs/palari-dsf-doc-01/` | Complete, rerun after path-root failure |
-| DSF-DOC-02 | Baseline | POS-0028 | PAIR-DOC | Docs | Clarify MCP adapter non-mutation boundaries | `runs/baseline-dsf-doc-02/` | Complete, review-ready |
-| DSF-CLI-01 | Baseline | POS-0028 | PAIR-CLI | CLI behavior | Make stale-claim next-action diagnostics clearer | `runs/baseline-dsf-cli-01/` | Timed out, no patch |
-| DSF-CLI-02 | Palari-governed | POS-0029 | PAIR-CLI | CLI behavior | Make outside-scope `scope-check` output easier to act on | `runs/palari-dsf-cli-02/` | Complete, review-ready |
-| DSF-WEB-01 | Palari-governed | POS-0029 | PAIR-WEB | Dashboard polish | Improve ticket detail readiness labels and empty states | `runs/palari-dsf-web-01/` | Complete, rerun after path-root failure |
-| DSF-WEB-02 | Baseline | POS-0028 | PAIR-WEB | Dashboard polish | Fix responsive wrapping for long ticket titles and commands | `runs/baseline-dsf-web-02/` | Complete, partial screenshot evidence |
+| DSF-DOC-01 | Palari-governed | POS-0029 | PAIR-DOC | Docs | Clarify console authority boundaries for operators | `runs/palari-dsf-doc-01/` | Accepted in POS-0029; rerun after path-root failure |
+| DSF-DOC-02 | Baseline | POS-0028 | PAIR-DOC | Docs | Clarify MCP adapter non-mutation boundaries | `runs/baseline-dsf-doc-02/` | Accepted in POS-0028 |
+| DSF-CLI-01 | Baseline | POS-0028 | PAIR-CLI | CLI behavior | Make stale-claim next-action diagnostics clearer | `runs/baseline-dsf-cli-01/` | Accepted in POS-0028 as timeout/no patch |
+| DSF-CLI-02 | Palari-governed | POS-0029 | PAIR-CLI | CLI behavior | Make outside-scope `scope-check` output easier to act on | `runs/palari-dsf-cli-02/` | Accepted in POS-0029 |
+| DSF-WEB-01 | Palari-governed | POS-0029 | PAIR-WEB | Dashboard polish | Improve ticket detail readiness labels and empty states | `runs/palari-dsf-web-01/` | Accepted in POS-0029; rerun after path-root failure |
+| DSF-WEB-02 | Baseline | POS-0028 | PAIR-WEB | Dashboard polish | Fix responsive wrapping for long ticket titles and commands | `runs/baseline-dsf-web-02/` | Accepted in POS-0028 with partial screenshot evidence |
 | DSF-TST-01 | Palari-governed | POS-0031 | PAIR-TST | Tests | Add overlap-detection regression coverage | `runs/palari-dsf-tst-01/` | Not started |
 | DSF-TST-02 | Baseline | POS-0030 | PAIR-TST | Tests | Strengthen role authority lint coverage | `runs/baseline-dsf-tst-02/` | Not started |
 | DSF-GOV-01 | Baseline | POS-0030 | PAIR-GOV | Governance/reporting | Make report-lint missing-heading output more actionable | `runs/baseline-dsf-gov-01/` | Not started |
@@ -115,7 +115,7 @@ Next action:
 
 - Condition: Palari-governed
 - Wave ticket: POS-0029
-- Current status: Complete, review-ready
+- Current status: Complete, accepted in POS-0029
 - Model: DeepSeek `deepseek/deepseek-v4-flash` through opencode
 - Starting commit: `1236a08` execution baseline; frozen manifest starting
   commit is `475b0d0`
@@ -151,9 +151,9 @@ Next action:
   - `runs/palari-dsf-doc-01/diff.patch`
   - `runs/palari-dsf-doc-01/checks.md`
   - `runs/palari-dsf-doc-01/review-input.md`
-- Missing evidence: no fresh reviewer note yet
-- Reviewer: pending fresh review
-- Reviewer decision: pending
+- Missing evidence: none for POS-0029 acceptance; POS-0032 scoring pending
+- Reviewer: `reports/POS-0029-reviewer-note.md`
+- Reviewer decision: accept
 - Rework cycles: 1 rerun due path-root failure
 - Operator interventions: preserved attempt-1 artifacts and reran with
   explicit slot repository root
@@ -167,13 +167,13 @@ Next action:
   visibility and evidence discipline only
 - Claims not supported: does not prove safety, speed, performance, or model
   quality
-- Next action: POS-0029 wave review
+- Next action: POS-0032 scoring after all execution waves
 
 ### DSF-DOC-02
 
 - Condition: Baseline
 - Wave ticket: POS-0028
-- Current status: Complete, review-ready
+- Current status: Complete, accepted in POS-0028
 - Model: DeepSeek `deepseek/deepseek-v4-flash` through opencode
 - Starting commit: `1236a08` execution baseline; frozen manifest starting
   commit is `475b0d0`
@@ -200,8 +200,8 @@ Next action:
   - `runs/baseline-dsf-doc-02/checks.md`
   - `runs/baseline-dsf-doc-02/review-input.md`
 - Missing evidence: none known
-- Reviewer: pending fresh review
-- Reviewer decision: pending
+- Reviewer: `reports/POS-0028-reviewer-note.md`
+- Reviewer decision: accept
 - Rework cycles: 0
 - Operator interventions: none during model run; operator copied stdout to
   `stdout.txt`, saved diff, and recorded checks after the run
@@ -216,13 +216,13 @@ Next action:
   measurement only
 - Claims not supported: does not prove safety, speed, performance, or model
   quality
-- Next action: fresh review
+- Next action: POS-0032 scoring after all execution waves
 
 ### DSF-CLI-01
 
 - Condition: Baseline
 - Wave ticket: POS-0028
-- Current status: Timed out with no patch
+- Current status: Timed out with no patch; accepted as recorded POS-0028 outcome
 - Model: DeepSeek `deepseek/deepseek-v4-flash` through opencode
 - Starting commit: `1236a08` execution baseline; frozen manifest starting
   commit is `475b0d0`
@@ -252,8 +252,8 @@ Next action:
   - `runs/baseline-dsf-cli-01/checks.md`
   - `runs/baseline-dsf-cli-01/review-input.md`
 - Missing evidence: no implementation diff because the model timed out
-- Reviewer: pending fresh review
-- Reviewer decision: pending
+- Reviewer: `reports/POS-0028-reviewer-note.md`
+- Reviewer decision: accept
 - Rework cycles: 0
 - Operator interventions: operator ran objective checks after the timeout to
   document the unchanged starting tree; no replacement run was made
@@ -268,13 +268,13 @@ Next action:
   discipline only
 - Claims not supported: does not support claims about CLI task quality, safety,
   speed, performance, or model quality
-- Next action: fresh review and scoring should decide exclusion treatment
+- Next action: POS-0032 scoring should decide exclusion treatment
 
 ### DSF-CLI-02
 
 - Condition: Palari-governed
 - Wave ticket: POS-0029
-- Current status: Complete, review-ready
+- Current status: Complete, accepted in POS-0029
 - Model: DeepSeek `deepseek/deepseek-v4-flash` through opencode
 - Starting commit: `1236a08` execution baseline; frozen manifest starting
   commit is `475b0d0`
@@ -307,9 +307,9 @@ Next action:
   - `runs/palari-dsf-cli-02/diff.patch`
   - `runs/palari-dsf-cli-02/checks.md`
   - `runs/palari-dsf-cli-02/review-input.md`
-- Missing evidence: no fresh reviewer note yet
-- Reviewer: pending fresh review
-- Reviewer decision: pending
+- Missing evidence: none for POS-0029 acceptance; POS-0032 scoring pending
+- Reviewer: `reports/POS-0029-reviewer-note.md`
+- Reviewer decision: accept
 - Rework cycles: 0
 - Operator interventions: none during model run
 - Confounders: execution worktree starts from POS-0027 planning commit and does
@@ -322,13 +322,13 @@ Next action:
   visibility and evidence discipline only
 - Claims not supported: does not prove safety, speed, performance, or model
   quality
-- Next action: POS-0029 wave review
+- Next action: POS-0032 scoring after all execution waves
 
 ### DSF-WEB-01
 
 - Condition: Palari-governed
 - Wave ticket: POS-0029
-- Current status: Complete, review-ready
+- Current status: Complete, accepted in POS-0029
 - Model: DeepSeek `deepseek/deepseek-v4-flash` through opencode
 - Starting commit: `1236a08` execution baseline; frozen manifest starting
   commit is `475b0d0`
@@ -365,9 +365,9 @@ Next action:
   - `runs/palari-dsf-web-01/diff.patch`
   - `runs/palari-dsf-web-01/checks.md`
   - `runs/palari-dsf-web-01/review-input.md`
-- Missing evidence: no fresh reviewer note yet
-- Reviewer: pending fresh review
-- Reviewer decision: pending
+- Missing evidence: none for POS-0029 acceptance; POS-0032 scoring pending
+- Reviewer: `reports/POS-0029-reviewer-note.md`
+- Reviewer decision: accept
 - Rework cycles: 1 rerun due path-root failure
 - Operator interventions: preserved attempt-1 artifacts and reran with
   explicit slot repository root
@@ -381,13 +381,13 @@ Next action:
   visibility and evidence discipline only
 - Claims not supported: does not prove safety, speed, performance, or model
   quality
-- Next action: POS-0029 wave review
+- Next action: POS-0032 scoring after all execution waves
 
 ### DSF-WEB-02
 
 - Condition: Baseline
 - Wave ticket: POS-0028
-- Current status: Complete with partial screenshot evidence
+- Current status: Complete with partial screenshot evidence; accepted as recorded POS-0028 outcome
 - Model: DeepSeek `deepseek/deepseek-v4-flash` through opencode
 - Starting commit: `1236a08` execution baseline; frozen manifest starting
   commit is `475b0d0`
@@ -426,8 +426,8 @@ Next action:
   - `runs/baseline-dsf-web-02/screenshots/viewport-768.png`
   - `runs/baseline-dsf-web-02/screenshots/viewport-1280.png`
 - Missing evidence: no screenshot with fully loaded ticket data
-- Reviewer: pending fresh review
-- Reviewer decision: pending
+- Reviewer: `reports/POS-0028-reviewer-note.md`
+- Reviewer decision: accept
 - Rework cycles: 0
 - Operator interventions: operator applied the slot diff into the POS-0028
   worktree, ran objective checks, and attempted screenshot capture twice
@@ -443,7 +443,7 @@ Next action:
   measurement only
 - Claims not supported: does not prove safety, speed, performance, or model
   quality
-- Next action: fresh review
+- Next action: POS-0032 scoring should account for partial screenshot evidence
 
 ### DSF-TST-01
 

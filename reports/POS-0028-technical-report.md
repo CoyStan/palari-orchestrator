@@ -20,7 +20,7 @@ safety, speed, performance, or model quality.
   human-summary titles, command code, ticket-table labels, and selected-ticket
   headings in `adapters/web/static/app-shell.css`.
 - The DeepSeek full-pilot data-capture sheet now records POS-0028 slot outcomes,
-  timings, checks, confounders, and next review actions.
+  timings, checks, confounders, reviewer state, and scoring handoff.
 - Per-slot run folders now include prompts, commands, timestamps, stdout/stderr,
   exit codes, diffs, checks, timing, and reviewer handoff notes.
 - Candidate exclusions and partial screenshot evidence are documented in
@@ -36,8 +36,9 @@ safety, speed, performance, or model quality.
 - `research/pilots/deepseek-full-pilot/runs/baseline-dsf-cli-01/**`
 - `research/pilots/deepseek-full-pilot/runs/baseline-dsf-web-02/**`
 - `reports/POS-0028-technical-report.md`
+- `reports/POS-0028-reviewer-note.md`
 - `reports/evidence/POS-0028/screenshots/**`
-- `tickets/open/POS-0028-deepseek-baseline-wave-1.md`
+- `tickets/closed/POS-0028-deepseek-baseline-wave-1.md`
 
 ## Verification
 
@@ -63,8 +64,7 @@ safety, speed, performance, or model quality.
 
 ## CI Evidence
 
-POS-0028 ticket-level Palari checks passed before the ticket was moved to
-`in-review`:
+POS-0028 ticket-level Palari checks passed in the accepted integration state:
 
 - `./bin/palari lint POS-0028` passed.
 - `git diff --check` passed.
@@ -78,8 +78,9 @@ CI evidence bundle:
 - `reports/evidence/POS-0028/manifest.json`
 - `reports/evidence/POS-0028/palari.sarif`
 
-After the `in-review` transition, `./bin/palari lint POS-0028` reports the
-expected review gate: `missing fresh-context reviewer note`.
+The reviewer note is present, and final `./bin/palari lint POS-0028` and
+`./bin/palari ci POS-0028` pass with the accepted ticket file under
+`tickets/closed/`.
 
 ## Risks / Follow-Ups
 

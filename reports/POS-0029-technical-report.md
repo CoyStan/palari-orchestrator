@@ -55,7 +55,7 @@ quality.
 
 ## CI Evidence
 
-POS-0029 ticket-level Palari checks passed before moving the ticket to review:
+POS-0029 ticket-level Palari checks passed in the accepted integration state:
 
 - `./bin/palari scope-check POS-0029` passed.
 - `./bin/palari lint POS-0029` passed.
@@ -75,10 +75,9 @@ The Palari CI evidence bundle is:
   but produced no patch because the model resolved repository paths under the
   prompt folder. Those first attempts are preserved as `attempt-1-*`; the
   successful reruns used explicit repository-root instructions.
-- POS-0029 was isolated from the POS-0028 accepted-artifact worktree because
-  POS-0028 remains uncommitted. This keeps POS-0029 scope-check clean but means
-  this worktree starts from the POS-0027 planning commit rather than a committed
-  POS-0028 result branch.
+- During execution, POS-0029 was isolated from the POS-0028 accepted-artifact
+  worktree before POS-0028 was committed. This kept POS-0029 scope-check clean
+  and is recorded as a wave-1 execution confounder.
 - The DSF-WEB-01 copy change includes a minor repeated phrase in one empty-state
   sentence: "evidence, evidence artifacts." It passed objective checks but
   should be considered during review.
