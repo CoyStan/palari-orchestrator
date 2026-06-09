@@ -1,0 +1,2 @@
+timeout 900 opencode run --model deepseek/deepseek-v4-flash --format json --file research/pilots/deepseek-full-pilot/runs/baseline-dsf-doc-02/prompt.md --title DSF-DOC-02 "Execute the attached benchmark task prompt."
+

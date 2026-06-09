@@ -15,3 +15,4 @@ Keep this adapter thin:
 - Agents may call `packet`, `scope-check`, and `lint`; `accept` stays outside
   this manifest because acceptance is a human or explicitly authorized reviewer
   action.
+- The MCP adapter does not accept, merge, push, deploy, or bypass human acceptance. It is a read-and-report boundary only.

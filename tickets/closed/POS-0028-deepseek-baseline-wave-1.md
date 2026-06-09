@@ -1,19 +1,21 @@
 ---
 id: POS-0028
 title: DeepSeek baseline wave 1
-status: open
+status: accepted
 risk: R1
 priority: P1
 stream: research
-claimed_by:
-claimed_at:
-claim_ref:
-claim_heartbeat_at:
-claim_expires_at:
+claimed_by: codex
+claimed_at: 2026-06-09T15:02:28Z
+claim_ref: refs/palari/claims/POS-0028
+claim_heartbeat_at: 2026-06-09T15:24:15Z
+claim_expires_at: 2026-06-09T16:24:15Z
 allowed_paths:
   - research/pilots/deepseek-full-pilot/**
   - tickets/open/POS-0028-*.md
+  - tickets/closed/POS-0028-*.md
   - reports/POS-0028-technical-report.md
+  - reports/POS-0028-reviewer-note.md
   - reports/evidence/POS-0028/**
   - adapters/mcp/README.md
   - lib/palari/init_adopt.bash
@@ -43,13 +45,13 @@ verification:
   - grep -q 'DSF-DOC-02' research/pilots/deepseek-full-pilot/data-capture.md
   - grep -q 'DSF-CLI-01' research/pilots/deepseek-full-pilot/data-capture.md
   - grep -q 'DSF-WEB-02' research/pilots/deepseek-full-pilot/data-capture.md
-target_branch: main
-branch: ticket/POS-0028
-worktree: /home/quetza/palari-orchestrator/../palari-orchestrator-worktrees/POS-0028
+target_branch: origin/main
+branch: ticket/POS-0028-run
+worktree: /home/quetza/palari-orchestrator-worktrees/POS-0028-run
 created_by_role: ROLE-RESEARCH-LEAD
 delegated_to_role: ROLE-RESEARCH-EVALUATOR
-accepted_by:
-accepted_at:
+accepted_by: founder
+accepted_at: 2026-06-09T16:00:38Z
 created: 2026-06-09
 updated: 2026-06-09
 ---
