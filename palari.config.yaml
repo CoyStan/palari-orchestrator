@@ -37,6 +37,27 @@ concurrency_ignored_overlap_paths:
   - handoffs/**
   - .palari/**
 
+# Generated/local artifacts are ignored by `palari init` and classified by
+# `palari hygiene` when old repos still surface them in git status.
+hygiene_generated_paths:
+  - __pycache__/**
+  - "**/__pycache__/**"
+  - "*.pyc"
+  - "**/*.pyc"
+  - .DS_Store
+  - .palari/**
+  - .expo/**
+  - .metro/**
+  - node_modules/**
+  - coverage/**
+  - .turbo/**
+  - .next/**
+  - dist/**
+  - build/**
+  - android/.gradle/**
+  - android/app/build/**
+  - ios/Pods/**
+
 # Agent authority profiles describe what an autonomous executor may do without
 # turning a human instruction into an implicit merge or acceptance permission.
 # Public/default posture is conservative: agents may prepare work, but humans

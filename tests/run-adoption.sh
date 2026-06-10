@@ -64,6 +64,12 @@ test -f reports/evidence/.gitkeep
 test -f .github/workflows/palari.yml
 test -f .github/palari-required-checks.ruleset.json
 test -f lefthook.yml
+grep -Fxq ".palari/" .gitignore
+grep -Fxq "__pycache__/" .gitignore
+grep -Fxq "*.pyc" .gitignore
+grep -Fxq ".expo/" .gitignore
+grep -Fxq ".metro/" .gitignore
+grep -Fxq "node_modules/" .gitignore
 
 grep -Fq "# Existing Agent Contract" AGENTS.md
 grep -Fq "# Palari Orchestration Agent Template" AGENTS.palari.md

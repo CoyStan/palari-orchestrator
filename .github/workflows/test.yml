@@ -28,6 +28,7 @@ jobs:
           bash -n tests/run-agent-wrapper.sh
           bash -n tests/run-authority-lifecycle.sh
           bash -n tests/run-github-ci.sh
+          bash -n tests/run-hygiene.sh
           bash -n tests/run-dashboard-rubric.sh
           bash -n tests/run-gate-kernel.sh
           bash -n tests/run-gate.sh
@@ -52,6 +53,9 @@ jobs:
 
       - name: GitHub CI discovery
         run: tests/run-github-ci.sh
+
+      - name: Hygiene
+        run: tests/run-hygiene.sh
 
       - name: Golden flow
         run: tests/run-golden.sh

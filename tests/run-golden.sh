@@ -40,6 +40,11 @@ test -f roles/active/ROLE-ENGINEERING-LEAD.md
 test -f reports/planning/.gitkeep
 test -f contracts/adoption.md
 test -f skills/adoption/SKILL.md
+grep -Fxq ".palari/" .gitignore
+grep -Fxq "__pycache__/" .gitignore
+grep -Fxq "*.pyc" .gitignore
+grep -Fxq ".expo/" .gitignore
+grep -Fxq ".metro/" .gitignore
 grep -Fq "workflow alone does not protect merges" "$TMP_ROOT/init.out"
 grep -Fq "gh api --method PATCH repos/OWNER/REPO/rulesets" "$TMP_ROOT/init.out"
 grep -Fq "gh api --method POST repos/OWNER/REPO/rulesets" "$TMP_ROOT/init.out"
@@ -55,6 +60,8 @@ python3 -m py_compile adapters/web/server.py
 ./bin/palari snapshot --json >"$TMP_ROOT/snapshot.out"
 grep -Fq '"project": "Palari Orchestrator"' "$TMP_ROOT/snapshot.out"
 grep -Fq '"authority_profile":"team-safe"' "$TMP_ROOT/snapshot.out"
+grep -Fq '"generated_dirty_paths":' "$TMP_ROOT/snapshot.out"
+grep -Fq '"source_dirty_paths":' "$TMP_ROOT/snapshot.out"
 grep -Fq '"tickets": []' "$TMP_ROOT/snapshot.out"
 grep -Fq '"proposals": []' "$TMP_ROOT/snapshot.out"
 ./bin/palari authority >"$TMP_ROOT/authority.out"
@@ -68,6 +75,9 @@ grep -Fq "role lint: ok" "$TMP_ROOT/role-lint.out"
 ./bin/palari web --check >"$TMP_ROOT/web-snapshot.out"
 grep -Fq '"project": "Palari Orchestrator"' "$TMP_ROOT/web-snapshot.out"
 grep -Fq '"tickets": []' "$TMP_ROOT/web-snapshot.out"
+./bin/palari hygiene >"$TMP_ROOT/hygiene.out"
+grep -Fq "Palari hygiene" "$TMP_ROOT/hygiene.out"
+grep -Fq "git:" "$TMP_ROOT/hygiene.out"
 
 ./bin/palari skill create sample-feature \
 	--description "Preserve the sample feature contract for golden tests." >"$TMP_ROOT/skill.out"

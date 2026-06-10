@@ -385,11 +385,22 @@ function healthIssues(snapshot) {
       severity: "blocked",
     });
   }
-  if (snapshot.health.dirty_paths) {
+  const sourceDirty = snapshot.health.source_dirty_paths ?? snapshot.health.dirty_paths ?? 0;
+  const generatedDirty = snapshot.health.generated_dirty_paths ?? 0;
+  if (sourceDirty) {
     issues.push({
-      label: `${snapshot.health.dirty_paths} changed path${snapshot.health.dirty_paths > 1 ? "s" : ""}`,
-      detail: "Inspect local changes before acceptance or handoff.",
-      command: "git status --short",
+      label: `${sourceDirty} source change${sourceDirty > 1 ? "s" : ""} outside the gate`,
+      detail: generatedDirty
+        ? `${generatedDirty} generated artifact${generatedDirty > 1 ? "s" : ""} also present. Inspect before acceptance or handoff.`
+        : "Inspect local changes before acceptance or handoff.",
+      command: "./bin/palari hygiene",
+      severity: "watch",
+    });
+  } else if (generatedDirty) {
+    issues.push({
+      label: `${generatedDirty} generated artifact${generatedDirty > 1 ? "s" : ""}`,
+      detail: "Usually cache/build output; confirm it is ignored or clean it before handoff.",
+      command: "./bin/palari hygiene",
       severity: "watch",
     });
   }

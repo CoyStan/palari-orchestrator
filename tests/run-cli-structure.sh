@@ -20,6 +20,7 @@ modules=(
 	authority_lifecycle
 	roles
 	init_adopt
+	hygiene
 	proposals
 	tickets_workspace
 	demo
