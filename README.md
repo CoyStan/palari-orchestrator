@@ -114,6 +114,7 @@ for governing agent work after a human decides to delegate it.
 | [OpenHands](https://www.openhands.one/) | Full agent platform for launching software development agents. | Palari stays executor-agnostic and checks whether the resulting work is scoped, evidenced, reviewed, and accepted. |
 | [LangGraph](https://www.langchain.com/langgraph) | Framework for building controllable agent workflows and applications. | Palari governs the code repository lifecycle around agent output rather than the internal graph. |
 | Generic coding agents | Fast code edits from a prompt. | Palari adds queue discipline, path boundaries, fresh review, evidence, and an explicit human "yes." |
+| Honor-system evidence bundles | Artifacts prove a run happened. | Palari's embedded forgegate kernel proves who had the authority to produce them: signed attestations, narrowing delegation tokens, dual control by distinct keys, and commit binding. |
 
 Palari should feel complementary to agent runners, IDEs, and hosted coding
 platforms. The sharper distinction is simple: they help produce work; Palari
@@ -132,6 +133,43 @@ helps decide whether that work was allowed, reviewed, evidenced, and accepted.
 Ceremony scales with risk. Small R0/R1 tasks stay short. R2+ work gets stronger
 review and evidence gates. R3/R4 work requires human confirmation.
 
+## Forge-Proof Acceptance (Signed Gate)
+
+Agents are untrusted workloads. Evidence files and `--by NAME` strings answer
+"does the work look done"; they cannot answer "who had the authority to say
+so". The vendored [forgegate kernel](gate/README.md) answers that question
+with cryptography, and `palari accept` enforces it when `gate.enabled: true`
+in `palari.config.yaml`.
+
+The gate refuses acceptance unless, for every step the layout requires:
+
+- a signed attestation exists (exactly one; duplicates are ambiguity),
+- its delegation token chain verifies to the repository root key with scope
+  that only ever narrows,
+- the signer is the token holder, so a stolen token is useless,
+- hash flow holds byte for byte: the test step consumed the exact implement
+  diff, review consumed the exact evidence,
+- dual control holds: review is signed by a different key than implement
+  and test,
+- everything binds to the expected commit inside a freshness window.
+
+```bash
+./bin/palari gate init                  # once: root + orchestrator keys
+./bin/palari gate setup-ticket T-42     # implement, test, review tokens
+./bin/palari gate attest-implement T-42 # sign the exact diff bytes
+./bin/palari ci T-42                    # evidence; auto-attests the test step
+./bin/palari gate attest-review T-42    # a fresh key signs the review
+./bin/palari accept T-42 --by founder   # gate verdict required
+```
+
+Tickets stay pure data: nothing written into a ticket can mint, widen, or
+substitute for a token, so prompt injection in a ticket grants no authority.
+The gate fails closed, refusals carry exact reasons, and the kernel ships
+with its adversarial test suite in `gate/tests`. The boundary, threat model,
+and replacement inventory are documented in
+[contracts/signed-acceptance.md](contracts/signed-acceptance.md) and
+[docs/integration/INTEGRATION.md](docs/integration/INTEGRATION.md).
+
 ## What You Get
 
 | Primitive | What it protects |
@@ -143,6 +181,7 @@ review and evidence gates. R3/R4 work requires human confirmation.
 | Scope checks | Changed files are compared against allowed and forbidden paths. |
 | CI evidence | Logs, JUnit, SARIF, and an integrity manifest are written for the ticket. |
 | Human acceptance | `palari accept` refuses missing, failed, or stale evidence and records who accepted. |
+| Forge-proof gate (optional) | When enabled, acceptance requires Ed25519-signed implement, test, and review attestations that verify to the repository root key. |
 
 ## Quick Start
 
@@ -314,13 +353,23 @@ palari web
 
 ![Palari Console dashboard showing ticket health, evidence status, scope partitions, and copyable commands.](assets/readme/palari-console-preview.png)
 
-From an operator's point of view, the console answers five questions:
+The console gives one snapshot three surfaces: a triage queue, a pipeline
+board grouped by lifecycle stage, and a full ledger table. Selecting a ticket
+opens its dossier with a chain-of-custody rail that shows the implement, test,
+and review seals, the signer key fingerprints, and the gate verdict with its
+exact refusal reasons. It is keyboard-first (`/` search, `j`/`k` move,
+`1`/`2`/`3` switch surfaces), refreshes itself quietly, ships light and dark
+themes, and never fakes a green seal: with the gate disabled it says plainly
+that acceptance is honor-system.
+
+From an operator's point of view, the console answers six questions:
 
 | Question | Console surface |
 | --- | --- |
 | What is waiting? | Ticket queue, status, priority, risk, and next allowed action. |
-| Who or what owns it? | Active roles, delegated role, claimed-by, and lease health. |
+| Who or what owns it? | Active roles, delegated role, claimed-by, and live lease countdowns. |
 | Is progress real? | Lifecycle state, reports, evidence files, and verification status. |
+| Is the evidence forged? | The chain of custody: signed steps, key fingerprints, and the gate verdict. |
 | Is scope safe? | Allowed paths, forbidden paths, overlap warnings, and stale claims. |
 | Can a human accept it? | Review state, missing gates, and the exact `palari accept` command when ready. |
 
@@ -399,6 +448,13 @@ palari packet WEB-0002 specialist
 | `palari lint [ID]` | Validate ticket state and required reports. |
 | `palari report-lint [ID]` | Validate specialist and reviewer report structure. |
 | `palari accept ID --by NAME` | Close the ticket only after the acceptance gate is satisfied. |
+| `palari gate init` | Create the forge-proof gate root and orchestrator keys. |
+| `palari gate setup-ticket ID` | Grant implement, test, and review step tokens for a ticket. |
+| `palari gate attest-implement ID` | Sign the exact ticket diff with the implementer key. |
+| `palari gate attest-test ID` | Sign the CI evidence bundle with the ci key. |
+| `palari gate attest-review ID` | Sign the fresh review with the reviewer key. |
+| `palari gate verify ID` | Run the cryptographic accept gate; ACCEPTED or REFUSED with reasons. |
+| `palari gate status` | JSON gate status used by the snapshot and console. |
 
 ### Adapter Commands
 

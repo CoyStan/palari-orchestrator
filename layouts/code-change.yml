@@ -1,0 +1,8 @@
+name: code-change
+steps:
+  - name: implement
+  - name: test
+    consumes: [implement]
+  - name: review
+    consumes: [test]
+    distinct_from: [implement]

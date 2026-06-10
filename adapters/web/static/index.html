@@ -24,14 +24,11 @@
           <strong id="railProject">Orchestration</strong>
         </div>
 
-        <div class="rail-guide" aria-label="Console layout">
-          <p class="section-label">Console Flow</p>
-          <ol>
-            <li><span>1</span> Pick a ticket</li>
-            <li><span>2</span> Review proof</li>
-            <li><span>3</span> Copy the safe command</li>
-          </ol>
-        </div>
+        <section class="root-plaque" aria-label="Repository root key">
+          <p class="section-label">Root Key</p>
+          <code id="rootFingerprint">not initialized</code>
+          <span id="rootPlaqueDetail">Signed acceptance is off.</span>
+        </section>
 
         <section class="metrics" aria-label="Operational counts">
           <p class="section-label">Operations</p>
@@ -53,6 +50,22 @@
           </article>
         </section>
 
+        <div class="rail-guide" aria-label="Console flow and keys">
+          <p class="section-label">Console Flow</p>
+          <ol>
+            <li><span>1</span> Pick a ticket</li>
+            <li><span>2</span> Read the custody chain</li>
+            <li><span>3</span> Copy the safe command</li>
+          </ol>
+          <p class="section-label">Keys</p>
+          <dl class="keymap">
+            <div><dt>/</dt><dd>search</dd></div>
+            <div><dt>j k</dt><dd>move</dd></div>
+            <div><dt>1 2 3</dt><dd>surface</dd></div>
+            <div><dt>t</dt><dd>theme</dd></div>
+          </dl>
+        </div>
+
         <div class="rail-status">
           <span class="pulse" aria-hidden="true"></span>
           <div>
@@ -66,11 +79,13 @@
         <header class="topbar">
           <div class="view-title" aria-label="Current console view">
             <span>Command center</span>
-            <strong>Queue + Review</strong>
+            <strong>Queue + Custody</strong>
           </div>
           <div class="top-actions">
             <span class="authority-chip" id="authorityChip">authority</span>
+            <span class="gate-chip" id="gateChip">gate</span>
             <button class="ghost" id="themeButton" type="button" aria-pressed="false">Theme</button>
+            <button class="ghost" id="autoButton" type="button" aria-pressed="true">Auto 15s</button>
             <button class="ghost" id="refreshButton" type="button">Refresh</button>
             <span class="timestamp" id="timestamp">--</span>
           </div>
@@ -104,36 +119,58 @@
               <small id="humanGateDetail">No human gate loaded yet.</small>
             </article>
             <article>
+              <span>Signed Acceptance</span>
+              <strong id="gatePosture">--</strong>
+              <small id="gatePostureDetail">Checking gate posture.</small>
+            </article>
+            <article>
               <span>Role System</span>
               <strong id="roleSystem">--</strong>
               <small id="roleSystemDetail">Checking active roles.</small>
             </article>
           </section>
 
-          <section class="workbench" aria-label="Ticket queue and selected ticket review">
+          <section class="workbench" aria-label="Ticket surfaces and selected ticket custody">
             <div class="queue-column">
-              <section class="panel queue-panel" id="queue">
+              <div class="surface-tabs" role="tablist" aria-label="Ticket surfaces">
+                <button type="button" role="tab" id="tabQueue" aria-selected="true" data-surface="queue">Queue</button>
+                <button type="button" role="tab" id="tabBoard" aria-selected="false" data-surface="board">Board</button>
+                <button type="button" role="tab" id="tabLedger" aria-selected="false" data-surface="ledger">Ledger</button>
+              </div>
+
+              <section class="panel queue-panel" id="queue" role="tabpanel" aria-labelledby="tabQueue">
                 <div class="section-head">
                   <div>
                     <p class="eyebrow">Operator Queue</p>
                     <h2>Pick What Needs Attention</h2>
                   </div>
-                  <div class="queue-controls">
-                    <input id="ticketSearch" type="search" autocomplete="off" placeholder="Search tickets, roles, owners, paths" aria-label="Search tickets, roles, owners, and paths">
-                    <select id="queueFilter" aria-label="Filter tickets by action queue">
-                      <option value="attention">Needs attention</option>
-                      <option value="active">Active work</option>
-                      <option value="review">Review</option>
-                      <option value="done">Accepted</option>
-                      <option value="all">All tickets</option>
-                    </select>
-                  </div>
+                </div>
+                <div class="queue-controls">
+                  <input id="ticketSearch" type="search" autocomplete="off" placeholder="Search tickets, owners, roles, paths  ( / )" aria-label="Search tickets, owners, roles, and paths">
+                  <select id="queueFilter" aria-label="Filter tickets by action queue">
+                    <option value="attention">Needs attention</option>
+                    <option value="active">Active work</option>
+                    <option value="review">Review</option>
+                    <option value="done">Accepted</option>
+                    <option value="all">All tickets</option>
+                  </select>
                 </div>
                 <div class="result-line" id="queueResultLine">Loading tickets</div>
                 <div class="queue-list" id="queueList"></div>
               </section>
 
-              <section class="panel ticket-surface" id="tickets">
+              <section class="panel board-panel" id="board" role="tabpanel" aria-labelledby="tabBoard" hidden>
+                <div class="section-head">
+                  <div>
+                    <p class="eyebrow">Pipeline Board</p>
+                    <h2>Lifecycle Lanes</h2>
+                  </div>
+                  <span class="pill" id="boardPill">0 tickets</span>
+                </div>
+                <div class="board-lanes" id="boardLanes"></div>
+              </section>
+
+              <section class="panel ticket-surface" id="ledger" role="tabpanel" aria-labelledby="tabLedger" hidden>
                 <div class="section-head">
                   <div>
                     <p class="eyebrow">Ticket Ledger</p>
@@ -147,9 +184,9 @@
                       <tr>
                         <th scope="col">Ticket</th>
                         <th scope="col">Owner</th>
-                        <th scope="col">Role</th>
-                        <th scope="col">Progress</th>
-                        <th scope="col">Evidence</th>
+                        <th scope="col">Risk</th>
+                        <th scope="col">Stage</th>
+                        <th scope="col">Seal</th>
                         <th scope="col">Next</th>
                       </tr>
                     </thead>
@@ -163,12 +200,13 @@
               <section class="panel focus-panel" id="review">
                 <div class="section-head">
                   <div>
-                    <p class="eyebrow">Review Surface</p>
+                    <p class="eyebrow">Ticket Dossier</p>
                     <h2>Selected Ticket</h2>
                   </div>
                   <span class="pill" id="focusPill">ticket</span>
                 </div>
                 <div class="ticket-focus" id="ticketFocus"></div>
+                <div class="custody" id="custody" aria-label="Chain of custody for the selected ticket"></div>
               </section>
 
               <section class="command-dock" id="commands" aria-label="Next CLI actions">
@@ -183,70 +221,59 @@
 
           <section class="support-grid" aria-label="Supporting proof panels">
             <section class="health-actions" aria-labelledby="healthActionsTitle">
-            <div class="section-head">
-              <div>
-                <p class="eyebrow">Attention</p>
-                <h2 id="healthActionsTitle">System Warnings</h2>
+              <div class="section-head">
+                <div>
+                  <p class="eyebrow">Attention</p>
+                  <h2 id="healthActionsTitle">System Warnings</h2>
+                </div>
+                <span class="pill" id="warningPill">0 warnings</span>
               </div>
-              <span class="pill" id="warningPill">0 warnings</span>
-            </div>
-            <div class="health-action-list" id="healthActionsList"></div>
-          </section>
+              <div class="health-action-list" id="healthActionsList"></div>
+            </section>
 
-          <section class="panel" id="roles">
-          <div class="section-head">
-            <div>
-              <p class="eyebrow">Roles</p>
-              <h2>Authority Map</h2>
-            </div>
-            <span class="pill" id="rolesPill">0 active</span>
-          </div>
-          <div class="role-list" id="roleList"></div>
-        </section>
+            <section class="panel" id="roles">
+              <div class="section-head">
+                <div>
+                  <p class="eyebrow">Roles</p>
+                  <h2>Authority Map</h2>
+                </div>
+                <span class="pill" id="rolesPill">0 active</span>
+              </div>
+              <div class="role-list" id="roleList"></div>
+            </section>
 
-          <section class="panel" id="evidence">
-          <div class="section-head">
-            <div>
-              <p class="eyebrow">Evidence</p>
-              <h2>CI Artifacts</h2>
-            </div>
-            <span class="pill" id="evidencePill">0 bundles</span>
-          </div>
-          <div class="evidence-list" id="evidenceList"></div>
-        </section>
+            <section class="panel" id="scope">
+              <div class="section-head">
+                <div>
+                  <p class="eyebrow">Scope</p>
+                  <h2>Path Partitions</h2>
+                </div>
+                <span class="pill" id="scopePill">clean</span>
+              </div>
+              <div id="scopeMap" class="scope-map"></div>
+            </section>
 
-          <section class="panel" id="scope">
-          <div class="section-head">
-            <div>
-              <p class="eyebrow">Scope</p>
-              <h2>Path Partitions</h2>
-            </div>
-            <span class="pill" id="scopePill">clean</span>
-          </div>
-          <div id="scopeMap" class="scope-map"></div>
-        </section>
+            <section class="panel human-panel">
+              <div class="section-head">
+                <div>
+                  <p class="eyebrow">Human Summary</p>
+                  <h2>Decision Surface</h2>
+                </div>
+                <span class="pill" id="humanPill">ready</span>
+              </div>
+              <div class="human-summary" id="humanSummary"></div>
+            </section>
 
-          <section class="panel human-panel">
-          <div class="section-head">
-            <div>
-              <p class="eyebrow">Human Summary</p>
-              <h2>Decision Surface</h2>
-            </div>
-            <span class="pill" id="humanPill">ready</span>
-          </div>
-          <div class="human-summary" id="humanSummary"></div>
-        </section>
-
-          <section class="panel mono-panel">
-          <div class="section-head">
-            <div>
-              <p class="eyebrow">Repository</p>
-              <h2>Status</h2>
-            </div>
-            <span class="pill" id="branchPill">branch</span>
-          </div>
-          <pre id="statusOutput">Loading...</pre>
-        </section>
+            <section class="panel mono-panel">
+              <div class="section-head">
+                <div>
+                  <p class="eyebrow">Repository</p>
+                  <h2>Status</h2>
+                </div>
+                <span class="pill" id="branchPill">branch</span>
+              </div>
+              <pre id="statusOutput">Loading...</pre>
+            </section>
           </section>
         </section>
       </main>

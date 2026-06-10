@@ -20,39 +20,115 @@
     "default_forbidden_paths"
   ],
   "properties": {
-    "project_name": { "type": "string", "minLength": 1 },
-    "default_branch": { "type": "string", "minLength": 1 },
-    "tickets_open_dir": { "type": "string", "minLength": 1 },
-    "tickets_proposed_dir": { "type": "string", "minLength": 1 },
-    "tickets_closed_dir": { "type": "string", "minLength": 1 },
-    "reports_dir": { "type": "string", "minLength": 1 },
-    "human_reports_dir": { "type": "string", "minLength": 1 },
-    "planning_reports_dir": { "type": "string", "minLength": 1 },
-    "evidence_dir": { "type": "string", "minLength": 1 },
-    "handoffs_dir": { "type": "string", "minLength": 1 },
-    "roles_active_dir": { "type": "string", "minLength": 1 },
-    "roles_proposed_dir": { "type": "string", "minLength": 1 },
-    "roles_revoked_dir": { "type": "string", "minLength": 1 },
-    "agent_skills_dir": { "type": "string", "minLength": 1 },
-    "state_dir": { "type": "string", "minLength": 1 },
-    "memory_dir": { "type": "string", "minLength": 1 },
+    "project_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "default_branch": {
+      "type": "string",
+      "minLength": 1
+    },
+    "tickets_open_dir": {
+      "type": "string",
+      "minLength": 1
+    },
+    "tickets_proposed_dir": {
+      "type": "string",
+      "minLength": 1
+    },
+    "tickets_closed_dir": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reports_dir": {
+      "type": "string",
+      "minLength": 1
+    },
+    "human_reports_dir": {
+      "type": "string",
+      "minLength": 1
+    },
+    "planning_reports_dir": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_dir": {
+      "type": "string",
+      "minLength": 1
+    },
+    "handoffs_dir": {
+      "type": "string",
+      "minLength": 1
+    },
+    "roles_active_dir": {
+      "type": "string",
+      "minLength": 1
+    },
+    "roles_proposed_dir": {
+      "type": "string",
+      "minLength": 1
+    },
+    "roles_revoked_dir": {
+      "type": "string",
+      "minLength": 1
+    },
+    "agent_skills_dir": {
+      "type": "string",
+      "minLength": 1
+    },
+    "state_dir": {
+      "type": "string",
+      "minLength": 1
+    },
+    "memory_dir": {
+      "type": "string",
+      "minLength": 1
+    },
     "memory_index_backend": {
       "type": "string",
-      "enum": ["sqlite", "json", "none"]
+      "enum": [
+        "sqlite",
+        "json",
+        "none"
+      ]
     },
-    "memory_cache_dir": { "type": "string", "minLength": 1 },
-    "memory_packet_limit": { "type": "integer", "minimum": 0 },
-    "memory_related_limit": { "type": "integer", "minimum": 0 },
-    "memory_active_only_default": { "type": "boolean" },
-    "worktree_base": { "type": "string", "minLength": 1 },
-    "claim_lease_seconds": { "type": "integer", "minimum": 1 },
+    "memory_cache_dir": {
+      "type": "string",
+      "minLength": 1
+    },
+    "memory_packet_limit": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "memory_related_limit": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "memory_active_only_default": {
+      "type": "boolean"
+    },
+    "worktree_base": {
+      "type": "string",
+      "minLength": 1
+    },
+    "claim_lease_seconds": {
+      "type": "integer",
+      "minimum": 1
+    },
     "scope_overlap_policy": {
       "type": "string",
-      "enum": ["warn", "block"]
+      "enum": [
+        "warn",
+        "block"
+      ]
     },
     "authority_profile": {
       "type": "string",
-      "enum": ["solo-founder", "team-safe", "strict"]
+      "enum": [
+        "solo-founder",
+        "team-safe",
+        "strict"
+      ]
     },
     "authority_profiles": {
       "type": "object",
@@ -60,28 +136,52 @@
         "type": "object",
         "additionalProperties": true,
         "properties": {
-          "agent_can_commit": { "type": "boolean" },
-          "agent_can_push_branch": { "type": "boolean" },
-          "agent_can_open_pr": { "type": "boolean" },
-          "agent_can_merge_main": { "type": "boolean" },
+          "agent_can_commit": {
+            "type": "boolean"
+          },
+          "agent_can_push_branch": {
+            "type": "boolean"
+          },
+          "agent_can_open_pr": {
+            "type": "boolean"
+          },
+          "agent_can_merge_main": {
+            "type": "boolean"
+          },
           "agent_can_accept": {
-            "type": ["boolean", "string"],
-            "enum": [true, false, "user-explicit"]
+            "type": [
+              "boolean",
+              "string"
+            ],
+            "enum": [
+              true,
+              false,
+              "user-explicit"
+            ]
           }
         }
       }
     },
     "concurrency_ignored_overlap_paths": {
       "type": "array",
-      "items": { "type": "string", "minLength": 1 }
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
     },
     "default_forbidden_paths": {
       "type": "array",
-      "items": { "type": "string", "minLength": 1 }
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
     },
     "required_reports": {
       "type": "array",
-      "items": { "type": "string", "minLength": 1 }
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
     },
     "acceptance": {
       "type": "object",
@@ -89,7 +189,56 @@
       "properties": {
         "implementation_self_acceptance": {
           "type": "string",
-          "enum": ["forbidden", "allowed-by-config"]
+          "enum": [
+            "forbidden",
+            "allowed-by-config"
+          ]
+        }
+      }
+    },
+    "gate": {
+      "type": "object",
+      "description": "Forge-proof accept gate settings. When enabled, palari accept requires a cryptographic verdict from the vendored forgegate kernel and fails closed if the kernel is unavailable.",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "layout": {
+          "type": "string",
+          "default": "layouts/palari-change.yml",
+          "description": "Layout file declaring required steps, hash flow, and dual control."
+        },
+        "keys_dir": {
+          "type": "string",
+          "default": ".palari/gate/keys",
+          "description": "Directory for private keys and tokens. Must stay gitignored."
+        },
+        "root_pub_file": {
+          "type": "string",
+          "default": ".palari/gate/root.pub"
+        },
+        "token_validity_days": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 365
+        },
+        "ticket_token_days": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 30
+        },
+        "max_age_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 86400,
+          "description": "Verification refuses evidence older than this window; always paired with verify_time so backdated evidence is refused."
+        },
+        "ci_key": {
+          "type": "string",
+          "default": "ci",
+          "description": "Key identity that signs the test step."
         }
       }
     }

@@ -78,3 +78,23 @@ required_reports: []
 
 acceptance:
   implementation_self_acceptance: forbidden
+
+# Forge-proof accept gate (vendored forgegate kernel in gate/).
+# When enabled, `palari accept` additionally requires a cryptographic
+# verdict: signed implement, test, and review attestations whose delegation
+# token chains verify to the repository root key, with byte-for-byte hash
+# flow between steps, dual control by distinct keys, commit binding, and a
+# freshness window. Acceptance fails closed if the kernel is unavailable.
+# Requires python3 with the 'cryptography' package. Quick start:
+#   ./bin/palari gate init
+#   ./bin/palari gate setup-ticket TICKET-ID
+# See contracts/signed-acceptance.md and gate/README.md.
+gate:
+  enabled: false
+  layout: layouts/palari-change.yml
+  keys_dir: .palari/gate/keys # private keys; gitignored, never commit
+  root_pub_file: .palari/gate/root.pub
+  token_validity_days: 365 # orchestrator token lifetime
+  ticket_token_days: 30 # per-ticket step token lifetime
+  max_age_seconds: 86400 # refuse evidence older than this at verify time
+  ci_key: ci # key identity that signs the test step

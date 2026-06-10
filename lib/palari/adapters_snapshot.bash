@@ -632,7 +632,7 @@ cmd_snapshot() {
 	evidence="$(find "$ROOT/$EVIDENCE_DIR" -type f ! -name '.gitkeep' 2>/dev/null | wc -l | tr -d ' ')"
 	git_branch="$(git -C "$ROOT" branch --show-current 2>/dev/null || printf 'detached')"
 	palari_status="$(capture_command_json cmd_status)"
-	dirty="$(git -C "$ROOT" status --short -- . 2>/dev/null | awk 'END { print NR }')"
+	dirty="$({ git -C "$ROOT" status --short -- . 2>/dev/null || true; } | awk 'END { print NR }')"
 	stale=0
 	while IFS= read -r file; do
 		[[ -n "$file" ]] || continue
@@ -691,6 +691,8 @@ cmd_snapshot() {
 	snapshot_workflow_json
 	printf ',\n  "memory": '
 	snapshot_memory_json
+	printf ',\n  "gate": '
+	snapshot_gate_json
 	printf ',\n  "health": {"status_ok":true,"dirty_paths":%s,"stale_claims":%s,"missing_evidence":%s,"overlaps":%s},\n' \
 		"$dirty" "$stale" "$missing_evidence" "$overlap_count"
 	printf '  "git": {"branch":'
