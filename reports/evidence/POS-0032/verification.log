@@ -1,0 +1,50 @@
+# Palari CI Evidence
+
+- Ticket: POS-0032
+- Base ref: local working tree
+- Created: 2026-06-10T20:32:09Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0032 (11 changed path(s))
+```
+
+## lint
+
+```text
+report-lint: ok for POS-0032
+lint: ok for POS-0032
+```
+
+## verification 1
+
+Command: `test -f research/pilots/deepseek-full-pilot/scoring.md`
+
+```text
+
+```
+
+## verification 2
+
+Command: `grep -q 'DSF-DOC-01' research/pilots/deepseek-full-pilot/scoring.md`
+
+```text
+
+```
+
+## verification 3
+
+Command: `grep -q 'DSF-EVD-02' research/pilots/deepseek-full-pilot/scoring.md`
+
+```text
+
+```
+
+## verification 4
+
+Command: `grep -q 'exclusion' research/pilots/deepseek-full-pilot/scoring.md`
+
+```text
+
+```
