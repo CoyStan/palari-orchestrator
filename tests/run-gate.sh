@@ -86,7 +86,7 @@ expect_ok "ticket create" ./bin/palari ticket create GTE-0001 "Gate happy path" 
 	--stream docs --risk R1 \
 	--allowed "docs/**" --allowed "tickets/**" --allowed "reports/**" \
 	--verify "manual gate flow check"
-expect_ok "claim" ./bin/palari ticket claim GTE-0001 implementer
+expect_ok "claim" ./bin/palari ticket claim GTE-0001 implementer --allow-overlap
 expect_ok "ci evidence" ./bin/palari ci GTE-0001
 out_contains 'no ci token for GTE-0001'
 expect_ok "ready" ./bin/palari ticket ready GTE-0001
@@ -230,7 +230,7 @@ PY
 expect_ok "second ticket" ./bin/palari ticket create GTE-0003 "Fail closed" \
 	--stream docs --risk R1 --allowed "tickets/**" --allowed "reports/**" \
 	--verify "manual fail closed check"
-expect_ok "claim second" ./bin/palari ticket claim GTE-0003 implementer
+expect_ok "claim second" ./bin/palari ticket claim GTE-0003 implementer --allow-overlap
 expect_ok "ci second" ./bin/palari ci GTE-0003
 expect_ok "ready second" ./bin/palari ticket ready GTE-0003
 mv gate/forgegate "$TMP_ROOT/forgegate-hidden"
