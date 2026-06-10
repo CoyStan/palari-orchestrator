@@ -1,0 +1,74 @@
+# Palari CI Evidence
+
+- Ticket: POS-0036
+- Base ref: origin/main
+- Created: 2026-06-10T20:14:25Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0036 (15 changed path(s))
+```
+
+## lint
+
+```text
+report-lint: ok for POS-0036
+lint: ok for POS-0036
+```
+
+## verification 1
+
+Command: `tests/run-hygiene.sh`
+
+```text
+hygiene: ok
+```
+
+## verification 2
+
+Command: `tests/run-cli-structure.sh`
+
+```text
+cli-structure: ok
+```
+
+## verification 3
+
+Command: `tests/run-adoption.sh`
+
+```text
+adoption: ok
+```
+
+## verification 4
+
+Command: `tests/run-dashboard-rubric.sh`
+
+```text
+dashboard-rubric: ok (structure, custody surface, contrast both themes, snapshot contract)
+```
+
+## verification 5
+
+Command: `node --check adapters/web/static/app.js`
+
+```text
+
+```
+
+## verification 6
+
+Command: `python3 -m py_compile adapters/web/server.py`
+
+```text
+
+```
+
+## verification 7
+
+Command: `git diff --check`
+
+```text
+
+```
