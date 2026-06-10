@@ -1,11 +1,26 @@
 const state = {
   snapshot: null,
+  surface: "queue",
   queueFilter: "attention",
   query: "",
   selectedTicketId: "",
+  deepLinkTicket: (() => {
+    try {
+      return new URLSearchParams(window.location.search).get("ticket") || "";
+    } catch (error) {
+      return "";
+    }
+  })(),
+  auto: true,
+  autoTimer: null,
+  leaseTimer: null,
 };
 
+const AUTO_INTERVAL_MS = 15000;
+const CHAIN_ORDER = ["implement", "test", "review"];
+
 const $ = (selector) => document.querySelector(selector);
+const $$ = (selector) => Array.from(document.querySelectorAll(selector));
 
 const statusLabels = {
   accepted: "Accepted",
@@ -14,6 +29,7 @@ const statusLabels = {
   "needs-human": "Needs human",
   "in-review": "In review",
   reopened: "Reopened",
+  blocked: "Blocked",
 };
 
 const severityLabels = {
@@ -38,12 +54,16 @@ function formatTimestamp(value) {
   return `Updated ${date.toISOString().slice(11, 19)}Z`;
 }
 
-function compactLabel(value, limit = 28) {
-  const text = String(value || "");
-  if (text.length <= limit) return text;
-  const head = Math.max(8, Math.floor((limit - 3) * 0.58));
-  const tail = Math.max(6, limit - 3 - head);
-  return `${text.slice(0, head)}...${text.slice(-tail)}`;
+function formatCountdown(seconds) {
+  if (seconds == null || Number.isNaN(seconds)) return "";
+  if (seconds <= 0) return "expired";
+  const d = Math.floor(seconds / 86400);
+  const h = Math.floor((seconds % 86400) / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  if (d > 0) return `${d}d ${h}h`;
+  if (h > 0) return `${h}h ${String(m).padStart(2, "0")}m`;
+  return m > 0 ? `${m}m ${String(s).padStart(2, "0")}s` : `${s}s`;
 }
 
 function emptyNode(message = "No records yet", detail = "The console will populate as the repository changes.") {
@@ -79,12 +99,12 @@ function meta(items) {
 function pathList(paths, limit = 3) {
   const row = document.createElement("div");
   row.className = "path-list";
-  paths.slice(0, limit).forEach((path) => {
+  (paths || []).slice(0, limit).forEach((path) => {
     const span = document.createElement("span");
     span.textContent = path;
     row.append(span);
   });
-  if (paths.length > limit) {
+  if ((paths || []).length > limit) {
     const span = document.createElement("span");
     span.textContent = `+${paths.length - limit} more`;
     row.append(span);
@@ -92,8 +112,11 @@ function pathList(paths, limit = 3) {
   return row;
 }
 
+// ---------------------------------------------------------------------------
+// Derivations
+
 function activeTickets(snapshot) {
-  return snapshot.tickets.filter((ticket) => ticket.status !== "accepted");
+  return (snapshot.tickets || []).filter((ticket) => ticket.status !== "accepted");
 }
 
 function actionSeverity(ticket) {
@@ -114,6 +137,34 @@ function ticketOwner(ticket) {
 
 function ticketRole(ticket) {
   return ticket.delegated_to_role || ticket.created_by_role || "No role";
+}
+
+function gateInfo(snapshot) {
+  return snapshot?.gate || { enabled: false, available: false, initialized: false, tickets: {} };
+}
+
+function gateTicket(snapshot, ticketId) {
+  return gateInfo(snapshot).tickets?.[ticketId] || null;
+}
+
+function chainSteps(gateTicketInfo) {
+  const steps = gateTicketInfo?.steps || {};
+  const names = Object.keys(steps);
+  const ordered = CHAIN_ORDER.filter((name) => names.includes(name));
+  names.forEach((name) => {
+    if (!ordered.includes(name)) ordered.push(name);
+  });
+  return ordered.map((name) => ({ name, ...steps[name] }));
+}
+
+function sealState(snapshot, ticket) {
+  const gate = gateInfo(snapshot);
+  if (!gate.enabled) return { state: "off", text: "honor-system" };
+  const info = gateTicket(snapshot, ticket.id);
+  if (!info || !info.attested_steps) return { state: "unsigned", text: "unsigned" };
+  if (info.verdict?.accepted) return { state: "sealed", text: "sealed" };
+  if (info.verdict && !info.verdict.accepted) return { state: "refused", text: "refused" };
+  return { state: "partial", text: `${info.attested_steps}/${info.total_steps} signed` };
 }
 
 function ticketSearchText(ticket) {
@@ -161,6 +212,12 @@ function defaultSelectedTicket(tickets) {
 
 function ensureSelectedTicket(snapshot) {
   const tickets = snapshot.tickets || [];
+  if (!state.selectedTicketId && state.deepLinkTicket) {
+    if (tickets.some((ticket) => ticket.id === state.deepLinkTicket)) {
+      state.selectedTicketId = state.deepLinkTicket;
+    }
+    state.deepLinkTicket = "";
+  }
   const visible = searchedTickets(snapshot);
   const pool = visible.length ? visible : tickets;
   const selectedIsVisible = pool.some((ticket) => ticket.id === state.selectedTicketId);
@@ -170,29 +227,116 @@ function ensureSelectedTicket(snapshot) {
   }
 }
 
-function selectTicket(id) {
-  state.selectedTicketId = id;
-  if (!state.snapshot) return;
-  renderQueue(state.snapshot);
-  renderTicketRows(state.snapshot);
-  renderTicketFocus(state.snapshot);
-  setStatusMessage(`Selected ticket ${id}`);
+function selectedTicket(snapshot) {
+  return (snapshot.tickets || []).find((ticket) => ticket.id === state.selectedTicketId) || null;
 }
 
-function renderMetrics(snapshot) {
-  const tickets = snapshot.tickets || [];
-  const attention = tickets.filter((ticket) => ticketQueue(ticket) === "attention").length;
-  $("#countAttention").textContent = attention;
-  $("#countActive").textContent = activeTickets(snapshot).length;
-  $("#countReview").textContent = snapshot.counts["in-review"] || 0;
-  $("#countAccepted").textContent = snapshot.counts.accepted || 0;
+function visibleOrderedTickets(snapshot) {
+  if (state.surface === "queue") return queueItems(snapshot);
+  return searchedTickets(snapshot);
 }
+
+function selectTicket(id, announce = true) {
+  state.selectedTicketId = id;
+  if (!state.snapshot) return;
+  renderSurfaces(state.snapshot);
+  renderDossier(state.snapshot);
+  if (announce) setStatusMessage(`Selected ticket ${id}`);
+}
+
+function moveSelection(delta) {
+  if (!state.snapshot) return;
+  const tickets = visibleOrderedTickets(state.snapshot);
+  if (!tickets.length) return;
+  const index = tickets.findIndex((ticket) => ticket.id === state.selectedTicketId);
+  const next = tickets[Math.min(tickets.length - 1, Math.max(0, (index < 0 ? 0 : index + delta)))];
+  if (next && next.id !== state.selectedTicketId) selectTicket(next.id);
+}
+
+// ---------------------------------------------------------------------------
+// Shared widgets
+
+function makeCopyButton(command, labelText = "Copy command") {
+  const button = document.createElement("button");
+  button.className = "copy";
+  button.type = "button";
+  button.textContent = "Copy";
+  button.disabled = !command;
+  button.setAttribute("aria-label", `${labelText}: ${command || "no command"}`);
+  button.addEventListener("click", async (event) => {
+    event.stopPropagation();
+    if (!command) return;
+    try {
+      await navigator.clipboard.writeText(command);
+      button.textContent = "Copied";
+      setStatusMessage(`Copied command: ${command}`);
+      setTimeout(() => {
+        button.textContent = "Copy";
+      }, 1100);
+    } catch (error) {
+      button.textContent = "Failed";
+      setStatusMessage(`Copy failed: ${error.message}`);
+      setTimeout(() => {
+        button.textContent = "Copy";
+      }, 1400);
+    }
+  });
+  return button;
+}
+
+function commandInline(command, labelText) {
+  const row = document.createElement("div");
+  row.className = "command-inline";
+  const code = document.createElement("code");
+  code.textContent = command;
+  row.append(code, makeCopyButton(command, labelText));
+  return row;
+}
+
+function sealMini(snapshot, ticket) {
+  const seal = sealState(snapshot, ticket);
+  const span = document.createElement("span");
+  span.className = `seal-mini ${seal.state}`;
+  span.textContent = seal.text;
+  span.setAttribute("aria-label", `Evidence seal: ${seal.text}`);
+  return span;
+}
+
+// ---------------------------------------------------------------------------
+// Health model
 
 function healthIssues(snapshot) {
   const issues = [];
   const firstActive = activeTickets(snapshot)[0];
   const ticket = firstActive?.id || "TICKET-ID";
+  const gate = gateInfo(snapshot);
 
+  if (gate.enabled && !gate.available) {
+    issues.push({
+      label: "Gate enabled but kernel unavailable",
+      detail: "Acceptance fails closed until python3 with the cryptography package is installed.",
+      command: "python3 -c 'import cryptography'",
+      severity: "blocked",
+    });
+  }
+  if (gate.enabled && gate.available && !gate.initialized) {
+    issues.push({
+      label: "Gate not initialized",
+      detail: "Create the root and orchestrator keys before signed acceptance can run.",
+      command: "./bin/palari gate init",
+      severity: "blocked",
+    });
+  }
+  Object.entries(gate.tickets || {}).forEach(([id, info]) => {
+    if (info?.verdict && info.verdict.accepted === false) {
+      issues.push({
+        label: `${id} refused by the gate`,
+        detail: info.verdict.reasons?.[0] || "The custody chain does not verify.",
+        command: `./bin/palari gate verify ${id}`,
+        severity: "blocked",
+      });
+    }
+  });
   if (!snapshot.workflow.workflow_installed) {
     issues.push({
       label: "Workflow missing",
@@ -207,14 +351,6 @@ function healthIssues(snapshot) {
       detail: "Create the GitHub ruleset template before expecting required checks.",
       command: "./bin/palari init --ci",
       severity: "blocked",
-    });
-  }
-  if (!snapshot.workflow.attestation) {
-    issues.push({
-      label: "Evidence attestation missing",
-      detail: "Review the Palari workflow before treating evidence as verifiable.",
-      command: "sed -n '1,220p' .github/workflows/palari.yml",
-      severity: "watch",
     });
   }
   if (snapshot.roles && snapshot.roles.lint && !snapshot.roles.lint.ok) {
@@ -249,11 +385,22 @@ function healthIssues(snapshot) {
       severity: "blocked",
     });
   }
-  if (snapshot.health.dirty_paths) {
+  const sourceDirty = snapshot.health.source_dirty_paths ?? snapshot.health.dirty_paths ?? 0;
+  const generatedDirty = snapshot.health.generated_dirty_paths ?? 0;
+  if (sourceDirty) {
     issues.push({
-      label: `${snapshot.health.dirty_paths} changed path${snapshot.health.dirty_paths > 1 ? "s" : ""}`,
-      detail: "Inspect local changes before acceptance or handoff.",
-      command: "git status --short",
+      label: `${sourceDirty} source change${sourceDirty > 1 ? "s" : ""} outside the gate`,
+      detail: generatedDirty
+        ? `${generatedDirty} generated artifact${generatedDirty > 1 ? "s" : ""} also present. Inspect before acceptance or handoff.`
+        : "Inspect local changes before acceptance or handoff.",
+      command: "./bin/palari hygiene",
+      severity: "watch",
+    });
+  } else if (generatedDirty) {
+    issues.push({
+      label: `${generatedDirty} generated artifact${generatedDirty > 1 ? "s" : ""}`,
+      detail: "Usually cache/build output; confirm it is ignored or clean it before handoff.",
+      command: "./bin/palari hygiene",
       severity: "watch",
     });
   }
@@ -261,37 +408,8 @@ function healthIssues(snapshot) {
   return issues;
 }
 
-function makeCopyButton(command, labelText = "Copy command") {
-  const button = document.createElement("button");
-  button.className = "copy";
-  button.type = "button";
-  button.textContent = "Copy";
-  button.disabled = !command;
-  button.setAttribute("aria-label", `${labelText}: ${command || "no command"}`);
-  button.addEventListener("click", async (event) => {
-    event.stopPropagation();
-    if (!command) return;
-    try {
-      await navigator.clipboard.writeText(command);
-      button.textContent = "Copied";
-      setStatusMessage(`Copied command: ${command}`);
-      setTimeout(() => {
-        button.textContent = "Copy";
-      }, 1100);
-    } catch (error) {
-      button.textContent = "Failed";
-      setStatusMessage(`Copy failed: ${error.message}`);
-      setTimeout(() => {
-        button.textContent = "Copy";
-      }, 1400);
-    }
-  });
-  return button;
-}
-
 function health(snapshot) {
   const issues = healthIssues(snapshot);
-
   const grade = issues.some((issue) => issue.severity === "blocked")
     ? "Blocked"
     : issues.length
@@ -299,7 +417,9 @@ function health(snapshot) {
       : "Clear";
   document.body.dataset.health = grade.toLowerCase();
   $("#healthGrade").textContent = grade;
-  $("#healthSummary").textContent = issues.length ? issues.map((issue) => issue.label).join(" · ") : "Workflow, evidence, roles, claims, and scope look clean.";
+  $("#healthSummary").textContent = issues.length
+    ? issues.map((issue) => issue.label).join(" · ")
+    : "Workflow, evidence, gate, roles, claims, and scope look clean.";
   $("#railState").textContent = grade;
   $("#railDetail").textContent = issues.length ? issues[0].label : "Governance model is clean";
   $("#warningPill").textContent = `${issues.length} warning${issues.length === 1 ? "" : "s"}`;
@@ -316,7 +436,7 @@ function renderHealthActions(snapshot) {
     const strong = document.createElement("strong");
     strong.textContent = "No system warning";
     const detail = document.createElement("span");
-    detail.textContent = "Workflow, evidence, role authority, claims, and scope are clean.";
+    detail.textContent = "Workflow, evidence, gate, role authority, claims, and scope are clean.";
     node.append(strong, detail);
     list.append(node);
     return;
@@ -325,27 +445,24 @@ function renderHealthActions(snapshot) {
   issues.forEach((issue) => {
     const node = document.createElement("article");
     node.className = `health-action ${issue.severity}`;
-    const copy = makeCopyButton(issue.command, issue.label);
-    const copyRow = document.createElement("div");
-    copyRow.className = "health-action-command";
-    const code = document.createElement("code");
-    code.textContent = issue.command;
-    copyRow.append(code, copy);
-
     const strong = document.createElement("strong");
     strong.textContent = issue.label;
     const detail = document.createElement("span");
     detail.textContent = issue.detail;
-    node.append(strong, detail, copyRow);
+    node.append(strong, detail, commandInline(issue.command, issue.label));
     list.append(node);
   });
 }
+
+// ---------------------------------------------------------------------------
+// Header strips
 
 function renderOperatorSummary(snapshot) {
   const action = snapshot.operator?.next_action || {};
   const waitingHuman = activeTickets(snapshot).filter((ticket) => ticket.next_action?.actor === "human" || ticket.status === "needs-human");
   const roleCount = snapshot.roles?.counts?.active || 0;
   const roleLintOk = snapshot.roles?.lint?.ok !== false;
+  const gate = gateInfo(snapshot);
 
   $("#operatorNext").textContent = action.label || "Inspect repository";
   $("#operatorDetail").textContent = action.detail || "Open the queue for the next ticket action.";
@@ -353,16 +470,104 @@ function renderOperatorSummary(snapshot) {
   $("#humanGateDetail").textContent = waitingHuman.length
     ? waitingHuman.map((ticket) => ticket.id).join(", ")
     : "No active ticket is waiting on a human decision.";
+
+  if (!gate.enabled) {
+    $("#gatePosture").textContent = "Honor-system";
+    $("#gatePostureDetail").textContent = "Acceptance trusts unsigned manifests. Enable gate.enabled for forge-proof acceptance.";
+  } else if (!gate.available) {
+    $("#gatePosture").textContent = "Fails closed";
+    $("#gatePostureDetail").textContent = "Gate enabled, kernel unavailable; nothing can be accepted.";
+  } else if (!gate.initialized) {
+    $("#gatePosture").textContent = "Keys needed";
+    $("#gatePostureDetail").textContent = "Run gate init to create the root key.";
+  } else {
+    const verdicts = Object.values(gate.tickets || {});
+    const sealed = verdicts.filter((info) => info?.verdict?.accepted).length;
+    $("#gatePosture").textContent = "Forge-proof";
+    $("#gatePostureDetail").textContent = `Root ${gate.root_fingerprint}; ${sealed} ticket${sealed === 1 ? "" : "s"} sealed.`;
+  }
+
   $("#roleSystem").textContent = roleLintOk ? `${roleCount} active` : "Needs review";
   $("#roleSystemDetail").textContent = roleLintOk
     ? "Role authority is lint-clean."
     : "Run role lint before trusting delegation.";
+
+  const gateChip = $("#gateChip");
+  if (!gate.enabled) {
+    gateChip.textContent = "gate off";
+    gateChip.dataset.state = "off";
+  } else if (!gate.available || !gate.initialized) {
+    gateChip.textContent = "gate blocked";
+    gateChip.dataset.state = "blocked";
+  } else {
+    gateChip.textContent = "gate on";
+    gateChip.dataset.state = "on";
+  }
+
+  const plaque = $("#rootFingerprint");
+  const plaqueDetail = $("#rootPlaqueDetail");
+  if (gate.enabled && gate.initialized && gate.root_fingerprint) {
+    plaque.textContent = gate.root_fingerprint;
+    plaqueDetail.textContent = "All custody chains must verify to this key.";
+  } else if (gate.enabled) {
+    plaque.textContent = "not initialized";
+    plaqueDetail.textContent = "Run ./bin/palari gate init to mint it.";
+  } else {
+    plaque.textContent = "gate disabled";
+    plaqueDetail.textContent = "Signed acceptance is off; acceptance is honor-system.";
+  }
 }
+
+function renderMetrics(snapshot) {
+  const tickets = snapshot.tickets || [];
+  const attention = tickets.filter((ticket) => ticketQueue(ticket) === "attention").length;
+  $("#countAttention").textContent = attention;
+  $("#countActive").textContent = activeTickets(snapshot).length;
+  $("#countReview").textContent = snapshot.counts["in-review"] || 0;
+  $("#countAccepted").textContent = snapshot.counts.accepted || 0;
+}
+
+// ---------------------------------------------------------------------------
+// Surfaces: queue, board, ledger
 
 function queueItems(snapshot) {
   const tickets = searchedTickets(snapshot);
   if (state.queueFilter === "all") return tickets;
   return tickets.filter((ticket) => ticketQueue(ticket) === state.queueFilter);
+}
+
+function queueItemNode(snapshot, ticket) {
+  const node = document.createElement("article");
+  node.className = `queue-item ${ticket.id === state.selectedTicketId ? "selected" : ""}`;
+  node.tabIndex = 0;
+  node.setAttribute("role", "button");
+  node.setAttribute("aria-pressed", ticket.id === state.selectedTicketId ? "true" : "false");
+
+  const top = document.createElement("div");
+  top.className = "queue-top";
+  const title = document.createElement("strong");
+  title.textContent = `${ticket.id} · ${ticket.title}`;
+  top.append(title, severityPill(actionSeverity(ticket)));
+
+  const detail = document.createElement("p");
+  detail.textContent = ticket.next_action?.label || label(ticket.status);
+
+  node.append(
+    top,
+    detail,
+    meta([label(ticket.status), ticket.risk, ticketOwner(ticket), ticketRole(ticket)]),
+  );
+  node.append(sealMini(snapshot, ticket));
+
+  const open = () => selectTicket(ticket.id);
+  node.addEventListener("click", open);
+  node.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      open();
+    }
+  });
+  return node;
 }
 
 function renderQueue(snapshot) {
@@ -374,7 +579,7 @@ function renderQueue(snapshot) {
   const searchText = state.query.trim() ? `${searched.length} of ${total} matching` : `${total} total`;
   $("#queueResultLine").textContent = `${tickets.length} shown · ${searchText}`;
 
-    if (!tickets.length) {
+  if (!tickets.length) {
     const action = snapshot.operator?.next_action;
     if (!state.query.trim() && state.queueFilter === "attention" && action && !snapshot.operator.has_active_work) {
       const node = document.createElement("article");
@@ -392,155 +597,387 @@ function renderQueue(snapshot) {
       return;
     }
     const detail = state.query.trim()
-      ? "Search terms matched tickets, but the current filter hides them. Try switching to All tickets or clearing the search."
+      ? "Search terms matched tickets, but the current filter hides them. Try All tickets or clear the search."
       : "No tickets match this queue filter. Change the filter or create a scoped ticket.";
     list.append(emptyNode("No matching tickets", detail));
     return;
   }
 
-  tickets.forEach((ticket) => {
-    const action = ticket.next_action || {};
-    const node = document.createElement("article");
-    node.className = `queue-item ${action.severity || ticket.status}`;
-    if (ticket.id === state.selectedTicketId) {
-      node.classList.add("selected");
+  tickets.forEach((ticket) => list.append(queueItemNode(snapshot, ticket)));
+}
+
+const BOARD_LANES = [
+  { key: "open", title: "Open", match: (t) => t.status === "open" },
+  { key: "progress", title: "In progress", match: (t) => ["claimed", "reopened"].includes(t.status) },
+  { key: "review", title: "Review", match: (t) => t.status === "in-review" },
+  { key: "human", title: "Needs human", match: (t) => ["needs-human", "blocked"].includes(t.status) },
+  { key: "done", title: "Accepted", match: (t) => t.status === "accepted" },
+];
+
+function boardCard(snapshot, ticket) {
+  const node = document.createElement("article");
+  node.className = `board-card ${ticket.id === state.selectedTicketId ? "selected" : ""}`;
+  node.tabIndex = 0;
+  node.setAttribute("role", "button");
+  const id = document.createElement("code");
+  id.textContent = ticket.id;
+  const title = document.createElement("strong");
+  title.textContent = ticket.title;
+  node.append(id, title, meta([ticket.risk, ticketOwner(ticket)]), sealMini(snapshot, ticket));
+  const open = () => selectTicket(ticket.id);
+  node.addEventListener("click", open);
+  node.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      open();
     }
-    const top = document.createElement("div");
-    top.className = "queue-top";
-    const title = document.createElement("div");
-    const strong = document.createElement("strong");
-    strong.textContent = `${ticket.id} · ${ticket.title}`;
-    title.append(strong, meta([ticket.stream, ticket.risk, ticket.priority, ticketOwner(ticket), ticketRole(ticket)]));
-    const actions = document.createElement("div");
-    actions.className = "queue-actions";
-    const focus = document.createElement("button");
-    focus.type = "button";
-    focus.className = "copy focus-ticket";
-    focus.textContent = ticket.id === state.selectedTicketId ? "Viewing" : "View";
-    focus.setAttribute("aria-label", `Show ${ticket.id} in review focus`);
-    focus.setAttribute("aria-pressed", ticket.id === state.selectedTicketId ? "true" : "false");
-    focus.addEventListener("click", () => selectTicket(ticket.id));
-    actions.append(severityPill(action.severity || ticket.status), focus);
-    top.append(title, actions);
-
-    const detail = document.createElement("p");
-    detail.textContent = action.detail || "Inspect this ticket before continuing.";
-    node.append(top, detail, progressRail(ticket));
-    if (action.command) node.append(commandInline(action.command, action.label || ticket.id));
-    list.append(node);
   });
+  return node;
 }
 
-function progressRail(ticket) {
-  const row = document.createElement("div");
-  row.className = "progress-rail";
-  const steps = [
-    ["Ticket", true],
-    ["Claim", Boolean(ticket.claimed_by || ticket.status === "accepted")],
-    ["Evidence", ticket.evidence.file_count > 0],
-    ["Review", Boolean(ticket.reports.reviewer || ticket.status === "accepted")],
-    ["Accept", ticket.status === "accepted"],
-  ];
-  steps.forEach(([name, done]) => {
-    const span = document.createElement("span");
-    span.className = done ? "done" : "";
-    span.textContent = name;
-    row.append(span);
-  });
-  return row;
-}
-
-function commandInline(command, labelText) {
-  const action = document.createElement("div");
-  action.className = "inline-command";
-  const code = document.createElement("code");
-  code.textContent = command;
-  action.append(code, makeCopyButton(command, labelText));
-  return action;
-}
-
-function evidenceState(ticket) {
-  const evidence = ticket.evidence;
-  const complete = evidence.has_log && evidence.has_junit && evidence.has_sarif && ticket.evidence.has_manifest;
-  if (complete) return "Complete";
-  if (evidence.file_count > 0) return "Partial";
-  return "Missing";
-}
-
-function evidenceDetail(ticket) {
-  const evidence = ticket.evidence;
-  if (evidence.file_count === 0) return "No evidence files attached.";
-  const missing = [];
-  if (!evidence.has_log) missing.push("log");
-  if (!evidence.has_junit) missing.push("JUnit");
-  if (!evidence.has_sarif) missing.push("SARIF");
-  if (!evidence.has_manifest) missing.push("manifest");
-  if (!missing.length) return `${evidence.file_count} artifact${evidence.file_count === 1 ? "" : "s"}, all present.`;
-  return `Missing: ${missing.join(", ")}.`;
-}
-
-function renderTicketRows(snapshot) {
-  const body = $("#ticketRows");
-  body.replaceChildren();
+function renderBoard(snapshot) {
+  const lanes = $("#boardLanes");
+  lanes.replaceChildren();
   const tickets = searchedTickets(snapshot);
-  const total = snapshot.tickets?.length || 0;
-  $("#ticketPill").textContent = state.query.trim()
-    ? `${tickets.length} of ${total}`
-    : `${tickets.length} ticket${tickets.length === 1 ? "" : "s"}`;
+  $("#boardPill").textContent = `${tickets.length} ticket${tickets.length === 1 ? "" : "s"}`;
+  BOARD_LANES.forEach((lane) => {
+    const column = document.createElement("section");
+    column.className = `board-lane lane-${lane.key}`;
+    const head = document.createElement("header");
+    const title = document.createElement("h3");
+    title.textContent = lane.title;
+    const count = document.createElement("span");
+    const matching = tickets.filter(lane.match);
+    count.textContent = matching.length;
+    head.append(title, count);
+    column.append(head);
+    if (!matching.length) {
+      const quiet = document.createElement("p");
+      quiet.className = "lane-empty";
+      quiet.textContent = "Empty";
+      column.append(quiet);
+    }
+    matching.forEach((ticket) => column.append(boardCard(snapshot, ticket)));
+    lanes.append(column);
+  });
+}
+
+function renderLedger(snapshot) {
+  const rows = $("#ticketRows");
+  rows.replaceChildren();
+  const tickets = searchedTickets(snapshot);
+  $("#ticketPill").textContent = `${tickets.length} ticket${tickets.length === 1 ? "" : "s"}`;
 
   if (!tickets.length) {
     const row = document.createElement("tr");
     const cell = document.createElement("td");
     cell.colSpan = 6;
-    const hasTickets = snapshot.tickets?.length > 0;
-    const isFiltered = state.query.trim() && hasTickets;
-    cell.append(emptyNode(isFiltered ? "No tickets match search" : "No tickets yet", isFiltered ? "Adjust or clear search terms to see all tickets." : "Create or adopt a scoped ticket to begin."));
+    cell.append(emptyNode("No tickets", "Create a scoped ticket or clear the search."));
     row.append(cell);
-    body.append(row);
+    rows.append(row);
     return;
   }
 
   tickets.forEach((ticket) => {
     const row = document.createElement("tr");
     if (ticket.id === state.selectedTicketId) row.className = "selected";
-    const ticketCell = document.createElement("td");
-    ticketCell.dataset.label = "Ticket";
+
+    const idCell = document.createElement("td");
+    idCell.dataset.label = "Ticket";
     const link = document.createElement("button");
     link.type = "button";
     link.className = "ticket-link";
+    const code = document.createElement("code");
+    code.textContent = ticket.id;
+    const title = document.createElement("span");
+    title.textContent = ticket.title;
+    link.append(code, title);
     link.addEventListener("click", () => selectTicket(ticket.id));
-    const title = document.createElement("strong");
-    title.textContent = ticket.id;
-    const subtitle = document.createElement("span");
-    subtitle.textContent = ticket.title;
-    link.append(title, subtitle);
-    ticketCell.append(link, meta([ticket.stream, ticket.risk, ticket.status]));
+    idCell.append(link);
 
-    const owner = document.createElement("td");
-    owner.dataset.label = "Owner";
-    owner.textContent = ticketOwner(ticket);
+    const ownerCell = document.createElement("td");
+    ownerCell.dataset.label = "Owner";
+    ownerCell.textContent = ticketOwner(ticket);
 
-    const role = document.createElement("td");
-    role.dataset.label = "Role";
-    role.textContent = ticketRole(ticket);
+    const riskCell = document.createElement("td");
+    riskCell.dataset.label = "Risk";
+    riskCell.textContent = `${ticket.risk || "R1"} · ${ticket.priority || "P2"}`;
 
-    const progress = document.createElement("td");
-    progress.dataset.label = "Progress";
-    progress.append(progressRail(ticket));
+    const stageCell = document.createElement("td");
+    stageCell.dataset.label = "Stage";
+    stageCell.append(statusPill(ticket.status));
 
-    const evidence = document.createElement("td");
-    evidence.dataset.label = "Evidence";
-    evidence.append(statusPill(evidenceState(ticket).toLowerCase(), evidenceState(ticket)));
+    const sealCell = document.createElement("td");
+    sealCell.dataset.label = "Seal";
+    sealCell.append(sealMini(snapshot, ticket));
 
-    const next = document.createElement("td");
-    next.dataset.label = "Next";
-    const nextStrong = document.createElement("strong");
-    nextStrong.textContent = ticket.next_action?.label || "Inspect";
-    next.append(nextStrong);
-    row.append(ticketCell, owner, role, progress, evidence, next);
-    body.append(row);
+    const nextCell = document.createElement("td");
+    nextCell.dataset.label = "Next";
+    nextCell.textContent = ticket.next_action?.label || "";
+
+    row.append(idCell, ownerCell, riskCell, stageCell, sealCell, nextCell);
+    rows.append(row);
   });
 }
+
+function setSurface(surface, announce = true) {
+  state.surface = surface;
+  $$(".surface-tabs [role='tab']").forEach((tab) => {
+    const active = tab.dataset.surface === surface;
+    tab.setAttribute("aria-selected", active ? "true" : "false");
+  });
+  $("#queue").hidden = surface !== "queue";
+  $("#board").hidden = surface !== "board";
+  $("#ledger").hidden = surface !== "ledger";
+  if (announce) setStatusMessage(`Showing the ${surface} surface`);
+}
+
+function renderSurfaces(snapshot) {
+  renderQueue(snapshot);
+  renderBoard(snapshot);
+  renderLedger(snapshot);
+}
+
+// ---------------------------------------------------------------------------
+// Dossier: ticket focus + chain of custody
+
+function readiness(snapshot, ticket) {
+  const evidence = ticket.evidence || {};
+  const reports = ticket.reports || {};
+  const evidenceOk = Boolean(evidence.has_log && evidence.has_junit && evidence.has_sarif && evidence.has_manifest);
+  const missing = ["log", "junit", "sarif", "manifest"].filter((name, index) => !evidence[["has_log", "has_junit", "has_sarif", "has_manifest"][index]]);
+  const customMissing = (reports.custom || []).filter((entry) => !entry.present).map((entry) => entry.name);
+  const reportsOk = Boolean(reports.technical) && !customMissing.length;
+  const reportDetail = !reports.technical
+    ? "technical report missing"
+    : customMissing.length
+      ? `missing: ${customMissing.join(", ")}`
+      : reports.reviewer
+        ? "technical + reviewer present"
+        : "technical present";
+  return [
+    { label: "Evidence bundle", ok: evidenceOk, detail: evidenceOk ? "manifest, junit, sarif, log" : `missing ${missing.join(", ")}` },
+    { label: "Reports", ok: reportsOk, detail: reportDetail },
+    { label: "Lease", ok: ticket.lease?.status !== "expired", detail: ticket.lease?.status === "expired" ? "claim expired" : (ticket.lease?.status || "none") },
+  ];
+}
+
+function renderTicketFocus(snapshot) {
+  const focus = $("#ticketFocus");
+  focus.replaceChildren();
+  const ticket = selectedTicket(snapshot);
+  $("#focusPill").textContent = ticket ? ticket.id : "ticket";
+
+  if (!ticket) {
+    focus.append(emptyNode("No ticket selected", "Pick a ticket from the queue, board, or ledger."));
+    return;
+  }
+
+  const head = document.createElement("div");
+  head.className = "focus-head";
+  const title = document.createElement("h3");
+  title.textContent = `${ticket.id} · ${ticket.title}`;
+  head.append(title, statusPill(ticket.status));
+  focus.append(head);
+
+  const lease = ticket.lease || {};
+  const leaseText = lease.status === "active"
+    ? `lease ${formatCountdown(Number(lease.seconds_remaining))}`
+    : lease.status === "expired"
+      ? "lease expired"
+      : "";
+  focus.append(meta([
+    `owner ${ticketOwner(ticket)}`,
+    ticketRole(ticket),
+    `${ticket.risk || "R1"} · ${ticket.priority || "P2"}`,
+    ticket.stream,
+    leaseText,
+  ]));
+  if (lease.status === "active") {
+    const tickNode = focus.querySelector(".meta span:last-child");
+    if (tickNode) {
+      tickNode.classList.add("lease-tick");
+      tickNode.dataset.expiresAt = lease.expires_at || "";
+    }
+  }
+
+  const branch = document.createElement("div");
+  branch.className = "focus-branch";
+  const branchCode = document.createElement("code");
+  branchCode.textContent = ticket.branch || "";
+  branch.append(branchCode);
+  focus.append(branch);
+
+  const grid = document.createElement("div");
+  grid.className = "readiness-grid";
+  readiness(snapshot, ticket).forEach((item) => {
+    const cell = document.createElement("article");
+    cell.className = `readiness ${item.ok ? "ok" : "bad"}`;
+    const strong = document.createElement("strong");
+    strong.textContent = item.label;
+    const detail = document.createElement("span");
+    detail.textContent = item.detail;
+    cell.append(strong, detail);
+    grid.append(cell);
+  });
+  focus.append(grid);
+
+  const scopes = document.createElement("div");
+  scopes.className = "focus-scope";
+  const scopeTitle = document.createElement("p");
+  scopeTitle.className = "eyebrow";
+  scopeTitle.textContent = "Allowed paths";
+  scopes.append(scopeTitle, pathList(ticket.allowed_paths || [], 4));
+  focus.append(scopes);
+}
+
+function custodyNode(step) {
+  const node = document.createElement("li");
+  node.className = `custody-step ${step.attested ? "sealed" : "open"}`;
+  const disc = document.createElement("span");
+  disc.className = "seal-disc";
+  disc.setAttribute("aria-hidden", "true");
+  const body = document.createElement("div");
+  body.className = "custody-body";
+  const name = document.createElement("strong");
+  name.textContent = step.name;
+  body.append(name);
+  if (step.attested) {
+    const signer = document.createElement("code");
+    signer.textContent = `key ${step.signer}`;
+    body.append(signer);
+    const detail = document.createElement("span");
+    const when = step.ts ? new Date(step.ts) : null;
+    const stamp = when && !Number.isNaN(when.getTime()) ? when.toISOString().slice(0, 16).replace("T", " ") : "";
+    detail.textContent = [
+      step.signature_valid === false ? "signature INVALID" : "signature verified",
+      stamp,
+      (step.outputs || []).length ? `outputs: ${(step.outputs || []).join(", ")}` : "",
+    ].filter(Boolean).join(" · ");
+    body.append(detail);
+  } else {
+    const detail = document.createElement("span");
+    detail.textContent = "not attested yet";
+    body.append(detail);
+  }
+  node.append(disc, body);
+  return node;
+}
+
+function renderCustody(snapshot) {
+  const wrap = $("#custody");
+  wrap.replaceChildren();
+  const ticket = selectedTicket(snapshot);
+  if (!ticket) return;
+  const gate = gateInfo(snapshot);
+
+  const head = document.createElement("div");
+  head.className = "custody-head";
+  const title = document.createElement("h3");
+  title.textContent = "Chain of Custody";
+  head.append(title);
+  wrap.append(head);
+
+  if (!gate.enabled) {
+    const off = document.createElement("div");
+    off.className = "verdict-stamp off";
+    const strong = document.createElement("strong");
+    strong.textContent = "Honor-system";
+    const detail = document.createElement("span");
+    detail.textContent = "The forge-proof gate is disabled; acceptance trusts unsigned manifests.";
+    off.append(strong, detail);
+    wrap.append(off, commandInline("./bin/palari gate init", "Initialize the gate"));
+    return;
+  }
+
+  const info = gateTicket(snapshot, ticket.id);
+  const steps = info ? chainSteps(info) : CHAIN_ORDER.map((name) => ({ name, attested: false }));
+
+  const list = document.createElement("ol");
+  list.className = "custody-chain";
+  steps.forEach((step) => list.append(custodyNode(step)));
+  wrap.append(list);
+
+  const verdict = info?.verdict;
+  const stamp = document.createElement("div");
+  if (verdict?.accepted) {
+    stamp.className = "verdict-stamp accepted";
+    const strong = document.createElement("strong");
+    strong.textContent = "ACCEPTED";
+    const detail = document.createElement("span");
+    detail.textContent = `Verified to root ${gate.root_fingerprint} at commit ${verdict.commit}.`;
+    stamp.append(strong, detail);
+  } else if (verdict) {
+    stamp.className = "verdict-stamp refused";
+    const strong = document.createElement("strong");
+    strong.textContent = "REFUSED";
+    stamp.append(strong);
+    const reasons = document.createElement("ul");
+    reasons.className = "verdict-reasons";
+    (verdict.reasons || []).forEach((reason) => {
+      const item = document.createElement("li");
+      item.textContent = reason;
+      reasons.append(item);
+    });
+    stamp.append(reasons);
+  } else {
+    stamp.className = "verdict-stamp unsigned";
+    const strong = document.createElement("strong");
+    strong.textContent = "UNSIGNED";
+    const detail = document.createElement("span");
+    detail.textContent = "No attestations yet. The gate will refuse acceptance until the chain is complete.";
+    stamp.append(strong, detail);
+  }
+  wrap.append(stamp);
+
+  if (!verdict?.accepted) {
+    const next = !info || !info.steps?.implement?.attested
+      ? `./bin/palari gate setup-ticket ${ticket.id} && ./bin/palari gate attest-implement ${ticket.id}`
+      : !info.steps?.test?.attested
+        ? `./bin/palari ci ${ticket.id}`
+        : `./bin/palari gate attest-review ${ticket.id}`;
+    wrap.append(commandInline(next, "Next custody step"));
+  }
+}
+
+function renderCommands(snapshot) {
+  const list = $("#commandList");
+  list.replaceChildren();
+  const ticket = selectedTicket(snapshot);
+  const commands = [];
+  if (ticket?.next_action?.command) {
+    commands.push({ label: ticket.next_action.label, command: ticket.next_action.command });
+  }
+  if (ticket) {
+    commands.push({ label: "Verify custody chain", command: `./bin/palari gate verify ${ticket.id}` });
+    commands.push({ label: "Inspect ticket", command: `./bin/palari lint ${ticket.id}` });
+  }
+  const operator = snapshot.operator?.next_action;
+  if (!commands.length && operator?.command) {
+    commands.push({ label: operator.label, command: operator.command });
+  }
+  if (!commands.length) {
+    list.append(emptyNode("No command needed", "The repository is waiting on new work."));
+    return;
+  }
+  commands.forEach((entry) => {
+    const node = document.createElement("article");
+    node.className = "command-entry";
+    const strong = document.createElement("strong");
+    strong.textContent = entry.label || "Command";
+    node.append(strong, commandInline(entry.command, entry.label || "Command"));
+    list.append(node);
+  });
+}
+
+function renderDossier(snapshot) {
+  renderTicketFocus(snapshot);
+  renderCustody(snapshot);
+  renderCommands(snapshot);
+}
+
+// ---------------------------------------------------------------------------
+// Support panels
 
 function renderRoles(snapshot) {
   const list = $("#roleList");
@@ -548,440 +985,261 @@ function renderRoles(snapshot) {
   const roles = snapshot.roles?.items || [];
   const active = roles.filter((role) => role.status === "active");
   $("#rolesPill").textContent = `${active.length} active`;
-
   if (!roles.length) {
-    list.append(emptyNode("No roles configured", "Use role proposals when delegation needs a named authority boundary."));
+    list.append(emptyNode("No roles installed", "Roles are optional; tickets work without them."));
     return;
   }
-
   roles.forEach((role) => {
-    const node = document.createElement("article");
-    node.className = "role-row";
-    const top = document.createElement("div");
-    top.className = "role-top";
-    const title = document.createElement("div");
-    const strong = document.createElement("strong");
-    strong.textContent = role.title || role.id;
-    title.append(strong, meta([role.id, `tier ${role.tier || "?"}`, `max ${role.max_risk || "?"}`, role.parent_role && `parent ${role.parent_role}`]));
-    top.append(title, statusPill(role.status || "unknown"));
-    const caps = document.createElement("div");
-    caps.className = "capability-row";
-    [
-      ["Create", role.capabilities?.may_create_tickets],
-      ["Execute", role.capabilities?.may_execute_tickets],
-      ["Review", role.capabilities?.may_review_tickets],
-      ["Accept", role.capabilities?.may_accept_tickets],
-    ].forEach(([name, enabled]) => {
-      const span = document.createElement("span");
-      span.className = enabled ? "enabled" : "";
-      span.textContent = name;
-      caps.append(span);
-    });
-    node.append(top, caps);
-    if (role.can_delegate_to?.length) node.append(pathList(role.can_delegate_to, 4));
-    list.append(node);
-  });
-}
-
-function renderEvidence(snapshot) {
-  const list = $("#evidenceList");
-  list.replaceChildren();
-  const tickets = snapshot.tickets.filter((ticket) => ticket.status !== "accepted" || ticket.evidence.file_count > 0);
-  const bundles = snapshot.tickets.filter((ticket) => ticket.evidence.file_count > 0);
-  const missing = tickets.filter((ticket) => ticket.evidence.file_count === 0);
-  $("#evidencePill").textContent = missing.length
-    ? `${bundles.length} present · ${missing.length} missing`
-    : `${bundles.length} bundle${bundles.length === 1 ? "" : "s"}`;
-
-  if (!tickets.length) {
-    list.append(emptyNode("No evidence bundles", "Run palari ci TICKET-ID to create logs, JUnit, SARIF, and manifest."));
-    return;
-  }
-
-  tickets.forEach((ticket) => {
-    const node = document.createElement("article");
-    node.className = "evidence";
-
-    const top = document.createElement("div");
-    top.className = "evidence-top";
-    const title = document.createElement("div");
-    const strong = document.createElement("strong");
-    strong.textContent = ticket.id;
-    const evidenceText = ticket.evidence.file_count > 0 ? `${ticket.evidence.file_count} files` : "missing evidence";
-    title.append(strong, meta([ticket.evidence.path || "reports/evidence", evidenceText]));
-    top.append(title, statusPill(evidenceState(ticket).toLowerCase(), evidenceState(ticket)));
-
-    const grid = document.createElement("div");
-    grid.className = "evidence-grid";
-    [
-      ["Log", ticket.evidence.has_log],
-      ["JUnit", ticket.evidence.has_junit],
-      ["SARIF", ticket.evidence.has_sarif],
-      ["Manifest", ticket.evidence.has_manifest],
-    ].forEach(([name, yes]) => {
-      const span = document.createElement("span");
-      span.className = yes ? "yes" : "";
-      span.textContent = `${name}: ${yes ? "present" : "missing"}`;
-      grid.append(span);
-    });
-
-    node.append(top, grid);
-    if (ticket.evidence.file_count === 0) {
-      const command = `./bin/palari ci ${ticket.id} --base ${snapshot.config.default_branch}`;
-      node.append(commandInline(command, `Create evidence for ${ticket.id}`));
-    }
-    list.append(node);
-  });
-}
-
-function renderScope(snapshot) {
-  const list = $("#scopeMap");
-  list.replaceChildren();
-  $("#scopePill").textContent = snapshot.overlaps.length ? `${snapshot.overlaps.length} blocked` : "clean";
-
-  if (!snapshot.overlaps.length) {
-    const clean = document.createElement("article");
-    clean.className = "scope-row";
-    const left = document.createElement("span");
-    left.textContent = "No overlapping active write scopes";
-    const connector = document.createElement("i");
-    connector.className = "connector";
-    connector.setAttribute("aria-hidden", "true");
-    const right = document.createElement("span");
-    right.textContent = "Path partitioning is clean";
-    clean.append(left, connector, right);
-    list.append(clean);
-    return;
-  }
-
-  snapshot.overlaps.forEach((finding) => {
     const row = document.createElement("article");
-    row.className = "scope-row";
-    const left = document.createElement("span");
-    left.textContent = `${finding.left}: ${finding.left_pattern}`;
-    const connector = document.createElement("i");
-    connector.className = "connector";
-    connector.setAttribute("aria-hidden", "true");
-    const right = document.createElement("span");
-    right.textContent = `${finding.right}: ${finding.right_pattern}`;
-    row.append(left, connector, right);
+    row.className = "role-row";
+    const head = document.createElement("div");
+    head.className = "role-head";
+    const name = document.createElement("strong");
+    name.textContent = role.id;
+    head.append(name, statusPill(role.status));
+    const detail = document.createElement("span");
+    detail.textContent = [role.title, role.tier, role.max_risk].filter(Boolean).join(" · ");
+    row.append(head, detail, pathList(role.allowed_paths || [], 2));
     list.append(row);
   });
 }
 
-function commandRows(snapshot) {
-  const firstActive = activeTickets(snapshot)[0];
-  const ticket = firstActive?.id || "TICKET-ID";
-  const rows = [
-    ["Status", "./bin/palari status --next"],
-    ["Role lint", "./bin/palari role lint"],
-    ["Lifecycle audit", "./bin/palari ticket audit"],
-    ["Ruleset activation", "./bin/palari github ruleset-command --repo OWNER/REPO"],
-  ];
-  if (firstActive?.next_action?.command) {
-    rows.unshift([firstActive.next_action.label, firstActive.next_action.command]);
-  } else if (snapshot.operator?.next_action?.command) {
-    rows.unshift([snapshot.operator.next_action.label, snapshot.operator.next_action.command]);
+function renderScope(snapshot) {
+  const map = $("#scopeMap");
+  map.replaceChildren();
+  const overlaps = snapshot.overlaps || [];
+  $("#scopePill").textContent = overlaps.length ? `${overlaps.length} overlap${overlaps.length === 1 ? "" : "s"}` : "clean";
+  $("#scopePill").dataset.state = overlaps.length ? "bad" : "ok";
+  const tickets = activeTickets(snapshot);
+  if (!tickets.length) {
+    map.append(emptyNode("No active scopes", "Active tickets will show their write partitions here."));
+    return;
   }
-  rows.push(["Scope", `./bin/palari scope-check ${ticket}`]);
-  rows.push(["CI evidence", `./bin/palari ci ${ticket} --base ${snapshot.config.default_branch}`]);
-  return rows;
-}
-
-function renderCommands(snapshot) {
-  const list = $("#commandList");
-  list.replaceChildren();
-  commandRows(snapshot).forEach(([name, command]) => {
-    const node = document.createElement("article");
-    node.className = "command";
-    const top = document.createElement("div");
-    top.className = "command-top";
-    const strong = document.createElement("strong");
-    strong.textContent = name;
-    const button = makeCopyButton(command, name);
+  tickets.forEach((ticket) => {
+    const row = document.createElement("article");
+    row.className = "scope-row";
+    const head = document.createElement("div");
+    head.className = "scope-head";
     const code = document.createElement("code");
-    code.textContent = command;
-    top.append(strong, button);
-    node.append(top, code);
-    list.append(node);
+    code.textContent = ticket.id;
+    head.append(code);
+    const conflicting = overlaps.filter((o) => o.left === ticket.id || o.right === ticket.id);
+    if (conflicting.length) {
+      const warn = document.createElement("span");
+      warn.className = "scope-warn";
+      warn.textContent = "overlap";
+      head.append(warn);
+    }
+    row.append(head, pathList(ticket.allowed_paths || [], 3));
+    map.append(row);
   });
 }
 
-function renderHumanSummary(snapshot) {
-  const node = $("#humanSummary");
-  node.replaceChildren();
-  const waiting = activeTickets(snapshot).filter((ticket) => ticket.next_action?.actor === "human" || ticket.status === "needs-human");
-  $("#humanPill").textContent = waiting.length ? `${waiting.length} waiting` : "clear";
-
+function renderHuman(snapshot) {
+  const wrap = $("#humanSummary");
+  wrap.replaceChildren();
+  const waiting = activeTickets(snapshot).filter((ticket) => ticket.next_action?.actor === "human" || ticket.status === "needs-human" || ticket.status === "in-review");
+  $("#humanPill").textContent = waiting.length ? `${waiting.length} waiting` : "ready";
   if (!waiting.length) {
-    node.append(emptyNode("No human decision queued", "When a ticket needs acceptance, product direction, or authority, it will appear here."));
+    wrap.append(emptyNode("Nothing awaits a human", "Acceptance and direction decisions will surface here."));
     return;
   }
-
   waiting.forEach((ticket) => {
-    const item = document.createElement("article");
-    item.className = "human-item";
-    const strong = document.createElement("strong");
-    strong.textContent = `${ticket.id}: ${ticket.next_action?.label || "Human decision"}`;
-    const detail = document.createElement("p");
-    detail.textContent = ticket.next_action?.detail || "Inspect this ticket before continuing.";
-    item.append(strong, detail);
-    if (ticket.next_action?.command) item.append(commandInline(ticket.next_action.command, ticket.id));
-    node.append(item);
+    const row = document.createElement("article");
+    row.className = "human-row";
+    const head = document.createElement("div");
+    head.className = "human-head";
+    const code = document.createElement("code");
+    code.textContent = ticket.id;
+    head.append(code, sealMini(snapshot, ticket));
+    const detail = document.createElement("span");
+    detail.textContent = ticket.next_action?.detail || label(ticket.status);
+    row.append(head, detail);
+    if (ticket.next_action?.command) row.append(commandInline(ticket.next_action.command, ticket.id));
+    wrap.append(row);
   });
 }
 
-function reportItems(ticket) {
-  const custom = ticket.reports?.custom || [];
-  const required = new Set(ticket.required_reports || []);
-  const reports = [["Specialist", ticket.reports?.technical]];
-  if (ticket.requires_review !== false || required.has("reviewer")) {
-    reports.push(["Reviewer", ticket.reports?.reviewer]);
-  }
-  if (ticket.requires_human_confirmation || required.has("human") || ticket.status === "needs-human") {
-    reports.push(["Human", ticket.reports?.human]);
-  }
-  custom.forEach((report) => {
-    reports.push([label(report.name), report.present]);
-  });
-  return reports;
+function renderRepo(snapshot) {
+  $("#branchPill").textContent = snapshot.git?.branch || "detached";
+  $("#statusOutput").textContent = snapshot.git?.status || "clean";
+  $("#projectName").textContent = snapshot.project || "Palari Orchestrator";
+  $("#railProject").textContent = snapshot.project || "Orchestration";
+  $("#authorityChip").textContent = snapshot.authority?.profile || "authority";
 }
 
-function reportSummary(ticket) {
-  const reports = reportItems(ticket);
-  const present = reports.filter(([, yes]) => yes).length;
-  return `${present} of ${reports.length} reports`;
+// ---------------------------------------------------------------------------
+// Lease ticking
+
+function startLeaseTicker() {
+  if (state.leaseTimer) clearInterval(state.leaseTimer);
+  state.leaseTimer = setInterval(() => {
+    $$(".lease-tick").forEach((node) => {
+      const expires = node.dataset.expiresAt;
+      if (!expires) return;
+      const remaining = Math.floor((new Date(expires).getTime() - Date.now()) / 1000);
+      node.textContent = remaining <= 0 ? "lease expired" : `lease ${formatCountdown(remaining)}`;
+      node.classList.toggle("expired", remaining <= 0);
+    });
+  }, 1000);
 }
 
-function readinessCard(labelText, value, detail, stateName) {
-  const card = document.createElement("article");
-  card.className = `readiness ${stateName}`;
-  const span = document.createElement("span");
-  span.textContent = labelText;
-  const strong = document.createElement("strong");
-  strong.textContent = value;
-  const small = document.createElement("small");
-  small.textContent = detail;
-  card.append(span, strong, small);
-  return card;
-}
-
-function timelineStep(name, done, detail) {
-  const item = document.createElement("li");
-  item.className = done ? "done" : "pending";
-  const marker = document.createElement("i");
-  marker.setAttribute("aria-hidden", "true");
-  const body = document.createElement("div");
-  const strong = document.createElement("strong");
-  strong.textContent = name;
-  const span = document.createElement("span");
-  span.textContent = detail;
-  body.append(strong, span);
-  item.append(marker, body);
-  return item;
-}
-
-function renderTicketFocus(snapshot) {
-  const host = $("#ticketFocus");
-  host.replaceChildren();
-  ensureSelectedTicket(snapshot);
-  const ticket = (snapshot.tickets || []).find((item) => item.id === state.selectedTicketId);
-
-  if (!ticket) {
-    $("#focusPill").textContent = "none";
-    host.append(emptyNode("No ticket selected", "Select a ticket from the queue or table to inspect its readiness, evidence, evidence artifacts, and acceptance eligibility."));
-    return;
-  }
-
-  const action = ticket.next_action || {};
-  const evidence = evidenceState(ticket);
-  const humanGate = ticket.requires_human_confirmation || action.actor === "human" || ticket.status === "needs-human";
-  const acceptReady = action.actor === "human" && /accept/i.test(action.label || "");
-  $("#focusPill").textContent = label(ticket.status);
-
-  const header = document.createElement("article");
-  header.className = "focus-hero";
-  const title = document.createElement("div");
-  const strong = document.createElement("strong");
-  strong.textContent = ticket.id;
-  const heading = document.createElement("h3");
-  heading.textContent = ticket.title;
-  title.append(strong, heading, meta([ticket.stream, ticket.risk, ticket.priority, ticketOwner(ticket), ticketRole(ticket)]));
-  header.append(title, statusPill(ticket.status));
-
-  const next = document.createElement("article");
-  next.className = "focus-next";
-  const nextLabel = document.createElement("span");
-  nextLabel.textContent = "Next action";
-  const nextTitle = document.createElement("strong");
-  nextTitle.textContent = action.label || "Inspect ticket";
-  const nextDetail = document.createElement("p");
-  nextDetail.textContent = action.detail || "Review the ticket state before continuing.";
-  next.append(nextLabel, nextTitle, nextDetail);
-  if (action.command) next.append(commandInline(action.command, action.label || ticket.id));
-
-  const readiness = document.createElement("div");
-  readiness.className = "readiness-grid";
-  const missingReports = reportItems(ticket).filter(([, yes]) => !yes).map(([name]) => name);
-  readiness.append(
-    readinessCard("Evidence", evidence, evidenceDetail(ticket), evidence.toLowerCase()),
-    readinessCard("Review", reportSummary(ticket), missingReports.length ? `Needs: ${missingReports.join(", ")}.` : "All required review notes are present.", reportItems(ticket).every(([, yes]) => yes) ? "complete" : "partial"),
-    readinessCard("Human gate", humanGate ? "Waiting" : "Clear", acceptReady ? "Acceptance is ready for an authorized person." : humanGate ? "Waiting on human decision." : "No human gate is blocking this ticket.", humanGate ? "waiting" : "complete"),
-    readinessCard("Lease", ticket.lease?.status ? label(ticket.lease.status) : "No lease", ticket.claim_heartbeat_at ? `Heartbeat ${ticket.claim_heartbeat_at}` : "No active lease on this ticket.", !ticket.lease?.status || ticket.lease?.status === "expired" ? "missing" : "complete"),
-  );
-
-  const timeline = document.createElement("ol");
-  timeline.className = "timeline";
-  timeline.append(
-    timelineStep("Ticket", true, ticket.path || "Ticket file exists."),
-    timelineStep("Claim", Boolean(ticket.claimed_by || ticket.status === "accepted"), ticket.claimed_by ? `${ticket.claimed_by} owns the work.` : "No owner has claimed this ticket."),
-    timelineStep("Evidence", ticket.evidence.file_count > 0, `${evidence} evidence bundle.`),
-    timelineStep("Review", Boolean(ticket.reports?.reviewer || ticket.status === "accepted"), ticket.reports?.reviewer ? "Reviewer note is present." : "Fresh reviewer note is still needed."),
-    timelineStep("Human gate", humanGate || ticket.status === "accepted", humanGate ? action.label || "Human decision required." : "No human gate is blocking this ticket."),
-    timelineStep("Accepted", ticket.status === "accepted", ticket.accepted_by ? `Accepted by ${ticket.accepted_by}.` : "Not accepted yet."),
-  );
-
-  const scope = document.createElement("article");
-  scope.className = "focus-section";
-  const scopeTitle = document.createElement("strong");
-  scopeTitle.textContent = "Scope";
-  scope.append(scopeTitle);
-  if (ticket.allowed_paths?.length) scope.append(pathList(ticket.allowed_paths, 5));
-  if (ticket.forbidden_paths?.length) {
-    const forbidden = document.createElement("div");
-    forbidden.className = "forbidden-note";
-    forbidden.textContent = `Forbidden: ${ticket.forbidden_paths.slice(0, 4).join(", ")}${ticket.forbidden_paths.length > 4 ? "..." : ""}`;
-    scope.append(forbidden);
-  }
-
-  const artifacts = document.createElement("article");
-  artifacts.className = "focus-section";
-  const artifactTitle = document.createElement("strong");
-  artifactTitle.textContent = "Artifacts";
-  artifacts.append(artifactTitle);
-  const artifactMeta = meta([
-    ticket.evidence.path || "No evidence path",
-    ticket.evidence.has_log && "log",
-    ticket.evidence.has_junit && "JUnit",
-    ticket.evidence.has_sarif && "SARIF",
-    ticket.evidence.has_manifest && "manifest",
-  ]);
-  artifacts.append(artifactMeta);
-  if (ticket.evidence.files?.length) artifacts.append(pathList(ticket.evidence.files, 6));
-
-  host.append(header, next, readiness, timeline, scope, artifacts);
-}
-
-function renderStatus(snapshot) {
-  const branch = snapshot.git.branch || "detached";
-  $("#branchPill").textContent = compactLabel(branch);
-  $("#branchPill").title = branch;
-  const palari = snapshot.palari_status.stdout || snapshot.palari_status.stderr || "No palari status output.";
-  const git = snapshot.git.status || "No git status output.";
-  $("#statusOutput").textContent = `${palari}\n\n${git}`;
-}
+// ---------------------------------------------------------------------------
+// Snapshot lifecycle
 
 function render(snapshot) {
   state.snapshot = snapshot;
-  $("#projectName").textContent = snapshot.project;
-  $("#railProject").textContent = snapshot.project;
-  $("#timestamp").textContent = formatTimestamp(snapshot.generated_at);
-  $("#timestamp").title = `Updated ${snapshot.generated_at}`;
-  $("#authorityChip").textContent = `authority: ${snapshot.authority.profile}`;
   ensureSelectedTicket(snapshot);
-  renderMetrics(snapshot);
   health(snapshot);
-  renderHealthActions(snapshot);
+  renderMetrics(snapshot);
   renderOperatorSummary(snapshot);
-  renderQueue(snapshot);
-  renderTicketRows(snapshot);
-  renderTicketFocus(snapshot);
+  renderSurfaces(snapshot);
+  renderDossier(snapshot);
+  renderHealthActions(snapshot);
   renderRoles(snapshot);
-  renderEvidence(snapshot);
   renderScope(snapshot);
-  renderCommands(snapshot);
-  renderHumanSummary(snapshot);
-  renderStatus(snapshot);
-  document.body.classList.add("has-loaded");
+  renderHuman(snapshot);
+  renderRepo(snapshot);
+  $("#timestamp").textContent = formatTimestamp(snapshot.generated_at);
 }
 
-async function load(options = {}) {
+async function fetchSnapshot(options = {}) {
   const fresh = Boolean(options.fresh);
-  $("#refreshButton").disabled = true;
-  $("#refreshButton").textContent = "Refreshing";
-  $("#timestamp").textContent = "Refreshing...";
-  $("#main-content").setAttribute("aria-busy", "true");
-  setStatusMessage("Refreshing repository snapshot.");
+  const quiet = Boolean(options.quiet);
+  const button = $("#refreshButton");
+  if (!quiet) {
+    button.disabled = true;
+    button.textContent = "Refreshing";
+    $("#timestamp").textContent = "Refreshing...";
+    setStatusMessage("Refreshing repository snapshot.");
+  }
   try {
     const response = await fetch(`/api/snapshot${fresh ? "?fresh=1" : ""}`, { cache: "no-store" });
-    if (!response.ok) throw new Error(`snapshot failed: ${response.status}`);
-    render(await response.json());
-    setStatusMessage(`Dashboard refreshed. Health ${$("#healthGrade").textContent}: ${$("#healthSummary").textContent}`);
+    if (!response.ok) throw new Error(`snapshot ${response.status}`);
+    const snapshot = await response.json();
+    render(snapshot);
+    if (!quiet) {
+      setStatusMessage(`Console refreshed. Health ${$("#healthGrade").textContent}: ${$("#healthSummary").textContent}`);
+    }
   } catch (error) {
-    $("#healthGrade").textContent = "Offline";
-    $("#healthSummary").textContent = error.message;
-    $("#statusOutput").textContent = error.stack || error.message;
-    setStatusMessage(`Dashboard snapshot failed: ${error.message}`);
+    $("#railState").textContent = "Error";
+    $("#railDetail").textContent = error.message;
+    $("#timestamp").textContent = "Refresh failed";
+    setStatusMessage(`Refresh failed: ${error.message}. Retry with the Refresh button.`);
   } finally {
-    $("#refreshButton").disabled = false;
-    $("#refreshButton").textContent = "Refresh";
-    $("#main-content").removeAttribute("aria-busy");
+    button.disabled = false;
+    button.textContent = "Refresh";
   }
 }
 
-function readSavedTheme() {
-  try {
-    return localStorage.getItem("palari-theme") || "";
-  } catch (error) {
-    return "";
-  }
+function scheduleAuto() {
+  if (state.autoTimer) clearInterval(state.autoTimer);
+  state.autoTimer = setInterval(() => {
+    if (!state.auto || document.hidden) return;
+    fetchSnapshot({ quiet: true });
+  }, AUTO_INTERVAL_MS);
 }
 
-function writeSavedTheme(theme) {
-  try {
-    localStorage.setItem("palari-theme", theme);
-  } catch (error) {
-    return;
-  }
-}
-
-function preferredTheme() {
-  const saved = readSavedTheme();
-  if (saved === "dark" || saved === "light") return saved;
-  return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-}
+// ---------------------------------------------------------------------------
+// Theme
 
 function applyTheme(theme) {
   document.body.dataset.theme = theme;
   const button = $("#themeButton");
-  const dark = theme === "dark";
-  button.setAttribute("aria-pressed", dark ? "true" : "false");
-  button.textContent = dark ? "Light" : "Dark";
-  setStatusMessage(`${dark ? "Dark" : "Light"} theme enabled`);
-}
-
-function toggleTheme() {
-  const next = document.body.dataset.theme === "dark" ? "light" : "dark";
-  writeSavedTheme(next);
-  applyTheme(next);
-}
-
-$("#refreshButton").addEventListener("click", () => load({ fresh: true }));
-$("#themeButton").addEventListener("click", toggleTheme);
-$("#ticketSearch").addEventListener("input", (event) => {
-  state.query = event.target.value;
-  if (state.snapshot) {
-    ensureSelectedTicket(state.snapshot);
-    renderQueue(state.snapshot);
-    renderTicketRows(state.snapshot);
-    renderTicketFocus(state.snapshot);
+  button.setAttribute("aria-pressed", theme === "dark" ? "true" : "false");
+  button.textContent = theme === "dark" ? "Light" : "Dark";
+  try {
+    localStorage.setItem("palari-console-theme", theme);
+  } catch (error) {
+    // Storage can be unavailable; the theme still applies for this session.
   }
-});
-$("#queueFilter").addEventListener("change", (event) => {
-  state.queueFilter = event.target.value;
-  if (state.snapshot) renderQueue(state.snapshot);
-});
+}
 
-applyTheme(preferredTheme());
-load();
-setInterval(load, 30000);
+function initTheme() {
+  let theme = "";
+  try {
+    theme = new URLSearchParams(window.location.search).get("theme") || "";
+  } catch (error) {
+    theme = "";
+  }
+  if (!theme) {
+    try {
+      theme = localStorage.getItem("palari-console-theme") || "";
+    } catch (error) {
+      theme = "";
+    }
+  }
+  if (!theme) {
+    theme = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+  applyTheme(theme);
+}
+
+// ---------------------------------------------------------------------------
+// Wiring
+
+function initEvents() {
+  $("#refreshButton").addEventListener("click", () => fetchSnapshot({ fresh: true }));
+  $("#themeButton").addEventListener("click", () => {
+    applyTheme(document.body.dataset.theme === "dark" ? "light" : "dark");
+  });
+  $("#autoButton").addEventListener("click", () => {
+    state.auto = !state.auto;
+    const button = $("#autoButton");
+    button.setAttribute("aria-pressed", state.auto ? "true" : "false");
+    button.textContent = state.auto ? "Auto 15s" : "Auto off";
+    setStatusMessage(state.auto ? "Auto refresh on." : "Auto refresh off.");
+  });
+  $("#ticketSearch").addEventListener("input", (event) => {
+    state.query = event.target.value;
+    if (state.snapshot) {
+      ensureSelectedTicket(state.snapshot);
+      renderSurfaces(state.snapshot);
+      renderDossier(state.snapshot);
+    }
+  });
+  $("#queueFilter").addEventListener("change", (event) => {
+    state.queueFilter = event.target.value;
+    if (state.snapshot) renderQueue(state.snapshot);
+  });
+  $$(".surface-tabs [role='tab']").forEach((tab) => {
+    tab.addEventListener("click", () => setSurface(tab.dataset.surface));
+  });
+
+  document.addEventListener("keydown", (event) => {
+    const target = event.target;
+    const typing = target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement;
+    if (event.key === "Escape" && typing) {
+      target.blur();
+      return;
+    }
+    if (typing) return;
+    if (event.key === "/") {
+      event.preventDefault();
+      $("#ticketSearch").focus();
+    } else if (event.key === "j") {
+      moveSelection(1);
+    } else if (event.key === "k") {
+      moveSelection(-1);
+    } else if (event.key === "1") {
+      setSurface("queue");
+    } else if (event.key === "2") {
+      setSurface("board");
+    } else if (event.key === "3") {
+      setSurface("ledger");
+    } else if (event.key === "t") {
+      applyTheme(document.body.dataset.theme === "dark" ? "light" : "dark");
+    }
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && state.auto) fetchSnapshot({ quiet: true });
+  });
+}
+
+initTheme();
+initEvents();
+setSurface("queue", false);
+fetchSnapshot();
+scheduleAuto();
+startLeaseTicker();

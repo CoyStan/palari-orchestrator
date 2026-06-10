@@ -2,5 +2,17 @@
 *.pyc
 .DS_Store
 __pycache__/
+.expo/
+.metro/
+node_modules/
+coverage/
+.turbo/
+.next/
+dist/
+build/
+android/.gradle/
+android/app/build/
+ios/Pods/
 .palari/
 palari-orchestrator-worktrees/
+*.key

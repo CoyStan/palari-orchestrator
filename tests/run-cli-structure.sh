@@ -20,6 +20,7 @@ modules=(
 	authority_lifecycle
 	roles
 	init_adopt
+	hygiene
 	proposals
 	tickets_workspace
 	demo
@@ -27,6 +28,7 @@ modules=(
 	ci_accept
 	dashboard_snapshot
 	adapters_snapshot
+	gate
 )
 
 for module in "${modules[@]}"; do

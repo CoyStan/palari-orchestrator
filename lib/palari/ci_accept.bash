@@ -425,6 +425,9 @@ cmd_ci() {
 		exit 1
 	fi
 	printf 'ci: ok for %s\n' "$ticket_label"
+	if ((${#tickets[@]} == 1)); then
+		gate_ci_attest_test "${tickets[0]}"
+	fi
 }
 
 ticket_evidence_complete() {
@@ -563,6 +566,13 @@ cmd_accept() {
 	cmd_report_lint "$id" >/dev/null
 	ticket_evidence_complete "$id" || exit 1
 	ticket_evidence_manifest_valid "$id" || exit 1
+	# Forge-proof gate. When gate.enabled is true this is the acceptance
+	# authority: signed implement/test/review attestations whose token
+	# chains verify to the repository root key, with hash flow, dual
+	# control by distinct keys, commit binding, and freshness. The string
+	# checks below remain as UX guards only; they are not a security
+	# boundary (see contracts/signed-acceptance.md).
+	gate_require_accept "$id"
 	self_policy="$(cfg_nested acceptance implementation_self_acceptance "forbidden")"
 	if [[ "$self_policy" == "forbidden" ]]; then
 		claimed_by="$(frontmatter_value "$file" claimed_by)"

@@ -37,7 +37,11 @@ they conflict with repo files.
   verification, completion contract, and regression risk. Does not implement
   fixes by default.
 - Acceptor/human: verifies evidence, review state, scope, and authority before
-  accepting. Does not accept missing gates.
+  accepting. Does not accept missing gates. When the forge-proof gate is
+  enabled (`gate.enabled` in `palari.config.yaml`), acceptance additionally
+  requires a verified chain of signed attestations; see
+  `contracts/signed-acceptance.md`. Nothing written in a ticket can mint,
+  widen, or substitute for a delegation token.
 - Custom review profile: where configured, reviews through a named lens such as
   security, docs, UI, or platform constraints and writes the matching required
   report.

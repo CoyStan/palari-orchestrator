@@ -623,7 +623,7 @@ cmd_snapshot() {
 	require_base_folders
 	local format="${1:-}"
 	[[ "$format" == "--json" || -z "$format" ]] || die "snapshot supports only --json"
-	local proposals active accepted reports human evidence git_branch palari_status dirty stale overlaps_json overlap_count missing_evidence=0 file status lease id
+	local proposals active accepted reports human evidence git_branch palari_status dirty generated_dirty source_dirty stale overlaps_json overlap_count missing_evidence=0 file status lease id
 	proposals="$(proposal_files | wc -l | tr -d ' ')"
 	active="$(ticket_files | wc -l | tr -d ' ')"
 	accepted="$(closed_ticket_files | wc -l | tr -d ' ')"
@@ -632,7 +632,13 @@ cmd_snapshot() {
 	evidence="$(find "$ROOT/$EVIDENCE_DIR" -type f ! -name '.gitkeep' 2>/dev/null | wc -l | tr -d ' ')"
 	git_branch="$(git -C "$ROOT" branch --show-current 2>/dev/null || printf 'detached')"
 	palari_status="$(capture_command_json cmd_status)"
-	dirty="$(git -C "$ROOT" status --short -- . 2>/dev/null | awk 'END { print NR }')"
+	if git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1 && declare -F hygiene_dirty_counts >/dev/null; then
+		hygiene_dirty_counts dirty generated_dirty source_dirty
+	else
+		dirty="$({ git -C "$ROOT" status --short -- . 2>/dev/null || true; } | awk 'END { print NR }')"
+		generated_dirty=0
+		source_dirty="$dirty"
+	fi
 	stale=0
 	while IFS= read -r file; do
 		[[ -n "$file" ]] || continue
@@ -691,8 +697,10 @@ cmd_snapshot() {
 	snapshot_workflow_json
 	printf ',\n  "memory": '
 	snapshot_memory_json
-	printf ',\n  "health": {"status_ok":true,"dirty_paths":%s,"stale_claims":%s,"missing_evidence":%s,"overlaps":%s},\n' \
-		"$dirty" "$stale" "$missing_evidence" "$overlap_count"
+	printf ',\n  "gate": '
+	snapshot_gate_json
+	printf ',\n  "health": {"status_ok":true,"dirty_paths":%s,"generated_dirty_paths":%s,"source_dirty_paths":%s,"stale_claims":%s,"missing_evidence":%s,"overlaps":%s},\n' \
+		"$dirty" "$generated_dirty" "$source_dirty" "$stale" "$missing_evidence" "$overlap_count"
 	printf '  "git": {"branch":'
 	json_string "$git_branch"
 	printf ',"status":'
@@ -712,7 +720,7 @@ cmd_snapshot() {
 	printf ',"agent_can_accept":'
 	json_string "$(authority_value agent_can_accept)"
 	printf '},\n'
-	printf '  "commands": {"status":"./bin/palari status","status_next":"./bin/palari status --next","authority":"./bin/palari authority","ticket_audit":"./bin/palari ticket audit","lint":"./bin/palari lint","scope_overlaps":"./bin/palari scope-overlaps","ruleset":"./bin/palari github ruleset-command --repo OWNER/REPO"}\n'
+	printf '  "commands": {"status":"./bin/palari status","status_next":"./bin/palari status --next","hygiene":"./bin/palari hygiene","authority":"./bin/palari authority","ticket_audit":"./bin/palari ticket audit","lint":"./bin/palari lint","scope_overlaps":"./bin/palari scope-overlaps","ruleset":"./bin/palari github ruleset-command --repo OWNER/REPO"}\n'
 	printf '}\n'
 	: "$active" "$reports" "$human" "$evidence"
 }

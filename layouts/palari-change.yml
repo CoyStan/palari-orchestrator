@@ -1,0 +1,18 @@
+# Palari governance layout for the forge-proof accept gate.
+#
+# Steps map onto the Palari ticket lifecycle:
+#   implement  the specialist signs the exact diff bytes for the ticket branch
+#   test       the CI identity signs the evidence bundle, consuming the diff
+#   review     a fresh reviewer signs the approval, consuming the evidence
+#
+# distinct_from enforces dual control with keys, not name strings:
+# the key that implemented can never sign the test evidence or the review.
+name: palari-change
+steps:
+  - name: implement
+  - name: test
+    consumes: [implement]
+    distinct_from: [implement]
+  - name: review
+    consumes: [test]
+    distinct_from: [implement, test]
