@@ -27,6 +27,7 @@ modules=(
 	ci_accept
 	dashboard_snapshot
 	adapters_snapshot
+	gate
 )
 
 for module in "${modules[@]}"; do

@@ -28,6 +28,8 @@ ADOPTION_PATHS=(
 	"schemas"
 	"roles"
 	"adapters"
+	"gate"
+	"layouts"
 	"examples"
 	"palari.config.yaml"
 )
@@ -43,6 +45,7 @@ config_scalar() {
 	awk -v key="$key" '
     $0 ~ "^[[:space:]]*" key ":" {
       sub("^[[:space:]]*" key ":[[:space:]]*", "", $0)
+      sub(/[[:space:]]#.*$/, "", $0)
       gsub(/^[[:space:]]+|[[:space:]]+$/, "", $0)
       gsub(/^["'\'']|["'\'']$/, "", $0)
       print
@@ -65,6 +68,7 @@ config_nested_scalar() {
     }
     in_section && $0 ~ "^[[:space:]]+" key ":" {
       sub("^[[:space:]]*" key ":[[:space:]]*", "", $0)
+      sub(/[[:space:]]#.*$/, "", $0)
       gsub(/^[[:space:]]+|[[:space:]]+$/, "", $0)
       gsub(/^["'\'']|["'\'']$/, "", $0)
       print

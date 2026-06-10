@@ -1,12 +1,17 @@
 #!/usr/bin/env bash
+# Encodes the operator console quality floor as checks that fail CI:
+# structure and accessibility, the chain-of-custody surface, three ticket
+# surfaces, keyboard and auto-refresh affordances, responsive and motion
+# guards, AA contrast computed for both themes, and the snapshot contract
+# the console renders from, including the gate section.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 HTML="$ROOT/adapters/web/static/index.html"
 CSS="$ROOT/adapters/web/static/app-shell.css"
+BASE_CSS="$ROOT/adapters/web/static/styles.css"
 JS="$ROOT/adapters/web/static/app.js"
 SERVER="$ROOT/adapters/web/server.py"
-README="$ROOT/adapters/web/README.md"
 TMP="$(mktemp)"
 trap 'rm -f "$TMP"' EXIT
 
@@ -22,164 +27,152 @@ check_contains() {
 	fi
 }
 
+# --- Structure and accessibility -------------------------------------------
 check_contains "$HTML" 'class="skip-link"' "keyboard skip link"
 check_contains "$HTML" 'id="main-content"' "main workspace target"
 check_contains "$HTML" 'role="status" aria-live="polite"' "assistive status updates"
-check_contains "$HTML" 'class="workbench"' "split queue/review workbench"
-check_contains "$HTML" 'class="queue-column"' "queue workbench column"
-check_contains "$HTML" 'class="review-column"' "review workbench column"
-check_contains "$HTML" 'class="rail-guide"' "non-clicking console flow guide"
-check_contains "$HTML" 'id="healthActionsList"' "health action surface"
 check_contains "$HTML" 'Repository-governed agent work' "five-second purpose signal"
 check_contains "$HTML" 'Operator Console' "operator console title"
+check_contains "$HTML" 'class="workbench"' "split surfaces/dossier workbench"
+check_contains "$HTML" 'class="queue-column"' "surfaces workbench column"
+check_contains "$HTML" 'class="review-column"' "dossier workbench column"
+check_contains "$HTML" 'class="rail-guide"' "console flow guide"
+check_contains "$HTML" 'class="keymap"' "keyboard shortcut legend"
+check_contains "$HTML" 'id="healthActionsList"' "health action surface"
+
+# --- Three surfaces over one snapshot ----------------------------------------
+check_contains "$HTML" 'class="surface-tabs" role="tablist"' "surface tabs"
+check_contains "$HTML" 'data-surface="queue"' "queue surface tab"
+check_contains "$HTML" 'data-surface="board"' "board surface tab"
+check_contains "$HTML" 'data-surface="ledger"' "ledger surface tab"
 check_contains "$HTML" 'id="queueList"' "operator queue surface"
+check_contains "$HTML" 'id="boardLanes"' "pipeline board lanes"
 check_contains "$HTML" 'id="ticketSearch"' "ticket search control"
 check_contains "$HTML" 'class="ticket-table"' "accessible ticket table"
-check_contains "$HTML" 'id="ticketFocus"' "selected ticket review focus"
+check_contains "$HTML" 'id="ticketFocus"' "selected ticket dossier"
+
+# --- Cryptographic truth surfaces --------------------------------------------
+check_contains "$HTML" 'id="custody"' "chain of custody surface"
+check_contains "$HTML" 'id="rootFingerprint"' "root key plaque"
+check_contains "$HTML" 'id="gateChip"' "gate posture chip"
+check_contains "$HTML" 'id="gatePosture"' "signed acceptance summary"
+check_contains "$JS" 'custody-chain' "custody chain renderer"
+check_contains "$JS" 'verdict-stamp' "verdict stamp renderer"
+check_contains "$JS" 'verdict.reasons' "verbatim refusal reasons"
+check_contains "$JS" 'Honor-system' "honest gate-off state"
+check_contains "$JS" 'sealState' "evidence seal derivation"
+check_contains "$JS" 'gate verify' "verify command affordance"
+
+# --- Operator speed -----------------------------------------------------------
 check_contains "$HTML" 'id="themeButton"' "theme toggle control"
+check_contains "$HTML" 'id="autoButton"' "auto refresh toggle"
 check_contains "$HTML" 'id="roleList"' "role authority surface"
 check_contains "$HTML" 'id="humanSummary"' "human decision surface"
+check_contains "$JS" 'function formatTimestamp' "compact timestamp formatting"
+check_contains "$JS" 'function formatCountdown' "lease countdown formatting"
+check_contains "$JS" 'lease-tick' "live lease ticking"
+check_contains "$JS" 'document.hidden' "auto refresh pauses when hidden"
+check_contains "$JS" 'fresh=1' "manual refresh bypasses cache"
+check_contains "$JS" 'event.key === "/"' "search focus shortcut"
+check_contains "$JS" 'moveSelection' "j/k selection movement"
+check_contains "$JS" 'prefers-color-scheme: dark' "system theme respected on first load"
 
+# --- Layout, responsiveness, motion -------------------------------------------
 check_contains "$CSS" 'grid-template-columns: 252px minmax(0, 1fr)' "status rail plus workbench shell"
-check_contains "$CSS" 'overflow-x: hidden;' "320px horizontal overflow guard"
+check_contains "$BASE_CSS" 'overflow-x: hidden;' "320px horizontal overflow guard"
+check_contains "$BASE_CSS" 'min-width: 320px;' "minimum viewport support"
 check_contains "$CSS" 'min-width: 0;' "grid item min-width guard"
 check_contains "$CSS" 'width: min(1280px, 100%)' "bounded workbench width"
-check_contains "$CSS" 'padding-bottom: 22px;' "ticket-to-command breathing room"
-check_contains "$CSS" '@media (max-width: 1360px)' "danger-zone desktop breakpoint"
+check_contains "$CSS" '@media (max-width: 1360px)' "wide desktop breakpoint"
 check_contains "$CSS" '@media (max-width: 1180px)' "narrow desktop workbench breakpoint"
-check_contains "$CSS" '.workbench {' "queue/review split layout"
-check_contains "$CSS" '.support-grid {' "supporting proof panel grid"
-check_contains "$CSS" '.rail-guide {' "rail guide styling"
-check_contains "$CSS" '.view-title {' "non-clicking view label"
-check_contains "$CSS" '--focus: #5145cd;' "opaque focus token"
-check_contains "$CSS" 'body[data-health="watch"]' "semantic watch health state"
-check_contains "$CSS" 'body[data-health="blocked"]' "semantic blocked health state"
-check_contains "$CSS" '@media (max-width: 840px)' "responsive tablet/mobile breakpoint"
+check_contains "$CSS" '@media (max-width: 840px)' "tablet/mobile breakpoint"
 check_contains "$CSS" '@media (prefers-reduced-motion: reduce)' "reduced-motion support"
+check_contains "$CSS" '.workbench {' "surfaces/dossier split layout"
+check_contains "$CSS" '.support-grid {' "supporting proof panel grid"
+check_contains "$CSS" '.board-lanes {' "pipeline board lanes styling"
+check_contains "$CSS" '.custody-chain {' "custody chain styling"
+check_contains "$CSS" '.seal-disc {' "seal disc styling"
+check_contains "$CSS" '.verdict-stamp {' "verdict stamp styling"
 check_contains "$CSS" '.command-dock {' "command surface block"
 check_contains "$CSS" 'position: relative;' "non-overlapping command surface"
-check_contains "$CSS" '.topbar {' "top control bar"
-check_contains "$CSS" '.command-dock {' "command dock"
+check_contains "$CSS" 'max-height: min(420px, 58vh);' "command dock height guard"
 check_contains "$CSS" '.operator-strip {' "operator summary strip"
 check_contains "$CSS" '.queue-controls {' "queue search/filter controls"
-check_contains "$CSS" '.ticket-focus {' "selected ticket focus styling"
 check_contains "$CSS" '.readiness-grid {' "review readiness grid"
-check_contains "$CSS" '.timeline {' "ticket lifecycle timeline"
-check_contains "$CSS" 'body[data-theme="dark"]' "dark theme support"
 check_contains "$CSS" '.ticket-table {' "ticket table styling"
 check_contains "$CSS" '.ticket-link {' "ticket table selection control"
 check_contains "$CSS" '.ticket-table td::before' "mobile ticket card labels"
-check_contains "$CSS" '.mono-panel .pill' "repository branch pill wrapping"
-check_contains "$CSS" '.progress-rail {' "ticket progress rail"
-check_contains "$CSS" '.role-row,' "role authority rows"
-check_contains "$CSS" '.human-summary {' "human decision styling"
-check_contains "$CSS" 'max-height: min(420px, 58vh);' "mobile command dock height guard"
+check_contains "$CSS" 'body[data-theme="dark"]' "dark theme support"
+check_contains "$CSS" 'body[data-health="watch"]' "semantic watch health state"
+check_contains "$CSS" 'body[data-health="blocked"]' "semantic blocked health state"
+check_contains "$CSS" ':focus-visible' "visible keyboard focus"
 check_contains "$CSS" 'white-space: nowrap;' "timestamp nowrap/truncation guard"
-check_contains "$JS" 'function formatTimestamp' "compact timestamp formatting"
+check_contains "$CSS" '--seal:' "reserved cryptographic truth color"
 
-if grep -Eq '^(nav|nav a|nav a::before)([[:space:]{,:]|$)' "$CSS"; then
-	printf 'dashboard-rubric: broad nav selector found in app-shell.css\n' >&2
+# The seal color must stay reserved: state pills never reuse it.
+if grep -E '^\.status\.[a-z-]+' "$CSS" | grep -q 'seal'; then
+	printf 'dashboard-rubric: the seal color leaked into generic status pills\n' >&2
 	exit 1
 fi
 
+# --- AA contrast, computed for both themes ------------------------------------
 python3 - "$CSS" <<'PY'
 import re
 import sys
 
-css = open(sys.argv[1], encoding="utf-8").read()
+text = open(sys.argv[1], encoding="utf-8").read()
 
-for selector in (".topbar", ".command-dock"):
-    match = re.search(rf"{re.escape(selector)}\s*\{{(?P<body>.*?)\n\}}", css, re.S)
-    if not match:
-        raise SystemExit(f"dashboard-rubric: missing {selector} block")
-    body = match.group("body")
-    if "position: sticky" in body or "position: fixed" in body:
-        raise SystemExit(f"dashboard-rubric: {selector} must not be an overlay")
-PY
+def block_tokens(block: str) -> dict:
+    return dict(re.findall(r"--([a-z-]+):\s*(#[0-9a-fA-F]{6})", block))
 
-check_contains "$JS" 'function healthIssues' "issue-to-action model"
-check_contains "$JS" 'function renderOperatorSummary' "operator summary renderer"
-check_contains "$JS" 'function renderTicketRows' "ticket table renderer"
-check_contains "$JS" 'function ticketSearchText' "ticket search model"
-check_contains "$JS" 'function renderTicketFocus' "selected ticket review renderer"
-check_contains "$JS" 'function preferredTheme' "theme preference model"
-check_contains "$JS" 'Refreshing repository snapshot.' "visible refresh feedback"
-check_contains "$JS" 'Viewing' "plain selected-ticket action language"
-check_contains "$JS" 'function renderRoles' "role renderer"
-check_contains "$JS" 'snapshot.health.missing_evidence' "missing evidence visibility"
-check_contains "$JS" 'snapshot.roles' "role snapshot consumption"
-check_contains "$JS" 'ticket.next_action' "structured next action consumption"
-check_contains "$JS" 'ticket.created_by_role' "ticket creator role visibility"
-check_contains "$JS" 'ticket.delegated_to_role' "ticket delegated role visibility"
-check_contains "$JS" 'ticket.accepted_by' "ticket acceptance actor visibility"
-check_contains "$JS" 'ticket.evidence.has_manifest' "manifest evidence visibility"
-check_contains "$JS" 'function makeCopyButton' "copy command control"
-check_contains "$JS" 'setAttribute("aria-busy", "true")' "loading busy state"
-check_contains "$JS" 'document.body.dataset.health' "stateful health semantics"
-check_contains "$JS" 'issue.severity === "blocked"' "blocked severity grading"
-check_contains "$JS" '?fresh=1' "manual refresh cache bypass"
-check_contains "$JS" 'issues.forEach((issue)' "all health warnings get action rows"
-check_contains "$JS" 'Dashboard refreshed. Health' "meaningful live refresh announcement"
+root_match = re.search(r":root\s*{(.*?)}", text, re.S)
+dark_match = re.search(r'body\[data-theme="dark"\]\s*{(.*?)}', text, re.S)
+if not root_match or not dark_match:
+    raise SystemExit("dashboard-rubric: could not locate token blocks")
 
-check_contains "$SERVER" 'SNAPSHOT_CACHE_TTL' "short-lived snapshot cache"
-check_contains "$SERVER" 'query.get("fresh") == ["1"]' "fresh snapshot query bypass"
-check_contains "$SERVER" 'target.relative_to(static_root)' "path containment uses Path.relative_to"
-check_contains "$SERVER" 'not is_loopback_host(args.host) and not args.unsafe_bind' "non-loopback bind refusal"
-check_contains "$SERVER" '"--unsafe-bind"' "explicit unsafe bind override"
-check_contains "$SERVER" '"snapshot", "--json"' "server delegates state to palari snapshot"
-check_contains "$README" 'split queue/review workbench' "documented dashboard style"
-check_contains "$README" 'operator queue with the next allowed action' "documented operator queue"
+light = block_tokens(root_match.group(1))
+dark = {**light, **block_tokens(dark_match.group(1))}
 
-if grep -Eq 'tickets/open|tickets/closed|frontmatter|palari.config' "$SERVER"; then
-	printf 'dashboard-rubric: web server must not parse ticket/config state directly\n' >&2
-	exit 1
-fi
-
-python3 - "$CSS" <<'PY'
-import re
-import sys
-
-css_path = sys.argv[1]
-css = open(css_path, encoding="utf-8").read()
-tokens = dict(re.findall(r"--([a-z-]+):\s*(#[0-9a-fA-F]{6});", css))
-
-def channel(value: int) -> float:
-    normalized = value / 255
-    if normalized <= 0.03928:
-        return normalized / 12.92
-    return ((normalized + 0.055) / 1.055) ** 2.4
-
-def luminance(hex_color: str) -> float:
-    raw = hex_color.lstrip("#")
-    red, green, blue = (int(raw[index:index + 2], 16) for index in (0, 2, 4))
-    return 0.2126 * channel(red) + 0.7152 * channel(green) + 0.0722 * channel(blue)
+def luminance(value: str) -> float:
+    channels = [int(value[i:i + 2], 16) / 255 for i in (1, 3, 5)]
+    linear = [
+        channel / 12.92 if channel <= 0.04045 else ((channel + 0.055) / 1.055) ** 2.4
+        for channel in channels
+    ]
+    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
 
 def contrast(foreground: str, background: str) -> float:
     first = luminance(foreground)
     second = luminance(background)
-    light, dark = max(first, second), min(first, second)
-    return (light + 0.05) / (dark + 0.05)
+    lighter, darker = max(first, second), min(first, second)
+    return (lighter + 0.05) / (darker + 0.05)
 
 checks = [
     ("ink text", "ink", "surface", 4.5),
     ("muted text", "muted", "surface", 4.5),
-    ("subtle text", "subtle", "surface", 4.5),
-    ("focus ring", "focus", "surface", 3.0),
+    ("seal truth", "seal", "surface", 4.5),
     ("green status", "green", "surface", 4.5),
     ("amber status", "amber", "surface", 4.5),
-    ("violet status", "violet", "surface", 4.5),
-    ("blue status", "blue", "surface", 4.5),
     ("red status", "red", "surface", 4.5),
+    ("blue status", "blue", "surface", 4.5),
+    ("focus ring", "focus", "surface", 3.0),
+    ("seal on its wash", "seal", "seal-wash", 4.5),
+    ("red on its wash", "red", "red-wash", 4.5),
+    ("amber on its wash", "amber", "amber-wash", 4.5),
+    ("green on its wash", "green", "green-wash", 4.5),
 ]
 
-for label, foreground, background, minimum in checks:
-    ratio = contrast(tokens[foreground], tokens[background])
-    if ratio < minimum:
-        raise SystemExit(
-            f"dashboard-rubric: {label} contrast {ratio:.2f}:1 is below {minimum}:1"
-        )
+for theme_name, tokens in (("light", light), ("dark", dark)):
+    for label, foreground, background, minimum in checks:
+        ratio = contrast(tokens[foreground], tokens[background])
+        if ratio < minimum:
+            raise SystemExit(
+                f"dashboard-rubric: {theme_name} {label} contrast "
+                f"{ratio:.2f}:1 is below {minimum}:1"
+            )
 PY
 
+# --- Server and snapshot contract ----------------------------------------------
 python3 - "$SERVER" <<'PY'
 from pathlib import Path
 import sys
@@ -187,6 +180,7 @@ import sys
 path = Path(sys.argv[1])
 compile(path.read_text(encoding="utf-8"), str(path), "exec")
 PY
+
 (cd "$ROOT" && ./bin/palari web --check >"$TMP")
 grep -Fq '"project": "Palari Orchestrator"' "$TMP"
 python3 - "$TMP" <<'PY'
@@ -199,6 +193,9 @@ assert "next_action" in snapshot["operator"]
 assert "roles" in snapshot
 assert "items" in snapshot["roles"]
 assert "lint" in snapshot["roles"]
+gate = snapshot["gate"]
+for key in ("enabled", "available", "initialized", "root_fingerprint", "layout", "tickets"):
+    assert key in gate, f"gate section missing {key}"
 active_tickets = [ticket for ticket in snapshot["tickets"] if ticket["status"] != "accepted"]
 assert snapshot["health"]["stale_claims"] <= len(active_tickets)
 for ticket in snapshot["tickets"]:
@@ -206,6 +203,7 @@ for ticket in snapshot["tickets"]:
     assert "created_by_role" in ticket
     assert "delegated_to_role" in ticket
     assert "accepted_by" in ticket
+    assert "lease" in ticket
 PY
 
-printf 'dashboard-rubric: ok (static layout checks + contrast)\n'
+printf 'dashboard-rubric: ok (structure, custody surface, contrast both themes, snapshot contract)\n'

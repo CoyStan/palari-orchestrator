@@ -297,6 +297,10 @@ cmd_doctor() {
 	doctor_check_file "lib/palari/ci_accept.bash" errors
 	doctor_check_file "lib/palari/dashboard_snapshot.bash" errors
 	doctor_check_file "lib/palari/adapters_snapshot.bash" errors
+	doctor_check_file "lib/palari/gate.bash" errors
+	doctor_check_file "adapters/gate/palari_gate.py" errors
+	doctor_check_file "gate/forgegate/gate.py" errors
+	doctor_check_file "layouts/palari-change.yml" errors
 	doctor_check_file "palari.config.yaml" errors
 	if [[ -f "$ROOT/AGENTS.md" ]]; then
 		printf 'doctor: ok file AGENTS.md\n'
@@ -332,6 +336,7 @@ cmd_doctor() {
 	else
 		printf 'doctor: optional GitHub workflow not installed; run ./bin/palari init --ci when ready\n'
 	fi
+	gate_doctor_report
 	if ((errors == 0)); then
 		printf 'doctor: ok\n'
 	else

@@ -55,6 +55,9 @@ source "$PALARI_LIB_DIR/dashboard_snapshot.bash"
 palari_require_module "$PALARI_LIB_DIR/adapters_snapshot.bash"
 # shellcheck source=lib/palari/adapters_snapshot.bash
 source "$PALARI_LIB_DIR/adapters_snapshot.bash"
+palari_require_module "$PALARI_LIB_DIR/gate.bash"
+# shellcheck source=lib/palari/gate.bash
+source "$PALARI_LIB_DIR/gate.bash"
 unset -f palari_require_module
 
 usage() {
@@ -63,8 +66,7 @@ usage: palari COMMAND [ARGS]
 
 commands:
   init [--ci] [--hooks]        Create configured directories and optional adapters.
-  adopt TARGET [--ci] [--hooks]
-                               Copy Palari into an existing git repository.
+  adopt TARGET [--ci] [--hooks] Copy Palari into an existing git repository.
   doctor [lifecycle]           Check install health or active ticket lifecycle.
   status [--next]              Show compact orchestration status.
   snapshot --json              Print the repo-native JSON state model.
@@ -87,13 +89,12 @@ commands:
   worktree ID                  Prepare and verify ticket branch/worktree.
   packet ID ROLE               Print specialist/reviewer/acceptor or custom-profile packet.
   sandbox create ID            Create a disposable local repo sandbox.
-  agent run ID --executor opencode
-                               Run an external executor from a Palari packet.
+  agent run ID --executor opencode  Run an executor from a Palari packet.
   memory ...                   Manage optional repo-native memory.
-  skill create NAME --description TEXT
-                               Adapter scaffold for feature-contract Agent Skills.
+  skill create NAME --description TEXT  Scaffold feature-contract Agent Skills.
   ci ID [--base REF]           Run ticket gates and write evidence artifacts.
   ci --repo-only               Run non-merge-gate repository lint evidence.
+  gate SUBCOMMAND [ARGS]       Forge-proof accept gate; run `palari gate help`.
   lint [ID]                    Lint ticket fields and report gates.
   report-lint [ID]             Lint report presence and headings.
   scope-check [ID] [--base REF]
@@ -103,8 +104,7 @@ commands:
   github ruleset-command       Print the gh api command that activates required checks.
   github install-ruleset       Install the GitHub ruleset with gh api.
   mcp manifest                 Print optional MCP tool metadata.
-  web [--host HOST] [--port PORT]
-                               Run the optional local web dashboard.
+  web [--host HOST] [--port PORT]  Run the optional local web dashboard.
   accept ID --by NAME          Human/authorized-reviewer acceptance gate.
 
 init options:
@@ -253,6 +253,10 @@ skill)
 ci)
 	shift
 	cmd_ci "$@"
+	;;
+gate)
+	shift
+	cmd_gate "$@"
 	;;
 lint)
 	shift
