@@ -1,18 +1,19 @@
 ---
 id: POS-0031
 title: DeepSeek Palari-governed wave 2
-status: open
+status: accepted
 risk: R1
 priority: P1
 stream: research
-claimed_by:
-claimed_at:
-claim_ref:
-claim_heartbeat_at:
-claim_expires_at:
+claimed_by: codex
+claimed_at: 2026-06-10T02:25:42Z
+claim_ref: refs/palari/claims/POS-0031
+claim_heartbeat_at: 2026-06-10T03:28:41Z
+claim_expires_at: 2026-06-10T03:33:41Z
 allowed_paths:
   - research/pilots/deepseek-full-pilot/**
   - tickets/open/POS-0031-*.md
+  - tickets/closed/POS-0031-*.md
   - reports/POS-0031-technical-report.md
   - reports/POS-0031-reviewer-note.md
   - reports/evidence/POS-0031/**
@@ -24,6 +25,7 @@ allowed_paths:
   - lib/palari/tickets_workspace.bash
   - lib/palari/ci_accept.bash
   - tests/run-agent-wrapper.sh
+  - tests/run-github-ci.sh
   - reports/evidence/**
 forbidden_paths:
   - .env
@@ -47,10 +49,10 @@ branch: ticket/POS-0031
 worktree: /home/quetza/palari-orchestrator/../palari-orchestrator-worktrees/POS-0031
 created_by_role: ROLE-RESEARCH-LEAD
 delegated_to_role: ROLE-RESEARCH-EVALUATOR
-accepted_by:
-accepted_at:
+accepted_by: founder
+accepted_at: 2026-06-10T03:28:50Z
 created: 2026-06-09
-updated: 2026-06-09
+updated: 2026-06-10
 ---
 
 # POS-0031 DeepSeek Palari-governed wave 2

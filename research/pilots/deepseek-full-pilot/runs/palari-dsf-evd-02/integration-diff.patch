@@ -1,0 +1,257 @@
+diff --git a/lib/palari/ci_accept.bash b/lib/palari/ci_accept.bash
+index 0146936..61b716e 100644
+--- a/lib/palari/ci_accept.bash
++++ b/lib/palari/ci_accept.bash
+@@ -137,6 +137,7 @@ ci_write_manifest() {
+ 		printf '{\n'
+ 		printf '  "schema_version": "1",\n'
+ 		printf '  "generator": "palari-ci",\n'
++		printf '  "manifest_file": "manifest.json",\n'
+ 		printf '  "ticket": '
+ 		json_string "$ticket_label"
+ 		printf ',\n  "base_ref": '
+@@ -167,8 +168,14 @@ ci_existing_evidence_valid() {
+ 	local ticket_id="$1"
+ 	local dir="$ROOT/$EVIDENCE_DIR/$ticket_id"
+ 	local manifest="$dir/manifest.json"
+-	[[ -s "$manifest" ]] || return 1
+-	command -v python3 >/dev/null 2>&1 || return 1
++	[[ -s "$manifest" ]] || {
++		printf 'ci: evidence manifest missing or empty for %s: %s/manifest.json\n' "$ticket_id" "$EVIDENCE_DIR/$ticket_id" >&2
++		return 1
++	}
++	command -v python3 >/dev/null 2>&1 || {
++		printf 'ci: python3 required to validate evidence manifest for %s\n' "$ticket_id" >&2
++		return 1
++	}
+ 
+ 	python3 - "$manifest" "$dir" "$ticket_id" <<'PY'
+ import hashlib
+@@ -181,48 +188,58 @@ evidence_dir = pathlib.Path(sys.argv[2])
+ ticket_id = sys.argv[3]
+ required = {"verification.log", "junit.xml", "palari.sarif"}
+ 
++
++def fail(message: str) -> None:
++    print(f"ci: invalid evidence manifest for {ticket_id}: {message}", file=sys.stderr)
++    raise SystemExit(1)
++
++
+ try:
+     data = json.loads(manifest_path.read_text(encoding="utf-8"))
+-except Exception:
+-    raise SystemExit(1)
++except Exception as exc:
++    fail(f"cannot parse manifest.json: {exc}")
+ 
+-if data.get("schema_version") != "1":
+-    raise SystemExit(1)
+-if data.get("generator") != "palari-ci":
+-    raise SystemExit(1)
+-if data.get("ticket") != ticket_id:
+-    raise SystemExit(1)
+-if data.get("status") != "passed":
+-    raise SystemExit(1)
++checks = {
++    "schema_version": "1",
++    "generator": "palari-ci",
++    "ticket": ticket_id,
++    "status": "passed",
++}
++for key, expected in checks.items():
++    actual = data.get(key)
++    if actual != expected:
++        fail(f"{key} is {actual!r}, expected {expected!r}")
+ 
+ artifacts = data.get("artifacts")
+ if not isinstance(artifacts, list):
+-    raise SystemExit(1)
++    fail("artifacts must be a list with sha256 entries")
+ 
+ seen = set()
+ root = evidence_dir.resolve()
+ for item in artifacts:
+     if not isinstance(item, dict):
+-        raise SystemExit(1)
++        fail("artifact entry must be an object")
+     name = item.get("name")
+     digest = item.get("sha256")
+     if name not in required:
+         continue
+     if not isinstance(digest, str) or len(digest) != 64:
+-        raise SystemExit(1)
++        fail(f"{name} has missing or invalid sha256")
+     path = (evidence_dir / name).resolve()
+     try:
+         path.relative_to(root)
+     except ValueError:
+-        raise SystemExit(1)
++        fail(f"{name} escapes evidence directory")
+     if not path.is_file() or path.stat().st_size == 0:
+-        raise SystemExit(1)
+-    if hashlib.sha256(path.read_bytes()).hexdigest() != digest:
+-        raise SystemExit(1)
++        fail(f"{name} is missing or empty")
++    actual = hashlib.sha256(path.read_bytes()).hexdigest()
++    if actual != digest:
++        fail(f"{name} sha256 mismatch")
+     seen.add(name)
+ 
+-if seen != required:
+-    raise SystemExit(1)
++missing = required - seen
++if missing:
++    fail("missing artifact hash entries: " + ", ".join(sorted(missing)))
+ PY
+ }
+ 
+diff --git a/tests/run-agent-wrapper.sh b/tests/run-agent-wrapper.sh
+index 665bcae..e22f081 100755
+--- a/tests/run-agent-wrapper.sh
++++ b/tests/run-agent-wrapper.sh
+@@ -115,4 +115,75 @@ grep -Fq "missing" "$TMP_ROOT/lint-heading.err"
+ grep -Fq "CI Evidence" "$TMP_ROOT/lint-heading.err"
+ grep -Fq "add this heading" "$TMP_ROOT/lint-heading.err"
+ 
++# --- evidence manifest validation failure modes ---
++export ROOT="$WORK"
++export EVIDENCE_DIR="reports/evidence"
++source "$REPO_ROOT/lib/palari/ci_accept.bash"
++
++check_diagnostic() {
++	local scenario="$1" label="$2" grep_pattern="$3"
++	if ! grep -Fq "$grep_pattern" "$TMP_ROOT/$scenario.err"; then
++		printf 'agent-wrapper: %s: expected diagnostic containing "%s"\n' "$label" "$grep_pattern" >&2
++		printf '  stderr: %s\n' "$(cat "$TMP_ROOT/$scenario.err")" >&2
++		exit 1
++	fi
++}
++
++# 1. broken JSON
++mkdir -p "$WORK/$EVIDENCE_DIR/BADMAN-001"
++printf 'not json\n' >"$WORK/$EVIDENCE_DIR/BADMAN-001/manifest.json"
++ci_existing_evidence_valid "BADMAN-001" 2>"$TMP_ROOT/broken-json.err" && { printf 'expected broken JSON to fail\n' >&2; exit 1; }
++check_diagnostic "broken-json" "broken JSON" "cannot parse"
++rm -rf "$WORK/$EVIDENCE_DIR/BADMAN-001"
++
++# 2. wrong schema_version
++mkdir -p "$WORK/$EVIDENCE_DIR/BADMAN-001"
++printf '{"schema_version":"0","generator":"palari-ci","ticket":"BADMAN-001","status":"passed","artifacts":[]}\n' >"$WORK/$EVIDENCE_DIR/BADMAN-001/manifest.json"
++ci_existing_evidence_valid "BADMAN-001" 2>"$TMP_ROOT/wrong-schema.err" && { printf 'expected wrong schema to fail\n' >&2; exit 1; }
++check_diagnostic "wrong-schema" "wrong schema" "schema_version"
++rm -rf "$WORK/$EVIDENCE_DIR/BADMAN-001"
++
++# 3. wrong generator
++mkdir -p "$WORK/$EVIDENCE_DIR/BADMAN-001"
++printf '{"schema_version":"1","generator":"not-palari","ticket":"BADMAN-001","status":"passed","artifacts":[]}\n' >"$WORK/$EVIDENCE_DIR/BADMAN-001/manifest.json"
++ci_existing_evidence_valid "BADMAN-001" 2>"$TMP_ROOT/wrong-generator.err" && { printf 'expected wrong generator to fail\n' >&2; exit 1; }
++check_diagnostic "wrong-generator" "wrong generator" "generator"
++rm -rf "$WORK/$EVIDENCE_DIR/BADMAN-001"
++
++# 4. wrong status
++mkdir -p "$WORK/$EVIDENCE_DIR/BADMAN-001"
++printf '{"schema_version":"1","generator":"palari-ci","ticket":"BADMAN-001","status":"failed","artifacts":[]}\n' >"$WORK/$EVIDENCE_DIR/BADMAN-001/manifest.json"
++ci_existing_evidence_valid "BADMAN-001" 2>"$TMP_ROOT/wrong-status.err" && { printf 'expected wrong status to fail\n' >&2; exit 1; }
++check_diagnostic "wrong-status" "wrong status" "status"
++rm -rf "$WORK/$EVIDENCE_DIR/BADMAN-001"
++
++# 5. missing artifacts list
++mkdir -p "$WORK/$EVIDENCE_DIR/BADMAN-001"
++printf '{"schema_version":"1","generator":"palari-ci","ticket":"BADMAN-001","status":"passed"}\n' >"$WORK/$EVIDENCE_DIR/BADMAN-001/manifest.json"
++ci_existing_evidence_valid "BADMAN-001" 2>"$TMP_ROOT/missing-artifacts.err" && { printf 'expected missing artifacts to fail\n' >&2; exit 1; }
++check_diagnostic "missing-artifacts" "missing artifacts" "artifacts"
++rm -rf "$WORK/$EVIDENCE_DIR/BADMAN-001"
++
++# 6. invalid sha256 length
++mkdir -p "$WORK/$EVIDENCE_DIR/BADMAN-001"
++printf '{"schema_version":"1","generator":"palari-ci","ticket":"BADMAN-001","status":"passed","artifacts":[{"name":"verification.log","sha256":"short"}]}\n' >"$WORK/$EVIDENCE_DIR/BADMAN-001/manifest.json"
++ci_existing_evidence_valid "BADMAN-001" 2>"$TMP_ROOT/bad-sha256.err" && { printf 'expected bad sha256 to fail\n' >&2; exit 1; }
++check_diagnostic "bad-sha256" "bad sha256" "sha256"
++rm -rf "$WORK/$EVIDENCE_DIR/BADMAN-001"
++
++# 7. artifact file missing
++mkdir -p "$WORK/$EVIDENCE_DIR/BADMAN-001"
++printf '{"schema_version":"1","generator":"palari-ci","ticket":"BADMAN-001","status":"passed","artifacts":[{"name":"verification.log","sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}]}\n' >"$WORK/$EVIDENCE_DIR/BADMAN-001/manifest.json"
++ci_existing_evidence_valid "BADMAN-001" 2>"$TMP_ROOT/missing-file.err" && { printf 'expected missing file to fail\n' >&2; exit 1; }
++check_diagnostic "missing-file" "missing file" "missing or empty"
++rm -rf "$WORK/$EVIDENCE_DIR/BADMAN-001"
++
++# 8. sha256 checksum mismatch
++mkdir -p "$WORK/$EVIDENCE_DIR/BADMAN-001"
++printf 'some content\n' >"$WORK/$EVIDENCE_DIR/BADMAN-001/verification.log"
++printf '{"schema_version":"1","generator":"palari-ci","ticket":"BADMAN-001","status":"passed","artifacts":[{"name":"verification.log","sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}]}\n' >"$WORK/$EVIDENCE_DIR/BADMAN-001/manifest.json"
++ci_existing_evidence_valid "BADMAN-001" 2>"$TMP_ROOT/sha256-mismatch.err" && { printf 'expected sha256 mismatch to fail\n' >&2; exit 1; }
++check_diagnostic "sha256-mismatch" "sha256 mismatch" "sha256 mismatch"
++rm -rf "$WORK/$EVIDENCE_DIR/BADMAN-001"
++
+ printf 'agent-wrapper: ok\n'
+diff --git a/tests/run-cli-structure.sh b/tests/run-cli-structure.sh
+index 844a821..ae8e76c 100755
+--- a/tests/run-cli-structure.sh
++++ b/tests/run-cli-structure.sh
+@@ -48,4 +48,65 @@ grep -Fq "doctor_check_file \"lib/palari/core.bash\"" "$ROOT/lib/palari/init_ado
+ grep -Fq "## Fixed Enough Criteria" "$ROOT/contracts/cli-maintainability.md" ||
+ 	fail "missing CLI maintainability criteria"
+ 
++# --- Manifest validation coverage ---
++ci_accept="$ROOT/lib/palari/ci_accept.bash"
++
++check_manifest_has() {
++	local label="$1" pattern="$2"
++	grep -q "$pattern" "$ci_accept" || fail "manifest validation missing: $label"
++}
++
++check_manifest_has "schema_version check" '"schema_version"'
++check_manifest_has "generator check" '"generator"'
++check_manifest_has "ticket id match" '"ticket"'
++check_manifest_has "status passed requirement" '"status"'
++check_manifest_has "artifacts list type check" 'isinstance(artifacts, list)'
++check_manifest_has "sha256 length check" 'len(digest)'
++check_manifest_has "path escape guard" 'relative_to'
++check_manifest_has "sha256 checksum verify" 'hashlib.sha256'
++check_manifest_has "required artifact set check" 'required - seen'
++check_manifest_has "missing artifact report" 'missing artifact'
++check_manifest_has "ci_existing_evidence_valid function" 'ci_existing_evidence_valid()'
++check_manifest_has "ticket_evidence_manifest_valid function" 'ticket_evidence_manifest_valid()'
++check_manifest_has "ci diagnostic output" 'invalid evidence manifest'
++check_manifest_has "accept diagnostic output" 'invalid evidence manifest'
++
++# Overlap-detection regression: verify scope-overlaps diagnostic
++OVERLAP_OUT="$(mktemp)"
++cleanup_overlap() {
++	rm -f "$ROOT/tickets/open/POS-TEST-001-alpha.md" \
++		"$ROOT/tickets/open/POS-TEST-002-beta.md" \
++		"$OVERLAP_OUT"
++}
++trap cleanup_overlap EXIT
++
++cat >"$ROOT/tickets/open/POS-TEST-001-alpha.md" <<'TICKET'
++---
++id: POS-TEST-001
++title: Overlap Alpha
++status: open
++risk: R1
++allowed_paths:
++  - check-alpha/**
++---
++TICKET
++
++cat >"$ROOT/tickets/open/POS-TEST-002-beta.md" <<'TICKET'
++---
++id: POS-TEST-002
++title: Overlap Beta
++status: open
++risk: R1
++allowed_paths:
++  - check-alpha/golden/**
++---
++TICKET
++
++if "$ROOT/bin/palari" scope-overlaps POS-TEST-001 >"$OVERLAP_OUT" 2>&1; then
++	fail "scope-overlaps expected overlap detection"
++fi
++
++grep -Fq "scope-overlaps: POS-TEST-001 overlaps POS-TEST-002" "$OVERLAP_OUT" ||
++	fail "overlap diagnostic missing scope-overlaps wording"
++
+ printf 'cli-structure: ok\n'

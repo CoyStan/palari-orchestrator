@@ -1,0 +1,4 @@
+[93m[1m! [0mpermission requested: external_directory (/home/quetza/palari-orchestrator-worktrees/POS-0031/research/pilots/deepseek-full-pilot/runs/palari-dsf-gov-02/lib/palari/*); auto-rejecting
+[93m[1m! [0mpermission requested: external_directory (/home/quetza/palari-orchestrator-worktrees/POS-0031/research/pilots/deepseek-full-pilot/runs/palari-dsf-gov-02/lib/palari/*); auto-rejecting
+[93m[1m! [0mpermission requested: external_directory (/home/quetza/palari-orchestrator-worktrees/POS-0031/research/pilots/deepseek-full-pilot/runs/palari-dsf-gov-02/tests/*); auto-rejecting
+[93m[1m! [0mpermission requested: external_directory (/home/quetza/palari-orchestrator-worktrees/POS-0031/research/pilots/deepseek-full-pilot/runs/palari-dsf-gov-02/tests/golden/*); auto-rejecting

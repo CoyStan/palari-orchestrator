@@ -48,4 +48,65 @@ grep -Fq "doctor_check_file \"lib/palari/core.bash\"" "$ROOT/lib/palari/init_ado
 grep -Fq "## Fixed Enough Criteria" "$ROOT/contracts/cli-maintainability.md" ||
 	fail "missing CLI maintainability criteria"
 
+# --- Manifest validation coverage ---
+ci_accept="$ROOT/lib/palari/ci_accept.bash"
+
+check_manifest_has() {
+	local label="$1" pattern="$2"
+	grep -q "$pattern" "$ci_accept" || fail "manifest validation missing: $label"
+}
+
+check_manifest_has "schema_version check" '"schema_version"'
+check_manifest_has "generator check" '"generator"'
+check_manifest_has "ticket id match" '"ticket"'
+check_manifest_has "status passed requirement" '"status"'
+check_manifest_has "artifacts list type check" 'isinstance(artifacts, list)'
+check_manifest_has "sha256 length check" 'len(digest)'
+check_manifest_has "path escape guard" 'relative_to'
+check_manifest_has "sha256 checksum verify" 'hashlib.sha256'
+check_manifest_has "required artifact set check" 'required - seen'
+check_manifest_has "missing artifact report" 'missing artifact'
+check_manifest_has "ci_existing_evidence_valid function" 'ci_existing_evidence_valid()'
+check_manifest_has "ticket_evidence_manifest_valid function" 'ticket_evidence_manifest_valid()'
+check_manifest_has "ci diagnostic output" 'invalid evidence manifest'
+check_manifest_has "accept diagnostic output" 'invalid evidence manifest'
+
+# Overlap-detection regression: verify scope-overlaps diagnostic
+OVERLAP_OUT="$(mktemp)"
+cleanup_overlap() {
+	rm -f "$ROOT/tickets/open/POS-TEST-001-alpha.md" \
+		"$ROOT/tickets/open/POS-TEST-002-beta.md" \
+		"$OVERLAP_OUT"
+}
+trap cleanup_overlap EXIT
+
+cat >"$ROOT/tickets/open/POS-TEST-001-alpha.md" <<'TICKET'
+---
+id: POS-TEST-001
+title: Overlap Alpha
+status: open
+risk: R1
+allowed_paths:
+  - check-alpha/**
+---
+TICKET
+
+cat >"$ROOT/tickets/open/POS-TEST-002-beta.md" <<'TICKET'
+---
+id: POS-TEST-002
+title: Overlap Beta
+status: open
+risk: R1
+allowed_paths:
+  - check-alpha/golden/**
+---
+TICKET
+
+if "$ROOT/bin/palari" scope-overlaps POS-TEST-001 >"$OVERLAP_OUT" 2>&1; then
+	fail "scope-overlaps expected overlap detection"
+fi
+
+grep -Fq "scope-overlaps: POS-TEST-001 overlaps POS-TEST-002" "$OVERLAP_OUT" ||
+	fail "overlap diagnostic missing scope-overlaps wording"
+
 printf 'cli-structure: ok\n'

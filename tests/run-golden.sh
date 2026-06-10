@@ -513,7 +513,7 @@ grep -Fq "claim lease is expired" "$TMP_ROOT/expired-accept.out"
 ./bin/palari ticket heartbeat POS-0001 >/dev/null
 ./bin/palari lint POS-0001 >"$TMP_ROOT/lint.out"
 ./bin/palari accept POS-0001 --by founder >"$TMP_ROOT/accept.out"
-./bin/palari status >"$TMP_ROOT/status.out"
+./bin/palari status --next >"$TMP_ROOT/status.out"
 
 grep -Fq "scope-check: ok for POS-0001" "$TMP_ROOT/scope.out"
 grep -Fq "lint: ok for POS-0001" "$TMP_ROOT/lint.out"

@@ -1,0 +1,22 @@
+# Palari CI Evidence
+
+- Ticket: POS-0031
+- Base ref: local working tree
+- Created: 2026-06-10T03:47:42Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0031 (6 changed path(s))
+```
+
+## lint
+
+```text
+report-lint: ok for POS-0031
+lint: ok for POS-0031
+```
+
+## stored evidence POS-0031
+
+Reused accepted ticket evidence from `reports/evidence/POS-0031`.

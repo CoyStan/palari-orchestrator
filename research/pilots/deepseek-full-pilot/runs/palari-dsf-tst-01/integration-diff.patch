@@ -1,0 +1,47 @@
+diff --git a/tests/run-cli-structure.sh b/tests/run-cli-structure.sh
+index 844a821..39d99a8 100755
+--- a/tests/run-cli-structure.sh
++++ b/tests/run-cli-structure.sh
+@@ -48,4 +48,42 @@ grep -Fq "doctor_check_file \"lib/palari/core.bash\"" "$ROOT/lib/palari/init_ado
+ grep -Fq "## Fixed Enough Criteria" "$ROOT/contracts/cli-maintainability.md" ||
+ 	fail "missing CLI maintainability criteria"
+ 
++# Overlap-detection regression: verify scope-overlaps diagnostic
++OVERLAP_OUT="$(mktemp)"
++cleanup_overlap() {
++	rm -f "$ROOT/tickets/open/POS-TEST-001-alpha.md" \
++		"$ROOT/tickets/open/POS-TEST-002-beta.md" \
++		"$OVERLAP_OUT"
++}
++trap cleanup_overlap EXIT
++
++cat >"$ROOT/tickets/open/POS-TEST-001-alpha.md" <<'TICKET'
++---
++id: POS-TEST-001
++title: Overlap Alpha
++status: open
++risk: R1
++allowed_paths:
++  - check-alpha/**
++---
++TICKET
++
++cat >"$ROOT/tickets/open/POS-TEST-002-beta.md" <<'TICKET'
++---
++id: POS-TEST-002
++title: Overlap Beta
++status: open
++risk: R1
++allowed_paths:
++  - check-alpha/golden/**
++---
++TICKET
++
++if "$ROOT/bin/palari" scope-overlaps POS-TEST-001 >"$OVERLAP_OUT" 2>&1; then
++	fail "scope-overlaps expected overlap detection"
++fi
++
++grep -Fq "scope-overlaps: POS-TEST-001 overlaps POS-TEST-002" "$OVERLAP_OUT" ||
++	fail "overlap diagnostic missing scope-overlaps wording"
++
+ printf 'cli-structure: ok\n'

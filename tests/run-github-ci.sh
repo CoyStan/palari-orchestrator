@@ -4,6 +4,7 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TMP_ROOT="$(mktemp -d)"
 trap 'rm -rf "$TMP_ROOT"' EXIT
+unset GITHUB_BASE_REF GITHUB_HEAD_REF PALARI_TICKET_ID
 
 new_repo() {
 	local name="$1"
