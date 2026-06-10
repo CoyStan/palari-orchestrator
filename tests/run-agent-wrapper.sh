@@ -115,4 +115,99 @@ grep -Fq "missing" "$TMP_ROOT/lint-heading.err"
 grep -Fq "CI Evidence" "$TMP_ROOT/lint-heading.err"
 grep -Fq "add this heading" "$TMP_ROOT/lint-heading.err"
 
+# --- evidence manifest validation failure modes ---
+export ROOT="$WORK"
+export EVIDENCE_DIR="reports/evidence"
+source "$REPO_ROOT/lib/palari/ci_accept.bash"
+
+check_diagnostic() {
+	local scenario="$1" label="$2" grep_pattern="$3"
+	if ! grep -Fq "$grep_pattern" "$TMP_ROOT/$scenario.err"; then
+		printf 'agent-wrapper: %s: expected diagnostic containing "%s"\n' "$label" "$grep_pattern" >&2
+		printf '  stderr: %s\n' "$(cat "$TMP_ROOT/$scenario.err")" >&2
+		exit 1
+	fi
+}
+
+# 1. broken JSON
+mkdir -p "$WORK/$EVIDENCE_DIR/BADMAN-001"
+printf 'not json\n' >"$WORK/$EVIDENCE_DIR/BADMAN-001/manifest.json"
+ci_existing_evidence_valid "BADMAN-001" 2>"$TMP_ROOT/broken-json.err" && {
+	printf 'expected broken JSON to fail\n' >&2
+	exit 1
+}
+check_diagnostic "broken-json" "broken JSON" "cannot parse"
+rm -rf "$WORK/$EVIDENCE_DIR/BADMAN-001"
+
+# 2. wrong schema_version
+mkdir -p "$WORK/$EVIDENCE_DIR/BADMAN-001"
+printf '{"schema_version":"0","generator":"palari-ci","ticket":"BADMAN-001","status":"passed","artifacts":[]}\n' >"$WORK/$EVIDENCE_DIR/BADMAN-001/manifest.json"
+ci_existing_evidence_valid "BADMAN-001" 2>"$TMP_ROOT/wrong-schema.err" && {
+	printf 'expected wrong schema to fail\n' >&2
+	exit 1
+}
+check_diagnostic "wrong-schema" "wrong schema" "schema_version"
+rm -rf "$WORK/$EVIDENCE_DIR/BADMAN-001"
+
+# 3. wrong generator
+mkdir -p "$WORK/$EVIDENCE_DIR/BADMAN-001"
+printf '{"schema_version":"1","generator":"not-palari","ticket":"BADMAN-001","status":"passed","artifacts":[]}\n' >"$WORK/$EVIDENCE_DIR/BADMAN-001/manifest.json"
+ci_existing_evidence_valid "BADMAN-001" 2>"$TMP_ROOT/wrong-generator.err" && {
+	printf 'expected wrong generator to fail\n' >&2
+	exit 1
+}
+check_diagnostic "wrong-generator" "wrong generator" "generator"
+rm -rf "$WORK/$EVIDENCE_DIR/BADMAN-001"
+
+# 4. wrong status
+mkdir -p "$WORK/$EVIDENCE_DIR/BADMAN-001"
+printf '{"schema_version":"1","generator":"palari-ci","ticket":"BADMAN-001","status":"failed","artifacts":[]}\n' >"$WORK/$EVIDENCE_DIR/BADMAN-001/manifest.json"
+ci_existing_evidence_valid "BADMAN-001" 2>"$TMP_ROOT/wrong-status.err" && {
+	printf 'expected wrong status to fail\n' >&2
+	exit 1
+}
+check_diagnostic "wrong-status" "wrong status" "status"
+rm -rf "$WORK/$EVIDENCE_DIR/BADMAN-001"
+
+# 5. missing artifacts list
+mkdir -p "$WORK/$EVIDENCE_DIR/BADMAN-001"
+printf '{"schema_version":"1","generator":"palari-ci","ticket":"BADMAN-001","status":"passed"}\n' >"$WORK/$EVIDENCE_DIR/BADMAN-001/manifest.json"
+ci_existing_evidence_valid "BADMAN-001" 2>"$TMP_ROOT/missing-artifacts.err" && {
+	printf 'expected missing artifacts to fail\n' >&2
+	exit 1
+}
+check_diagnostic "missing-artifacts" "missing artifacts" "artifacts"
+rm -rf "$WORK/$EVIDENCE_DIR/BADMAN-001"
+
+# 6. invalid sha256 length
+mkdir -p "$WORK/$EVIDENCE_DIR/BADMAN-001"
+printf '{"schema_version":"1","generator":"palari-ci","ticket":"BADMAN-001","status":"passed","artifacts":[{"name":"verification.log","sha256":"short"}]}\n' >"$WORK/$EVIDENCE_DIR/BADMAN-001/manifest.json"
+ci_existing_evidence_valid "BADMAN-001" 2>"$TMP_ROOT/bad-sha256.err" && {
+	printf 'expected bad sha256 to fail\n' >&2
+	exit 1
+}
+check_diagnostic "bad-sha256" "bad sha256" "sha256"
+rm -rf "$WORK/$EVIDENCE_DIR/BADMAN-001"
+
+# 7. artifact file missing
+mkdir -p "$WORK/$EVIDENCE_DIR/BADMAN-001"
+printf '{"schema_version":"1","generator":"palari-ci","ticket":"BADMAN-001","status":"passed","artifacts":[{"name":"verification.log","sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}]}\n' >"$WORK/$EVIDENCE_DIR/BADMAN-001/manifest.json"
+ci_existing_evidence_valid "BADMAN-001" 2>"$TMP_ROOT/missing-file.err" && {
+	printf 'expected missing file to fail\n' >&2
+	exit 1
+}
+check_diagnostic "missing-file" "missing file" "missing or empty"
+rm -rf "$WORK/$EVIDENCE_DIR/BADMAN-001"
+
+# 8. sha256 checksum mismatch
+mkdir -p "$WORK/$EVIDENCE_DIR/BADMAN-001"
+printf 'some content\n' >"$WORK/$EVIDENCE_DIR/BADMAN-001/verification.log"
+printf '{"schema_version":"1","generator":"palari-ci","ticket":"BADMAN-001","status":"passed","artifacts":[{"name":"verification.log","sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}]}\n' >"$WORK/$EVIDENCE_DIR/BADMAN-001/manifest.json"
+ci_existing_evidence_valid "BADMAN-001" 2>"$TMP_ROOT/sha256-mismatch.err" && {
+	printf 'expected sha256 mismatch to fail\n' >&2
+	exit 1
+}
+check_diagnostic "sha256-mismatch" "sha256 mismatch" "sha256 mismatch"
+rm -rf "$WORK/$EVIDENCE_DIR/BADMAN-001"
+
 printf 'agent-wrapper: ok\n'

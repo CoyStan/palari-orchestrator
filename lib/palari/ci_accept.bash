@@ -137,6 +137,7 @@ ci_write_manifest() {
 		printf '{\n'
 		printf '  "schema_version": "1",\n'
 		printf '  "generator": "palari-ci",\n'
+		printf '  "manifest_file": "manifest.json",\n'
 		printf '  "ticket": '
 		json_string "$ticket_label"
 		printf ',\n  "base_ref": '
@@ -167,8 +168,14 @@ ci_existing_evidence_valid() {
 	local ticket_id="$1"
 	local dir="$ROOT/$EVIDENCE_DIR/$ticket_id"
 	local manifest="$dir/manifest.json"
-	[[ -s "$manifest" ]] || return 1
-	command -v python3 >/dev/null 2>&1 || return 1
+	[[ -s "$manifest" ]] || {
+		printf 'ci: evidence manifest missing or empty for %s: %s/manifest.json\n' "$ticket_id" "$EVIDENCE_DIR/$ticket_id" >&2
+		return 1
+	}
+	command -v python3 >/dev/null 2>&1 || {
+		printf 'ci: python3 required to validate evidence manifest for %s\n' "$ticket_id" >&2
+		return 1
+	}
 
 	python3 - "$manifest" "$dir" "$ticket_id" <<'PY'
 import hashlib
@@ -181,48 +188,58 @@ evidence_dir = pathlib.Path(sys.argv[2])
 ticket_id = sys.argv[3]
 required = {"verification.log", "junit.xml", "palari.sarif"}
 
-try:
-    data = json.loads(manifest_path.read_text(encoding="utf-8"))
-except Exception:
+
+def fail(message: str) -> None:
+    print(f"ci: invalid evidence manifest for {ticket_id}: {message}", file=sys.stderr)
     raise SystemExit(1)
 
-if data.get("schema_version") != "1":
-    raise SystemExit(1)
-if data.get("generator") != "palari-ci":
-    raise SystemExit(1)
-if data.get("ticket") != ticket_id:
-    raise SystemExit(1)
-if data.get("status") != "passed":
-    raise SystemExit(1)
+
+try:
+    data = json.loads(manifest_path.read_text(encoding="utf-8"))
+except Exception as exc:
+    fail(f"cannot parse manifest.json: {exc}")
+
+checks = {
+    "schema_version": "1",
+    "generator": "palari-ci",
+    "ticket": ticket_id,
+    "status": "passed",
+}
+for key, expected in checks.items():
+    actual = data.get(key)
+    if actual != expected:
+        fail(f"{key} is {actual!r}, expected {expected!r}")
 
 artifacts = data.get("artifacts")
 if not isinstance(artifacts, list):
-    raise SystemExit(1)
+    fail("artifacts must be a list with sha256 entries")
 
 seen = set()
 root = evidence_dir.resolve()
 for item in artifacts:
     if not isinstance(item, dict):
-        raise SystemExit(1)
+        fail("artifact entry must be an object")
     name = item.get("name")
     digest = item.get("sha256")
     if name not in required:
         continue
     if not isinstance(digest, str) or len(digest) != 64:
-        raise SystemExit(1)
+        fail(f"{name} has missing or invalid sha256")
     path = (evidence_dir / name).resolve()
     try:
         path.relative_to(root)
     except ValueError:
-        raise SystemExit(1)
+        fail(f"{name} escapes evidence directory")
     if not path.is_file() or path.stat().st_size == 0:
-        raise SystemExit(1)
-    if hashlib.sha256(path.read_bytes()).hexdigest() != digest:
-        raise SystemExit(1)
+        fail(f"{name} is missing or empty")
+    actual = hashlib.sha256(path.read_bytes()).hexdigest()
+    if actual != digest:
+        fail(f"{name} sha256 mismatch")
     seen.add(name)
 
-if seen != required:
-    raise SystemExit(1)
+missing = required - seen
+if missing:
+    fail("missing artifact hash entries: " + ", ".join(sorted(missing)))
 PY
 }
 

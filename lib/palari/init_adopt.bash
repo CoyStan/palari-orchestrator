@@ -112,7 +112,7 @@ ticket_report_lint_quiet() {
 	local ticket_id="$1"
 	local code
 	set +e
-	cmd_report_lint "$ticket_id" >/dev/null 2>&1
+	(cmd_report_lint "$ticket_id") >/dev/null 2>&1
 	code=$?
 	set -e
 	return "$code"
@@ -133,18 +133,20 @@ ticket_next_action() {
 		;;
 	claimed)
 		if ticket_evidence_present_quiet "$id" && ticket_report_lint_quiet "$id"; then
-			printf 'move to review: palari ticket ready %s\n' "$id"
+			printf 'review ready: palari ticket ready %s\n' "$id"
+		elif ! ticket_evidence_present_quiet "$id"; then
+			printf 'evidence needed: palari worktree %s; palari packet %s specialist; palari ci %s --base %s\n' "$id" "$id" "$id" "$target"
 		else
-			printf 'finish evidence: palari worktree %s; palari packet %s specialist; palari ci %s --base %s\n' "$id" "$id" "$id" "$target"
+			printf 'reports needed: palari packet %s specialist; verify with palari lint %s\n' "$id" "$id"
 		fi
 		;;
 	in-review)
 		if ! ticket_evidence_present_quiet "$id"; then
-			printf 'create evidence: palari ci %s --base %s\n' "$id" "$target"
+			printf 'evidence needed: create evidence: palari ci %s --base %s\n' "$id" "$target"
 		elif ! ticket_report_lint_quiet "$id"; then
-			printf 'complete review reports: palari packet %s reviewer\n' "$id"
+			printf 'reviewer reports needed: palari packet %s reviewer; verify with palari lint %s\n' "$id" "$id"
 		else
-			printf 'accept or reopen: palari accept %s --by founder\n' "$id"
+			printf 'acceptance: palari accept %s --by founder (or reopen: palari ticket reopen %s to send back)\n' "$id" "$id"
 		fi
 		;;
 	blocked)

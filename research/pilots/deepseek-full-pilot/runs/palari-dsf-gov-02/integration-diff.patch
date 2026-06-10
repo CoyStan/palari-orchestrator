@@ -1,0 +1,61 @@
+diff --git a/lib/palari/init_adopt.bash b/lib/palari/init_adopt.bash
+index 2e5b5fd..d27c3e8 100644
+--- a/lib/palari/init_adopt.bash
++++ b/lib/palari/init_adopt.bash
+@@ -112,7 +112,7 @@ ticket_report_lint_quiet() {
+ 	local ticket_id="$1"
+ 	local code
+ 	set +e
+-	cmd_report_lint "$ticket_id" >/dev/null 2>&1
++	(cmd_report_lint "$ticket_id") >/dev/null 2>&1
+ 	code=$?
+ 	set -e
+ 	return "$code"
+@@ -133,18 +133,20 @@ ticket_next_action() {
+ 		;;
+ 	claimed)
+ 		if ticket_evidence_present_quiet "$id" && ticket_report_lint_quiet "$id"; then
+-			printf 'move to review: palari ticket ready %s\n' "$id"
++			printf 'review ready: palari ticket ready %s\n' "$id"
++		elif ! ticket_evidence_present_quiet "$id"; then
++			printf 'evidence needed: palari worktree %s; palari packet %s specialist; palari ci %s --base %s\n' "$id" "$id" "$id" "$target"
+ 		else
+-			printf 'finish evidence: palari worktree %s; palari packet %s specialist; palari ci %s --base %s\n' "$id" "$id" "$id" "$target"
++			printf 'reports needed: palari packet %s specialist; verify with palari lint %s\n' "$id" "$id"
+ 		fi
+ 		;;
+ 	in-review)
+ 		if ! ticket_evidence_present_quiet "$id"; then
+-			printf 'create evidence: palari ci %s --base %s\n' "$id" "$target"
++			printf 'evidence needed: create evidence: palari ci %s --base %s\n' "$id" "$target"
+ 		elif ! ticket_report_lint_quiet "$id"; then
+-			printf 'complete review reports: palari packet %s reviewer\n' "$id"
++			printf 'reviewer reports needed: palari packet %s reviewer; verify with palari lint %s\n' "$id" "$id"
+ 		else
+-			printf 'accept or reopen: palari accept %s --by founder\n' "$id"
++			printf 'acceptance: palari accept %s --by founder (or reopen: palari ticket reopen %s to send back)\n' "$id" "$id"
+ 		fi
+ 		;;
+ 	blocked)
+diff --git a/tests/golden/status.contains.txt b/tests/golden/status.contains.txt
+index 3a73a12..594caa9 100644
+--- a/tests/golden/status.contains.txt
++++ b/tests/golden/status.contains.txt
+@@ -4,3 +4,4 @@ tickets: 0 active, 1 accepted
+ open:0 claimed:0 blocked:0 needs-human:0 in-review:0 reopened:0
+ reports: 3 specialist/reviewer, 1 human
+ evidence: 4 files
++Next required action
+diff --git a/tests/run-golden.sh b/tests/run-golden.sh
+index e19f1b6..d4b407e 100755
+--- a/tests/run-golden.sh
++++ b/tests/run-golden.sh
+@@ -513,7 +513,7 @@ grep -Fq "claim lease is expired" "$TMP_ROOT/expired-accept.out"
+ ./bin/palari ticket heartbeat POS-0001 >/dev/null
+ ./bin/palari lint POS-0001 >"$TMP_ROOT/lint.out"
+ ./bin/palari accept POS-0001 --by founder >"$TMP_ROOT/accept.out"
+-./bin/palari status >"$TMP_ROOT/status.out"
++./bin/palari status --next >"$TMP_ROOT/status.out"
+ 
+ grep -Fq "scope-check: ok for POS-0001" "$TMP_ROOT/scope.out"
+ grep -Fq "lint: ok for POS-0001" "$TMP_ROOT/lint.out"
