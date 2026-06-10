@@ -27,6 +27,9 @@ cmd_init() {
 		: >"$ROOT/$dir/.gitkeep"
 	done
 	mkdir -p "$ROOT/$STATE_DIR/locks"
+	if declare -F hygiene_ensure_gitignore >/dev/null; then
+		hygiene_ensure_gitignore
+	fi
 	printf 'init: ok\n'
 	printf 'root: %s\n' "$ROOT"
 	printf 'tickets: %s, %s, %s\n' "$PROPOSED_DIR" "$OPEN_DIR" "$CLOSED_DIR"
@@ -207,7 +210,7 @@ cmd_status() {
 		*) die "unknown status option: $1" ;;
 		esac
 	done
-	local proposals active accepted reports human evidence changed
+	local proposals active accepted reports human evidence changed generated_dirty source_dirty
 	proposals="$(proposal_files | wc -l | tr -d ' ')"
 	active="$(ticket_files | wc -l | tr -d ' ')"
 	accepted="$(closed_ticket_files | wc -l | tr -d ' ')"
@@ -215,9 +218,17 @@ cmd_status() {
 	human="$(find "$ROOT/$HUMAN_REPORTS_DIR" -maxdepth 1 -type f \( -name '*.md' -o -name '*.markdown' \) ! -name 'README.md' | wc -l | tr -d ' ')"
 	evidence="$(find "$ROOT/$EVIDENCE_DIR" -type f ! -name '.gitkeep' 2>/dev/null | wc -l | tr -d ' ')"
 	if git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-		changed="$(git_changed_count_at "$ROOT")"
+		if declare -F hygiene_dirty_counts >/dev/null; then
+			hygiene_dirty_counts changed generated_dirty source_dirty
+		else
+			changed="$(git_changed_count_at "$ROOT")"
+			generated_dirty="0"
+			source_dirty="$changed"
+		fi
 	else
 		changed="not-a-git-repo"
+		generated_dirty="0"
+		source_dirty="0"
 	fi
 	printf 'Palari Orchestration status\n'
 	printf 'root: %s\n' "$ROOT"
@@ -229,7 +240,11 @@ cmd_status() {
 		"$(count_status needs-human)" "$(count_status in-review)" "$(count_status reopened)"
 	printf 'reports: %s specialist/reviewer, %s human\n' "$reports" "$human"
 	printf 'evidence: %s files\n' "$evidence"
-	printf 'git: %s changed paths in workspace\n' "$changed"
+	if [[ "$changed" == "not-a-git-repo" ]]; then
+		printf 'git: not-a-git-repo\n'
+	else
+		printf 'git: %s changed paths in workspace (%s generated, %s source)\n' "$changed" "$generated_dirty" "$source_dirty"
+	fi
 	if [[ "$show_next" == "true" ]]; then
 		printf '\nNext required action\n'
 		cmd_lifecycle_audit --limit 1 | sed '1d'
@@ -290,6 +305,7 @@ cmd_doctor() {
 	doctor_check_file "lib/palari/authority_lifecycle.bash" errors
 	doctor_check_file "lib/palari/roles.bash" errors
 	doctor_check_file "lib/palari/init_adopt.bash" errors
+	doctor_check_file "lib/palari/hygiene.bash" errors
 	doctor_check_file "lib/palari/proposals.bash" errors
 	doctor_check_file "lib/palari/tickets_workspace.bash" errors
 	doctor_check_file "lib/palari/demo.bash" errors

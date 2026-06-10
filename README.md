@@ -418,6 +418,7 @@ palari packet WEB-0002 specialist
 | `palari doctor lifecycle` | Explain the next action for active tickets. |
 | `palari status [--next]` | Show current tickets and optionally the next required lifecycle action. |
 | `palari snapshot --json` | Print the repo-native JSON state model used by adapters. |
+| `palari hygiene [--strict]` | Classify generated vs source dirty paths, stale claims, review gates, and unmerged ticket branches. |
 | `palari authority` | Show the active agent authority profile. |
 | `palari authority check ACTION` | Check whether an autonomous agent may commit, push, open a PR, merge main, or accept. |
 | `palari role list` | List optional repo-native roles and their authority boundaries. |
@@ -489,6 +490,7 @@ ship as adapters:
 - Authority profiles: `palari authority` makes agent commit, push, PR, merge, and accept permissions explicit per repository.
 - Role-governed delegation: `palari role` lets a repo define root, lead, specialist, and reviewer authority as Markdown files. Role authority can only narrow as it flows from parent role to child role to ticket; unclear path containment escalates, and forbidden or invalid grants are rejected. Roles are local-mode authority artifacts. Signed provenance is not enforced in v1.
 - Lifecycle visibility: `palari status --next`, `palari doctor lifecycle`, and `palari ticket audit` explain active tickets that are not closed yet.
+- Autonomous hygiene: `palari hygiene` separates generated cache/build artifacts from source changes, highlights stale claims, and shows ticket branches with unintegrated work.
 - Executor wrappers: `palari agent run TICKET-ID --executor opencode` invokes opencode from a Palari packet and records executor evidence.
 - Local sandboxes: `palari sandbox create TICKET-ID` creates a disposable repository copy for executor experiments.
 - Evidence integrity: `palari ci` writes `reports/evidence/<ticket>/verification.log`, `junit.xml`, `palari.sarif`, and `manifest.json`; `accept` validates manifest status, current commit, and artifact hashes before closing a ticket.

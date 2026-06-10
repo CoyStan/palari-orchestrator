@@ -169,6 +169,14 @@
         "minLength": 1
       }
     },
+    "hygiene_generated_paths": {
+      "type": "array",
+      "description": "Generated/local artifact globs that palari hygiene classifies separately from source changes.",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
     "default_forbidden_paths": {
       "type": "array",
       "items": {

@@ -34,6 +34,9 @@ source "$PALARI_LIB_DIR/roles.bash"
 palari_require_module "$PALARI_LIB_DIR/init_adopt.bash"
 # shellcheck source=lib/palari/init_adopt.bash
 source "$PALARI_LIB_DIR/init_adopt.bash"
+palari_require_module "$PALARI_LIB_DIR/hygiene.bash"
+# shellcheck source=lib/palari/hygiene.bash
+source "$PALARI_LIB_DIR/hygiene.bash"
 palari_require_module "$PALARI_LIB_DIR/proposals.bash"
 # shellcheck source=lib/palari/proposals.bash
 source "$PALARI_LIB_DIR/proposals.bash"
@@ -63,13 +66,13 @@ unset -f palari_require_module
 usage() {
 	cat <<'USAGE'
 usage: palari COMMAND [ARGS]
-
 commands:
   init [--ci] [--hooks]        Create configured directories and optional adapters.
   adopt TARGET [--ci] [--hooks] Copy Palari into an existing git repository.
   doctor [lifecycle]           Check install health or active ticket lifecycle.
   status [--next]              Show compact orchestration status.
   snapshot --json              Print the repo-native JSON state model.
+  hygiene [--strict]           Classify dirty state and autonomous-ticket drift.
   authority [show|check]       Show or check the active agent authority profile.
   role list|show|lint|graph    Inspect optional repo-native authority roles.
   role packet|propose|adopt    Create role packets and governed role proposals.
@@ -106,20 +109,17 @@ commands:
   mcp manifest                 Print optional MCP tool metadata.
   web [--host HOST] [--port PORT]  Run the optional local web dashboard.
   accept ID --by NAME          Human/authorized-reviewer acceptance gate.
-
 init options:
   --ci                         Generate GitHub workflow and ruleset templates.
   --hooks                      Generate local lefthook config.
   --all                        Generate all optional adapters.
   --force                      Overwrite generated adapter files.
-
 adopt options:
   --ci                         Also generate GitHub workflow and ruleset templates.
   --hooks                      Also generate local lefthook config.
   --all                        Generate all optional adapters.
   --force                      Overwrite existing copied Palari files.
   --dry-run                    Print planned writes without copying files.
-
 authority options:
   check ACTION                 ACTION is commit, push-branch, open-pr, merge-main, or accept.
   --user-explicit              Allow user-explicit actions such as solo-founder accept.
@@ -128,13 +128,11 @@ role options:
   propose ROLE TITLE --by-role PARENT
   adopt ROLE --by ACTOR
   revoke ROLE --by ACTOR
-
 github options:
   ci --base REF                 Diff changed ticket files against REF...HEAD.
   ci --repo-only                Explicit non-merge-gate repository check.
   --repo OWNER/REPO             Repository for ruleset installation.
   --file PATH                   Ruleset JSON path; default .github/palari-required-checks.ruleset.json.
-
 ci options:
   --base REF                    Diff ticket scope against REF...HEAD.
   --repo-only                   Explicitly skip ticket scope enforcement.
@@ -194,6 +192,10 @@ doctor)
 status)
 	shift
 	cmd_status "$@"
+	;;
+hygiene)
+	shift
+	cmd_hygiene "$@"
 	;;
 snapshot)
 	shift
