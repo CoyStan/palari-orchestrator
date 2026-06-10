@@ -3,7 +3,7 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TMP_ROOT="$(mktemp -d)"
-trap 'rm -rf "$TMP_ROOT"' EXIT
+trap 'cd /; rm -rf "$TMP_ROOT" || true' EXIT
 
 fail() {
 	printf 'hygiene: %s\n' "$*" >&2

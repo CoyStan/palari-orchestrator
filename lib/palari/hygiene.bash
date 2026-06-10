@@ -87,12 +87,14 @@ hygiene_dirty_lines() {
 hygiene_path_generated() {
 	local path="${1#./}"
 	local pattern
-	while IFS= read -r pattern; do
+	local -a patterns=()
+	mapfile -t patterns < <(hygiene_generated_patterns)
+	for pattern in "${patterns[@]}"; do
 		[[ -n "$pattern" ]] || continue
 		if path_matches_pattern "$path" "$pattern"; then
 			return 0
 		fi
-	done < <(hygiene_generated_patterns)
+	done
 	return 1
 }
 
