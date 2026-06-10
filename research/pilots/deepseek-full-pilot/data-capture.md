@@ -34,12 +34,34 @@ its run folder contains the required artifacts and the slot is reviewed.
 | DSF-CLI-02 | Palari-governed | POS-0029 | PAIR-CLI | CLI behavior | Make outside-scope `scope-check` output easier to act on | `runs/palari-dsf-cli-02/` | Accepted in POS-0029 |
 | DSF-WEB-01 | Palari-governed | POS-0029 | PAIR-WEB | Dashboard polish | Improve ticket detail readiness labels and empty states | `runs/palari-dsf-web-01/` | Accepted in POS-0029; rerun after path-root failure |
 | DSF-WEB-02 | Baseline | POS-0028 | PAIR-WEB | Dashboard polish | Fix responsive wrapping for long ticket titles and commands | `runs/baseline-dsf-web-02/` | Accepted in POS-0028 with partial screenshot evidence |
-| DSF-TST-01 | Palari-governed | POS-0031 | PAIR-TST | Tests | Add overlap-detection regression coverage | `runs/palari-dsf-tst-01/` | Complete; ready for POS-0031 review |
-| DSF-TST-02 | Baseline | POS-0030 | PAIR-TST | Tests | Strengthen role authority lint coverage | `runs/baseline-dsf-tst-02/` | Complete; ready for POS-0030 review |
-| DSF-GOV-01 | Baseline | POS-0030 | PAIR-GOV | Governance/reporting | Make report-lint missing-heading output more actionable | `runs/baseline-dsf-gov-01/` | Complete; ready for POS-0030 review |
-| DSF-GOV-02 | Palari-governed | POS-0031 | PAIR-GOV | Governance/reporting | Improve ticket audit next-action guidance around review gates | `runs/palari-dsf-gov-02/` | Complete; rerun after path-root failure |
-| DSF-EVD-01 | Baseline | POS-0030 | PAIR-EVD | Governance/reporting | Separate local evidence from trusted remote CI in the evidence matrix | `runs/baseline-dsf-evd-01/` | Complete; ready for POS-0030 review |
-| DSF-EVD-02 | Palari-governed | POS-0031 | PAIR-EVD | Governance/reporting | Strengthen evidence manifest failure handling coverage | `runs/palari-dsf-evd-02/` | Complete; objective grep initially failed |
+| DSF-TST-01 | Palari-governed | POS-0031 | PAIR-TST | Tests | Add overlap-detection regression coverage | `runs/palari-dsf-tst-01/` | Accepted in POS-0031 |
+| DSF-TST-02 | Baseline | POS-0030 | PAIR-TST | Tests | Strengthen role authority lint coverage | `runs/baseline-dsf-tst-02/` | Accepted in POS-0030 |
+| DSF-GOV-01 | Baseline | POS-0030 | PAIR-GOV | Governance/reporting | Make report-lint missing-heading output more actionable | `runs/baseline-dsf-gov-01/` | Accepted in POS-0030 |
+| DSF-GOV-02 | Palari-governed | POS-0031 | PAIR-GOV | Governance/reporting | Improve ticket audit next-action guidance around review gates | `runs/palari-dsf-gov-02/` | Accepted in POS-0031; rerun after path-root failure |
+| DSF-EVD-01 | Baseline | POS-0030 | PAIR-EVD | Governance/reporting | Separate local evidence from trusted remote CI in the evidence matrix | `runs/baseline-dsf-evd-01/` | Accepted in POS-0030 |
+| DSF-EVD-02 | Palari-governed | POS-0031 | PAIR-EVD | Governance/reporting | Strengthen evidence manifest failure handling coverage | `runs/palari-dsf-evd-02/` | Accepted in POS-0031; objective grep initially failed |
+
+## POS-0032 Scoring Status
+
+- Fresh scoring file:
+  `research/pilots/deepseek-full-pilot/scoring.md`
+- Scoring ticket: POS-0032
+- Scoring pass status: complete and ready for POS-0032 fresh review.
+- Current review authority: POS-0028 through POS-0031 closed tickets, reviewer
+  notes, technical reports, run folders, and Palari CI evidence bundles.
+- Data quality note: some per-slot notes below were written before POS-0030 and
+  POS-0031 final reviews. POS-0032 scoring treats their merged reviewer notes
+  and closed accepted tickets as the current review/acceptance state while
+  preserving the original capture history.
+- Exclusion decisions: DSF-CLI-01 is retained as an observed timeout/failure
+  outcome but excluded from successful-implementation quality averages;
+  DSF-WEB-02 is retained as a completed CSS patch with partial loaded-data
+  screenshot evidence.
+- Claim boundary: the scoring may inform POS-0033 analysis of governance
+  visibility, scope documentation, reviewability, evidence capture, operator
+  comprehension, and human acceptance discipline. It does not prove safety,
+  speed, performance, productivity, model-quality, or implementation-quality
+  gains.
 
 ## Required Run Artifacts
 
