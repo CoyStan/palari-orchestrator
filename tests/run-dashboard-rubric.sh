@@ -192,6 +192,7 @@ import json
 import sys
 
 snapshot = json.load(open(sys.argv[1], encoding="utf-8"))
+assert snapshot["snapshot_mode"] == "fast"
 assert "operator" in snapshot
 assert "next_action" in snapshot["operator"]
 assert "inbox" in snapshot["operator"]
@@ -204,17 +205,30 @@ for item in snapshot["operator"]["inbox"]:
 assert "roles" in snapshot
 assert "items" in snapshot["roles"]
 assert "lint" in snapshot["roles"]
+assert snapshot["roles"]["lint"]["mode"] == "shallow"
 gate = snapshot["gate"]
 for key in ("enabled", "available", "initialized", "root_fingerprint", "layout", "tickets"):
     assert key in gate, f"gate section missing {key}"
 active_tickets = [ticket for ticket in snapshot["tickets"] if ticket["status"] != "accepted"]
 assert snapshot["health"]["stale_claims"] <= len(active_tickets)
 for ticket in snapshot["tickets"]:
+    assert ticket["status"] != "accepted"
     assert "next_action" in ticket
     assert "created_by_role" in ticket
     assert "delegated_to_role" in ticket
     assert "accepted_by" in ticket
     assert "lease" in ticket
+PY
+
+(cd "$ROOT" && ./bin/palari snapshot --json --full >"$TMP")
+python3 - "$TMP" <<'PY'
+import json
+import sys
+
+snapshot = json.load(open(sys.argv[1], encoding="utf-8"))
+assert snapshot["snapshot_mode"] == "full"
+assert snapshot["roles"]["lint"].get("mode") != "shallow"
+assert any(ticket["status"] == "accepted" for ticket in snapshot["tickets"])
 PY
 
 printf 'dashboard-rubric: ok (structure, custody surface, contrast both themes, snapshot contract)\n'

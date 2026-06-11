@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Made the default dashboard snapshot fast (POS-0053). `palari snapshot --json`
+  and `palari web --check` now return the live operator view: active tickets,
+  lightweight role rows, evidence/report presence, and shallow role diagnostics.
+  Use `--full` for closed tickets, full report diagnostics, and full role lint.
 - Fixed README asset packaging for release/source archives (POS-0052). README
   `assets/readme/*` references are now checked by `tests/run-readme-assets.sh`
   and PNG README assets are no longer blanket `export-ignore`d.

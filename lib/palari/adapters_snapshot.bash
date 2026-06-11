@@ -513,6 +513,7 @@ ticket_required_reports_json() {
 snapshot_ticket_json() {
 	local file="$1"
 	local state="$2"
+	local mode="${3:-full}"
 	local ticket_id title status risk priority stream rel claimed_by claimed_at claim_ref expires heartbeat branch worktree lease_status
 	local created_by_role delegated_to_role accepted_by accepted_at implemented_by
 	ticket_id="$(frontmatter_value "$file" id)"
@@ -596,7 +597,7 @@ snapshot_ticket_json() {
 	printf ',"reports":'
 	reports_json "$ticket_id"
 	printf ',"next_action":'
-	snapshot_next_action_json "$file" "$state"
+	snapshot_next_action_json "$file" "$state" "$mode"
 	printf ',"lease":{"status":'
 	json_string "$lease_status"
 	printf ',"expires_at":'
@@ -607,20 +608,27 @@ snapshot_ticket_json() {
 }
 
 snapshot_tickets_json() {
+	local mode="${1:-fast}"
 	local file first="true"
 	printf '['
 	while IFS= read -r file; do
 		[[ -n "$file" ]] || continue
 		[[ "$first" == "true" ]] || printf ','
-		snapshot_ticket_json "$file" "active"
+		if [[ "$mode" == "full" ]]; then
+			snapshot_ticket_json "$file" "active" "$mode"
+		else
+			snapshot_ticket_fast_json "$file" "active"
+		fi
 		first="false"
 	done < <(ticket_files)
-	while IFS= read -r file; do
-		[[ -n "$file" ]] || continue
-		[[ "$first" == "true" ]] || printf ','
-		snapshot_ticket_json "$file" "accepted"
-		first="false"
-	done < <(closed_ticket_files)
+	if [[ "$mode" == "full" ]]; then
+		while IFS= read -r file; do
+			[[ -n "$file" ]] || continue
+			[[ "$first" == "true" ]] || printf ','
+			snapshot_ticket_json "$file" "accepted" "$mode"
+			first="false"
+		done < <(closed_ticket_files)
+	fi
 	printf ']'
 }
 
@@ -735,8 +743,25 @@ snapshot_memory_json() {
 
 cmd_snapshot() {
 	require_base_folders
-	local format="${1:-}"
-	[[ "$format" == "--json" || -z "$format" ]] || die "snapshot supports only --json"
+	local format="" mode="fast" arg
+	while (($# > 0)); do
+		arg="$1"
+		case "$arg" in
+		--json)
+			format="json"
+			shift
+			;;
+		--full)
+			mode="full"
+			shift
+			;;
+		"")
+			shift
+			;;
+		*) die "snapshot supports only --json [--full]" ;;
+		esac
+	done
+	[[ -n "$format" ]] || format="json"
 	local proposals active accepted reports human evidence git_branch palari_status dirty generated_dirty source_dirty stale overlaps_json overlap_count missing_evidence=0 file status lease id
 	proposals="$(proposal_files | wc -l | tr -d ' ')"
 	active="$(ticket_files | wc -l | tr -d ' ')"
@@ -759,25 +784,43 @@ cmd_snapshot() {
 		lease="$(ticket_lease_status "$file")"
 		[[ "$lease" == "expired" ]] && stale=$((stale + 1))
 	done < <(ticket_files)
-	while IFS= read -r file; do
-		[[ -n "$file" ]] || continue
-		status="$(frontmatter_value "$file" status)"
-		if [[ "$status" == "in-review" || "$status" == "accepted" ]]; then
-			id="$(frontmatter_value "$file" id)"
-			if [[ ! -s "$ROOT/$EVIDENCE_DIR/$id/verification.log" ||
-				! -s "$ROOT/$EVIDENCE_DIR/$id/junit.xml" ||
-				! -s "$ROOT/$EVIDENCE_DIR/$id/palari.sarif" ||
-				! -s "$ROOT/$EVIDENCE_DIR/$id/manifest.json" ]]; then
-				missing_evidence=$((missing_evidence + 1))
+	if [[ "$mode" == "full" ]]; then
+		while IFS= read -r file; do
+			[[ -n "$file" ]] || continue
+			status="$(frontmatter_value "$file" status)"
+			if [[ "$status" == "in-review" || "$status" == "accepted" ]]; then
+				id="$(frontmatter_value "$file" id)"
+				if [[ ! -s "$ROOT/$EVIDENCE_DIR/$id/verification.log" ||
+					! -s "$ROOT/$EVIDENCE_DIR/$id/junit.xml" ||
+					! -s "$ROOT/$EVIDENCE_DIR/$id/palari.sarif" ||
+					! -s "$ROOT/$EVIDENCE_DIR/$id/manifest.json" ]]; then
+					missing_evidence=$((missing_evidence + 1))
+				fi
 			fi
-		fi
-	done < <(all_ticket_files)
+		done < <(all_ticket_files)
+	else
+		while IFS= read -r file; do
+			[[ -n "$file" ]] || continue
+			status="$(frontmatter_value "$file" status)"
+			if [[ "$status" == "in-review" ]]; then
+				id="$(frontmatter_value "$file" id)"
+				if [[ ! -s "$ROOT/$EVIDENCE_DIR/$id/verification.log" ||
+					! -s "$ROOT/$EVIDENCE_DIR/$id/junit.xml" ||
+					! -s "$ROOT/$EVIDENCE_DIR/$id/palari.sarif" ||
+					! -s "$ROOT/$EVIDENCE_DIR/$id/manifest.json" ]]; then
+					missing_evidence=$((missing_evidence + 1))
+				fi
+			fi
+		done < <(ticket_files)
+	fi
 	overlaps_json="$(snapshot_overlaps_json)"
 	overlap_count="$(awk -v text="$overlaps_json" 'BEGIN { print gsub(/"left"/, "", text) }')"
 
 	printf '{\n'
 	printf '  "project": '
 	json_string "$PROJECT_NAME"
+	printf ',\n  "snapshot_mode": '
+	json_string "$mode"
 	printf ',\n  "root": '
 	json_string "$ROOT"
 	printf ',\n  "generated_at": '
@@ -801,11 +844,11 @@ cmd_snapshot() {
 	snapshot_proposals_json
 	printf ',\n'
 	printf '  "tickets": '
-	snapshot_tickets_json
+	snapshot_tickets_json "$mode"
 	printf ',\n  "operator": '
-	snapshot_operator_json
+	snapshot_operator_json "$mode"
 	printf ',\n  "roles": '
-	snapshot_roles_json
+	snapshot_roles_json "$mode"
 	printf ',\n  "overlaps": %s,\n' "$overlaps_json"
 	printf '  "workflow": '
 	snapshot_workflow_json
@@ -840,7 +883,7 @@ cmd_snapshot() {
 }
 
 cmd_web() {
-	local host="127.0.0.1" port="8765" check="false" unsafe_bind="false" arg
+	local host="127.0.0.1" port="8765" check="false" full="false" unsafe_bind="false" arg
 	while (($# > 0)); do
 		arg="$1"
 		case "$arg" in
@@ -856,13 +899,17 @@ cmd_web() {
 			check="true"
 			shift
 			;;
+		--full)
+			full="true"
+			shift
+			;;
 		--unsafe-bind)
 			unsafe_bind="true"
 			shift
 			;;
 		-h | --help)
 			cat <<'WEBUSAGE'
-usage: palari web [--host HOST] [--port PORT] [--check] [--unsafe-bind]
+usage: palari web [--host HOST] [--port PORT] [--check] [--full] [--unsafe-bind]
 
 Run the optional local Palari Console web dashboard.
 
@@ -870,6 +917,7 @@ options:
   --host HOST   Bind host. Default: 127.0.0.1
   --port PORT   Bind port. Default: 8765
   --check       Print the dashboard JSON snapshot and exit.
+  --full        With --check, include expensive closed-ticket and role diagnostics.
   --unsafe-bind Allow binding outside loopback. Intended only for trusted networks.
 WEBUSAGE
 			return 0
@@ -880,7 +928,11 @@ WEBUSAGE
 	[[ "$port" =~ ^[0-9]+$ ]] || die "web port must be numeric"
 	command -v python3 >/dev/null 2>&1 || die "palari web requires python3"
 	if [[ "$check" == "true" ]]; then
-		cmd_snapshot --json
+		if [[ "$full" == "true" ]]; then
+			cmd_snapshot --json --full
+		else
+			cmd_snapshot --json
+		fi
 	elif [[ "$unsafe_bind" == "true" ]]; then
 		python3 -B "$ROOT/adapters/web/server.py" --root "$ROOT" --host "$host" --port "$port" --unsafe-bind
 	else
