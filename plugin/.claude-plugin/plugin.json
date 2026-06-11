@@ -1,0 +1,20 @@
+{
+  "name": "palari-orchestrator",
+  "description": "Govern agent-led work with repo-native tickets, goals, decisions, scope checks, CI evidence, fresh-context review, and explicit human acceptance. Adds /palari commands, a fresh-reviewer agent, and an operating skill for any repository that adopts the Palari Orchestrator.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Palari",
+    "url": "https://palari.io"
+  },
+  "homepage": "https://github.com/CoyStan/palari-orchestrator",
+  "repository": "https://github.com/CoyStan/palari-orchestrator",
+  "license": "MIT",
+  "keywords": [
+    "governance",
+    "orchestration",
+    "tickets",
+    "review",
+    "evidence",
+    "acceptance"
+  ]
+}

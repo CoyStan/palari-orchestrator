@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Packaged Palari as a Claude Code plugin with a self-hosted marketplace:
+  `.claude-plugin/marketplace.json` at the repo root and the plugin under
+  `plugin/` (operating skill, six `/palari-orchestrator:*` slash commands,
+  and `palari-specialist` / `palari-reviewer` subagents that enforce
+  no-self-acceptance and fresh-context review). Install with
+  `/plugin marketplace add CoyStan/palari-orchestrator` then
+  `/plugin install palari-orchestrator@palari`. Added a Codex adapter
+  (`adapters/codex/`) with prompt files and an installer, since Codex's
+  native mechanism is the `AGENTS.md` contract Palari already ships.
+  Validated by `tests/run-plugin-structure.sh`.
 - Added first-class goals (`palari goal create|list|show|adopt|achieve|drop|lint`)
   under `goals/`. Tickets and proposals link to a goal with `serves_goal`
   (`--goal GOAL-ID` at creation), making founder intent machine-readable and

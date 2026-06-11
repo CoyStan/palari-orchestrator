@@ -101,6 +101,33 @@ does not run an agent, change production paths, merge, push, or accept work.
 It exists so a founder, operator, or reviewer can see the queue, role boundary,
 evidence surface, and human gate immediately.
 
+## Install In Your Agent
+
+Palari is executor-agnostic, and the fastest path in is whichever agent you
+already use.
+
+**Claude Code** (one-command plugin: skill, slash commands, and role agents):
+
+```text
+/plugin marketplace add CoyStan/palari-orchestrator
+/plugin install palari-orchestrator@palari
+```
+
+Then in any repo: `/palari-orchestrator:adopt`, `:status`, `:next`,
+`:ticket`, `:review`, `:decide`. The plugin ships a `palari-specialist`
+executor agent and a `palari-reviewer` fresh-context review agent that
+respect the authority model (no self-acceptance, no self-review). Details in
+[plugin/README.md](plugin/README.md).
+
+**Codex and other AGENTS.md-aware agents**: adopt the repo and the contract
+installs itself, since `palari adopt` writes `AGENTS.md`, which Codex reads
+natively. Optional Codex prompt files:
+`./adapters/codex/install.sh` (see [adapters/codex/](adapters/codex/)).
+
+**Any agent, manually**: tell it
+"clone palari-orchestrator, run `bin/palari adopt` on this repo, then read
+AGENTS.md". The repo is the contract; no runtime dependency on any vendor.
+
 ## How Palari Compares
 
 Most popular agent tools are optimized for running agents. Palari is optimized
