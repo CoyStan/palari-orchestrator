@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Added a deterministic mock executor (POS-0047). `palari agent run TICKET-ID
+  --executor mock --scenario safe|forbidden-path|outside-scope` runs the full
+  governed lifecycle (worktree, packet, evidence, scope-check, ci) with a
+  scripted local edit instead of an AI tool, so the headline behavior -
+  executor touches `.env`, scope-check refuses, evidence preserved, ticket
+  state not advanced - is demonstrable and CI-testable with no network or
+  credentials. Executor invocation now lives behind per-executor shims
+  (describe + run) sharing one lifecycle; the opencode contract is unchanged.
+  Validated by `tests/run-agent-mock.sh`.
 - Tickets can declare governing skills and packets carry them (POS-0046).
   `palari ticket create --skill NAME` writes `related_skills` frontmatter
   (creation fails on unknown names); `palari packet` injects a Relevant

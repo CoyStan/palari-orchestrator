@@ -117,7 +117,7 @@ commands:
   sandbox list                 List local sandboxes under the worktree base.
   sandbox inspect ID|--path P  Show sandbox metadata, dirty state, changed paths.
   sandbox destroy ID|--path P  Remove a Palari sandbox; refuses other paths.
-  agent run ID --executor opencode  Run an executor from a Palari packet.
+  agent run ID --executor opencode|mock  Run an executor from a Palari packet.
   memory ...                   Manage optional repo-native memory.
   skill create NAME --description TEXT  Scaffold feature-contract Agent Skills.
   skill list                   List shipped, adopter, and plugin skills.
@@ -176,10 +176,11 @@ ticket claim options:
   --ttl SECONDS                Lease duration; default from claim_lease_seconds.
   --allow-overlap              Acknowledge overlapping allowed_paths.
 agent run options:
-  --executor opencode          Executor adapter to run.
+  --executor opencode|mock     Executor adapter to run.
   --model PROVIDER/MODEL       Optional opencode model id.
   --prompt TEXT                Optional executor instruction.
-  --dry-run                    Prepare packet/evidence plan without invoking opencode.
+  --scenario NAME              Mock-only: safe, forbidden-path, or outside-scope.
+  --dry-run                    Prepare packet/evidence plan without invoking the executor.
   --no-gates                   Skip automatic scope-check and ci after executor run.
 skill create options:
   --description TEXT           Required Agent Skills frontmatter description.

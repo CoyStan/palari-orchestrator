@@ -38,6 +38,7 @@ jobs:
           bash -n tests/run-plugin-structure.sh
           bash -n tests/run-skills.sh
           bash -n tests/run-sandbox.sh
+          bash -n tests/run-agent-mock.sh
 
       - name: CLI structure
         run: tests/run-cli-structure.sh
@@ -92,6 +93,9 @@ jobs:
 
       - name: Sandbox lifecycle
         run: tests/run-sandbox.sh
+
+      - name: Mock executor
+        run: tests/run-agent-mock.sh
 
       - name: Palari lint
         run: ./bin/palari lint

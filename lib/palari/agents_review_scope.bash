@@ -20,12 +20,121 @@ agent_run_gate() {
 	return "$code"
 }
 
+# Each executor owns exactly two shims: describe (command.txt content) and
+# run. The lifecycle around them - worktree, packet, evidence, gates - is
+# shared and identical for every executor.
+executor_opencode_describe() {
+	local ticket_id="$1"
+	local worktree="$2"
+	local packet_path="$3"
+	local model="$4"
+	local prompt="$5"
+	printf 'executor: opencode\n'
+	printf 'ticket: %s\n' "$ticket_id"
+	printf 'worktree: %s\n' "$worktree"
+	printf 'packet: %s\n' "$packet_path"
+	printf 'model: %s\n' "${model:-opencode default}"
+	printf 'command: opencode run --dir %s --file %s --format json --title palari-%s%s %s\n' \
+		"$(shell_quote "$worktree")" \
+		"$(shell_quote "$packet_path")" \
+		"$ticket_id" \
+		"$([[ -n "$model" ]] && printf ' --model %s' "$(shell_quote "$model")")" \
+		"$(shell_quote "$prompt")"
+	printf 'denied: palari *, ./bin/palari *, bin/palari *, git commit*, git push*, git merge*, gh pr merge*, rm *\n'
+}
+
+executor_opencode_run() {
+	local ticket_id="$1"
+	local worktree="$2"
+	local packet_path="$3"
+	local model="$4"
+	local prompt="$5"
+	local evidence_dir="$6"
+	local stdout="$evidence_dir/run.jsonl"
+	local stderr="$evidence_dir/run.stderr"
+	local session_export="$evidence_dir/session-export.json"
+	local export_stderr="$evidence_dir/session-export.stderr"
+	local session code
+	command -v opencode >/dev/null 2>&1 || die "agent run --executor opencode requires opencode on PATH"
+	set +e
+	if [[ -n "$model" ]]; then
+		OPENCODE_CONFIG_CONTENT="$(opencode_config_content)" \
+		OPENCODE_DISABLE_AUTOUPDATE=1 \
+		OPENCODE_DISABLE_PRUNE=1 \
+			opencode run --model "$model" --dir "$worktree" --file "$packet_path" --format json --title "palari-$ticket_id" "$prompt" >"$stdout" 2>"$stderr"
+	else
+		OPENCODE_CONFIG_CONTENT="$(opencode_config_content)" \
+		OPENCODE_DISABLE_AUTOUPDATE=1 \
+		OPENCODE_DISABLE_PRUNE=1 \
+			opencode run --dir "$worktree" --file "$packet_path" --format json --title "palari-$ticket_id" "$prompt" >"$stdout" 2>"$stderr"
+	fi
+	code=$?
+	set -e
+	session="$(sed -n 's/.*"sessionID":"\([^"]*\)".*/\1/p' "$stdout" | tail -n 1)"
+	printf '%s\n' "$session" >"$evidence_dir/session.id"
+	if [[ -n "$session" ]]; then
+		set +e
+		opencode export "$session" >"$session_export" 2>"$export_stderr"
+		printf '%s\n' "$?" >"$evidence_dir/session-export.exit"
+		set -e
+	else
+		printf '{}\n' >"$session_export"
+		printf 'no session id found in opencode JSON stream\n' >"$export_stderr"
+		printf '1\n' >"$evidence_dir/session-export.exit"
+	fi
+	return "$code"
+}
+
+executor_mock_describe() {
+	local ticket_id="$1"
+	local worktree="$2"
+	local packet_path="$3"
+	local scenario="$4"
+	printf 'executor: mock\n'
+	printf 'ticket: %s\n' "$ticket_id"
+	printf 'worktree: %s\n' "$worktree"
+	printf 'packet: %s\n' "$packet_path"
+	printf 'scenario: %s\n' "$scenario"
+	case "$scenario" in
+	safe) printf 'plan: append one line to docs/mock-executor.md (expects docs/** in allowed_paths)\n' ;;
+	forbidden-path) printf 'plan: append one line to .env (a default forbidden path)\n' ;;
+	outside-scope) printf 'plan: append one line to mock-executor-outside.txt (expects path outside allowed_paths)\n' ;;
+	esac
+	printf 'note: deterministic local edit; no AI tool, network, or credentials involved\n'
+}
+
+executor_mock_run() {
+	local scenario="$1"
+	local worktree="$2"
+	local evidence_dir="$3"
+	local stdout="$evidence_dir/run.stdout"
+	local stderr="$evidence_dir/run.stderr"
+	(
+		cd "$worktree"
+		case "$scenario" in
+		safe)
+			mkdir -p docs
+			printf 'mock executor safe change\n' >>docs/mock-executor.md
+			printf 'mock: edited docs/mock-executor.md inside allowed paths\n'
+			;;
+		forbidden-path)
+			printf 'MOCK_SECRET=do-not-commit\n' >>.env
+			printf 'mock: attempted to edit .env (forbidden path)\n'
+			;;
+		outside-scope)
+			printf 'outside scope\n' >>mock-executor-outside.txt
+			printf 'mock: edited mock-executor-outside.txt outside allowed paths\n'
+			;;
+		esac
+	) >"$stdout" 2>"$stderr"
+}
+
 cmd_agent_run() {
 	require_base_folders
 	local ticket="${1:-}"
 	shift || true
 	[[ -n "$ticket" ]] || die "agent run requires ticket ID"
-	local executor="" model="" prompt="" dry_run="false" no_gates="false" arg
+	local executor="" model="" prompt="" dry_run="false" no_gates="false" scenario="safe" scenario_set="false" arg
 	while (($# > 0)); do
 		arg="$1"
 		case "$arg" in
@@ -41,6 +150,11 @@ cmd_agent_run() {
 			prompt="$2"
 			shift 2
 			;;
+		--scenario)
+			scenario="$2"
+			scenario_set="true"
+			shift 2
+			;;
 		--dry-run)
 			dry_run="true"
 			shift
@@ -52,10 +166,20 @@ cmd_agent_run() {
 		*) die "unknown agent run option: $arg" ;;
 		esac
 	done
-	[[ "$executor" == "opencode" ]] || die "agent run currently supports only --executor opencode"
+	case "$executor" in
+	opencode | mock) ;;
+	*) die "agent run supports --executor opencode or --executor mock" ;;
+	esac
+	if [[ "$scenario_set" == "true" && "$executor" != "mock" ]]; then
+		die "--scenario is only valid with --executor mock"
+	fi
+	case "$scenario" in
+	safe | forbidden-path | outside-scope) ;;
+	*) die "unknown mock scenario: $scenario; use safe, forbidden-path, or outside-scope" ;;
+	esac
 	[[ -n "$prompt" ]] || prompt="Execute this Palari ticket from the attached packet. Stay inside allowed paths. Do not run any palari lifecycle command, git commit, git push, or palari accept."
 
-	local file ticket_id worktree packet_tmp packet_path evidence_dir stdout stderr session session_export export_stderr command_file opencode_code=0 scope_code=0 ci_code=0
+	local file ticket_id worktree packet_tmp packet_path evidence_dir command_file executor_code=0 scope_code=0 ci_code=0
 	file="$(find_ticket_file "$ticket")" || die "ticket not found: $ticket"
 	ticket_id="$(frontmatter_value "$file" id)"
 	[[ -n "$ticket_id" ]] || ticket_id="$ticket"
@@ -64,35 +188,21 @@ cmd_agent_run() {
 	cmd_worktree "$ticket_id"
 	packet_tmp="$(mktemp)"
 	cmd_packet "$ticket_id" specialist >"$packet_tmp"
-	mkdir -p "$worktree/$REPORTS_DIR" "$worktree/$EVIDENCE_DIR/$ticket_id/executor/opencode"
-	packet_path="$worktree/$REPORTS_DIR/$ticket_id-opencode-packet.md"
+	mkdir -p "$worktree/$REPORTS_DIR" "$worktree/$EVIDENCE_DIR/$ticket_id/executor/$executor"
+	packet_path="$worktree/$REPORTS_DIR/$ticket_id-$executor-packet.md"
 	cp "$packet_tmp" "$packet_path"
 	rm -f "$packet_tmp"
 
-	evidence_dir="$worktree/$EVIDENCE_DIR/$ticket_id/executor/opencode"
-	stdout="$evidence_dir/run.jsonl"
-	stderr="$evidence_dir/run.stderr"
-	session_export="$evidence_dir/session-export.json"
-	export_stderr="$evidence_dir/session-export.stderr"
+	evidence_dir="$worktree/$EVIDENCE_DIR/$ticket_id/executor/$executor"
 	command_file="$evidence_dir/command.txt"
-	{
-		printf 'executor: opencode\n'
-		printf 'ticket: %s\n' "$ticket_id"
-		printf 'worktree: %s\n' "$worktree"
-		printf 'packet: %s\n' "$packet_path"
-		printf 'model: %s\n' "${model:-opencode default}"
-		printf 'command: opencode run --dir %s --file %s --format json --title palari-%s%s %s\n' \
-			"$(shell_quote "$worktree")" \
-			"$(shell_quote "$packet_path")" \
-			"$ticket_id" \
-			"$([[ -n "$model" ]] && printf ' --model %s' "$(shell_quote "$model")")" \
-			"$(shell_quote "$prompt")"
-		printf 'denied: palari *, ./bin/palari *, bin/palari *, git commit*, git push*, git merge*, gh pr merge*, rm *\n'
-	} >"$command_file"
+	case "$executor" in
+	opencode) executor_opencode_describe "$ticket_id" "$worktree" "$packet_path" "$model" "$prompt" >"$command_file" ;;
+	mock) executor_mock_describe "$ticket_id" "$worktree" "$packet_path" "$scenario" >"$command_file" ;;
+	esac
 
 	if [[ "$dry_run" == "true" ]]; then
 		printf 'agent run: dry-run for %s\n' "$ticket_id"
-		printf 'executor: opencode\n'
+		printf 'executor: %s\n' "$executor"
 		printf 'worktree: %s\n' "$worktree"
 		printf 'packet: %s\n' "$packet_path"
 		printf 'evidence: %s\n' "${evidence_dir#"$worktree"/}"
@@ -100,47 +210,26 @@ cmd_agent_run() {
 		return 0
 	fi
 
-	command -v opencode >/dev/null 2>&1 || die "agent run --executor opencode requires opencode on PATH"
-	set +e
-	if [[ -n "$model" ]]; then
-		OPENCODE_CONFIG_CONTENT="$(opencode_config_content)" \
-		OPENCODE_DISABLE_AUTOUPDATE=1 \
-		OPENCODE_DISABLE_PRUNE=1 \
-			opencode run --model "$model" --dir "$worktree" --file "$packet_path" --format json --title "palari-$ticket_id" "$prompt" >"$stdout" 2>"$stderr"
-	else
-		OPENCODE_CONFIG_CONTENT="$(opencode_config_content)" \
-		OPENCODE_DISABLE_AUTOUPDATE=1 \
-		OPENCODE_DISABLE_PRUNE=1 \
-			opencode run --dir "$worktree" --file "$packet_path" --format json --title "palari-$ticket_id" "$prompt" >"$stdout" 2>"$stderr"
-	fi
-	opencode_code=$?
-	set -e
-	printf '%s\n' "$opencode_code" >"$evidence_dir/run.exit"
-
-	session="$(sed -n 's/.*"sessionID":"\([^"]*\)".*/\1/p' "$stdout" | tail -n 1)"
-	printf '%s\n' "$session" >"$evidence_dir/session.id"
-	if [[ -n "$session" ]]; then
-		set +e
-		opencode export "$session" >"$session_export" 2>"$export_stderr"
-		printf '%s\n' "$?" >"$evidence_dir/session-export.exit"
-		set -e
-	else
-		printf '{}\n' >"$session_export"
-		printf 'no session id found in opencode JSON stream\n' >"$export_stderr"
-		printf '1\n' >"$evidence_dir/session-export.exit"
-	fi
+	case "$executor" in
+	opencode) executor_opencode_run "$ticket_id" "$worktree" "$packet_path" "$model" "$prompt" "$evidence_dir" || executor_code=$? ;;
+	mock) executor_mock_run "$scenario" "$worktree" "$evidence_dir" || executor_code=$? ;;
+	esac
+	printf '%s\n' "$executor_code" >"$evidence_dir/run.exit"
 
 	if [[ "$no_gates" != "true" ]]; then
 		agent_run_gate "$worktree" scope-check "$evidence_dir" ./bin/palari scope-check "$ticket_id" || scope_code=$?
 		agent_run_gate "$worktree" ci "$evidence_dir" ./bin/palari ci "$ticket_id" || ci_code=$?
 	fi
 
-	printf 'agent run: %s via opencode\n' "$ticket_id"
-	printf 'opencode exit: %s\n' "$opencode_code"
+	printf 'agent run: %s via %s\n' "$ticket_id" "$executor"
+	printf '%s exit: %s\n' "$executor" "$executor_code"
 	printf 'scope-check exit: %s\n' "$scope_code"
 	printf 'ci exit: %s\n' "$ci_code"
 	printf 'evidence: %s\n' "${evidence_dir#"$worktree"/}"
-	((opencode_code == 0 && scope_code == 0 && ci_code == 0))
+	if ((scope_code != 0)); then
+		printf 'scope-check: refused the change; evidence preserved, ticket state not advanced\n'
+	fi
+	((executor_code == 0 && scope_code == 0 && ci_code == 0))
 }
 
 cmd_agent() {
@@ -148,7 +237,7 @@ cmd_agent() {
 	shift || true
 	case "$sub" in
 	run) cmd_agent_run "$@" ;;
-	*) die "unknown agent command: ${sub:-}; try \`palari agent run TICKET-ID --executor opencode\`" ;;
+	*) die "unknown agent command: ${sub:-}; try \`palari agent run TICKET-ID --executor opencode|mock\`" ;;
 	esac
 }
 

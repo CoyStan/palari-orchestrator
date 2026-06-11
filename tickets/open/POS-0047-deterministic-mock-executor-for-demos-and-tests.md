@@ -1,16 +1,16 @@
 ---
 id: POS-0047
 title: Deterministic mock executor for demos and tests
-status: open
+status: in-review
 risk: R2
 priority: P0
 stream: governance
 serves_goal: 
-claimed_by:
-claimed_at:
-claim_ref:
-claim_heartbeat_at:
-claim_expires_at:
+claimed_by: claude
+claimed_at: 2026-06-11T16:33:24Z
+claim_ref: refs/palari/claims/POS-0047
+claim_heartbeat_at: 2026-06-11T16:33:24Z
+claim_expires_at: 2026-06-11T16:38:24Z
 allowed_paths:
   - bin/palari
   - lib/palari/agents_review_scope.bash
