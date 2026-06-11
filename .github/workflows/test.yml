@@ -37,6 +37,7 @@ jobs:
           bash -n tests/run-gate.sh
           bash -n tests/run-plugin-structure.sh
           bash -n tests/run-skills.sh
+          bash -n tests/run-readme-assets.sh
           bash -n tests/run-sandbox.sh
           bash -n tests/run-agent-mock.sh
           bash -n tests/run-agent-codex.sh
@@ -91,6 +92,9 @@ jobs:
 
       - name: Skills
         run: tests/run-skills.sh
+
+      - name: README assets
+        run: tests/run-readme-assets.sh
 
       - name: Sandbox lifecycle
         run: tests/run-sandbox.sh

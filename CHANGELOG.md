@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Fixed README asset packaging for release/source archives (POS-0052). README
+  `assets/readme/*` references are now checked by `tests/run-readme-assets.sh`
+  and PNG README assets are no longer blanket `export-ignore`d.
 - Fixed external Palari package invocation for adoption flows (POS-0051).
   `bin/palari` now resolves its own package root before falling back to a
   caller git root, and `scripts/palari` pins `PALARI_ROOT`. This makes
