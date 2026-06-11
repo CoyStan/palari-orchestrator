@@ -39,6 +39,8 @@ check_contains "$HTML" 'class="review-column"' "dossier workbench column"
 check_contains "$HTML" 'class="rail-guide"' "console flow guide"
 check_contains "$HTML" 'class="keymap"' "keyboard shortcut legend"
 check_contains "$HTML" 'id="healthActionsList"' "health action surface"
+check_contains "$HTML" 'id="founderInboxList"' "founder inbox surface"
+check_contains "$HTML" 'Founder Inbox' "founder decision inbox label"
 
 # --- Three surfaces over one snapshot ----------------------------------------
 check_contains "$HTML" 'class="surface-tabs" role="tablist"' "surface tabs"
@@ -97,6 +99,8 @@ check_contains "$CSS" '.command-dock {' "command surface block"
 check_contains "$CSS" 'position: relative;' "non-overlapping command surface"
 check_contains "$CSS" 'max-height: min(420px, 58vh);' "command dock height guard"
 check_contains "$CSS" '.operator-strip {' "operator summary strip"
+check_contains "$CSS" '.founder-inbox {' "founder inbox styling"
+check_contains "$CSS" '.inbox-item {' "founder inbox item styling"
 check_contains "$CSS" '.queue-controls {' "queue search/filter controls"
 check_contains "$CSS" '.readiness-grid {' "review readiness grid"
 check_contains "$CSS" '.ticket-table {' "ticket table styling"
@@ -190,6 +194,13 @@ import sys
 snapshot = json.load(open(sys.argv[1], encoding="utf-8"))
 assert "operator" in snapshot
 assert "next_action" in snapshot["operator"]
+assert "inbox" in snapshot["operator"]
+assert "inbox_counts" in snapshot["operator"]
+for key in ("human_gate", "blocked", "review_needed", "evidence_needed", "can_continue"):
+    assert key in snapshot["operator"]["inbox_counts"], f"inbox_counts missing {key}"
+for item in snapshot["operator"]["inbox"]:
+    for key in ("ticket_id", "title", "category", "severity", "actor", "detail", "command"):
+        assert key in item, f"inbox item missing {key}"
 assert "roles" in snapshot
 assert "items" in snapshot["roles"]
 assert "lint" in snapshot["roles"]

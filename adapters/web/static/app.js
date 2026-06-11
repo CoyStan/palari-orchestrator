@@ -459,6 +459,7 @@ function renderHealthActions(snapshot) {
 
 function renderOperatorSummary(snapshot) {
   const action = snapshot.operator?.next_action || {};
+  const inboxCounts = snapshot.operator?.inbox_counts || {};
   const waitingHuman = activeTickets(snapshot).filter((ticket) => ticket.next_action?.actor === "human" || ticket.status === "needs-human");
   const roleCount = snapshot.roles?.counts?.active || 0;
   const roleLintOk = snapshot.roles?.lint?.ok !== false;
@@ -468,7 +469,7 @@ function renderOperatorSummary(snapshot) {
   $("#operatorDetail").textContent = action.detail || "Open the queue for the next ticket action.";
   $("#humanGate").textContent = waitingHuman.length ? `${waitingHuman.length} waiting` : "Clear";
   $("#humanGateDetail").textContent = waitingHuman.length
-    ? waitingHuman.map((ticket) => ticket.id).join(", ")
+    ? `${inboxCounts.human_gate || waitingHuman.length} item${(inboxCounts.human_gate || waitingHuman.length) === 1 ? "" : "s"} in Founder Inbox`
     : "No active ticket is waiting on a human decision.";
 
   if (!gate.enabled) {
@@ -515,6 +516,78 @@ function renderOperatorSummary(snapshot) {
   } else {
     plaque.textContent = "gate disabled";
     plaqueDetail.textContent = "Signed acceptance is off; acceptance is honor-system.";
+  }
+}
+
+function inboxRank(item) {
+  const order = {
+    "human-gate": 0,
+    blocked: 1,
+    "evidence-needed": 2,
+    "review-needed": 3,
+    "can-continue": 4,
+    watch: 5,
+    monitor: 6,
+  };
+  return order[item.category] ?? 9;
+}
+
+function renderFounderInbox(snapshot) {
+  const list = $("#founderInboxList");
+  list.replaceChildren();
+  const inbox = [...(snapshot.operator?.inbox || [])].sort((left, right) => inboxRank(left) - inboxRank(right));
+  const counts = snapshot.operator?.inbox_counts || {};
+  $("#founderInboxPill").textContent = inbox.length
+    ? `${inbox.length} decision${inbox.length === 1 ? "" : "s"}`
+    : "clear";
+
+  if (!inbox.length) {
+    list.append(emptyNode("Nothing needs a decision", "Create or adopt a scoped ticket when there is more work to delegate."));
+    return;
+  }
+
+  const summary = document.createElement("div");
+  summary.className = "inbox-summary";
+  [
+    ["Human", counts.human_gate || 0],
+    ["Blocked", counts.blocked || 0],
+    ["Evidence", counts.evidence_needed || 0],
+    ["Continue", counts.can_continue || 0],
+  ].forEach(([name, value]) => {
+    const chip = document.createElement("span");
+    chip.textContent = `${name} ${value}`;
+    summary.append(chip);
+  });
+  list.append(summary);
+
+  inbox.slice(0, 6).forEach((item) => {
+    const row = document.createElement("article");
+    row.className = `inbox-item ${item.category || "monitor"}`;
+
+    const main = document.createElement("div");
+    main.className = "inbox-main";
+    const category = document.createElement("span");
+    category.className = "inbox-category";
+    category.textContent = item.category_label || label(item.category);
+    const title = document.createElement("button");
+    title.className = "inbox-ticket";
+    title.type = "button";
+    title.textContent = `${item.ticket_id} · ${item.title}`;
+    title.addEventListener("click", () => selectTicket(item.ticket_id));
+    const detail = document.createElement("p");
+    detail.textContent = item.detail || item.label || "Inspect ticket.";
+    main.append(category, title, detail);
+
+    row.append(main, severityPill(item.severity || "watch"));
+    if (item.command) row.append(commandInline(item.command, item.label || item.ticket_id));
+    list.append(row);
+  });
+
+  if (inbox.length > 6) {
+    const more = document.createElement("p");
+    more.className = "inbox-more";
+    more.textContent = `${inbox.length - 6} more item${inbox.length - 6 === 1 ? "" : "s"} in the queue and ledger.`;
+    list.append(more);
   }
 }
 
@@ -1093,6 +1166,7 @@ function render(snapshot) {
   health(snapshot);
   renderMetrics(snapshot);
   renderOperatorSummary(snapshot);
+  renderFounderInbox(snapshot);
   renderSurfaces(snapshot);
   renderDossier(snapshot);
   renderHealthActions(snapshot);
