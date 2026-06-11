@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Fixed sandbox demo/test baseline cleanliness (POS-0055). `palari sandbox
+  create` now commits files produced by the sandbox's own `palari init`, so
+  `sandbox list` and `sandbox inspect` start from a clean local sandbox after
+  creation even when release archives omit governed history directories.
 - Added a mock-agent refusal demo fixture (POS-0054). `palari demo
   --agent-refusal` writes `DEM-0003`, a blocked ticket with preserved
   mock-executor evidence showing a forbidden `.env` write attempt refused by
