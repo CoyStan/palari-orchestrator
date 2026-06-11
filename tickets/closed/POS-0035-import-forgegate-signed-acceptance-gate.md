@@ -1,15 +1,15 @@
 ---
 id: POS-0035
 title: Import ForgeGate signed acceptance gate
-status: in-review
+status: accepted
 risk: R2
 priority: P1
 stream: governance
 claimed_by: codex
 claimed_at: 2026-06-10T14:38:29Z
 claim_ref: refs/palari/claims/POS-0035
-claim_heartbeat_at: 2026-06-10T14:38:29Z
-claim_expires_at: 2026-06-10T14:43:29Z
+claim_heartbeat_at: 2026-06-11T06:42:43Z
+claim_expires_at: 2026-06-11T06:47:43Z
 allowed_paths:
   - .github/**
   - .gitignore
@@ -51,10 +51,10 @@ verification:
 target_branch: main
 branch: codex/forgegate-side-version
 worktree: /home/quetza/palari-orchestrator-worktrees/forgegate-import
-accepted_by:
-accepted_at:
+accepted_by: founder
+accepted_at: 2026-06-11T06:42:52Z
 created: 2026-06-10
-updated: 2026-06-10
+updated: 2026-06-11
 ---
 
 # POS-0035 Import ForgeGate signed acceptance gate
