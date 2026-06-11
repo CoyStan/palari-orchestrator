@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Documented the isolation model honestly (POS-0044). Docs now distinguish
+  worktrees (ticket isolation), local sandboxes (disposable repo copies), and
+  hardened sandboxes (container/VM/remote, not yet shipped), and state
+  explicitly that a local sandbox is not a security boundary - scope,
+  evidence, review, and acceptance gates are the control layer.
 - Made skills machine-discoverable (POS-0043). Shipped skills under `skills/`
   now carry YAML frontmatter (`name`, `description`), and two new commands
   inspect them: `palari skill list` enumerates shipped, adopter, and plugin

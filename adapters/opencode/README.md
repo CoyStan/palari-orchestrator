@@ -46,11 +46,25 @@ authority commands:
 The executor may edit scoped files. Palari still decides whether the result is
 admissible through scope, evidence, review, and acceptance gates.
 
-## Local Sandboxes
+## Isolation Model
+
+Palari uses three isolation terms consistently:
+
+| Term | Meaning |
+| --- | --- |
+| worktree | Normal ticket implementation isolation; the default execution surface. |
+| local sandbox | Disposable repo copy for executor experiments (`palari sandbox create`). |
+| hardened sandbox | Future container/VM/remote runtime isolation; not yet shipped. |
 
 `palari sandbox create TICKET-ID` creates a disposable local repo copy outside
 the canonical checkout under the configured worktree base. It is useful for
 testing executor behavior without dirtying the source checkout.
+
+A local sandbox is not a security boundary. It is not a container, VM, chroot,
+or network jail, and it does not safely contain a malicious or broken agent.
+It protects the canonical checkout from accidental dirtying; the real control
+layer is scope-check, evidence, review, and human acceptance. For untrusted
+execution, a hardened sandbox adapter is the right future surface.
 
 The first opencode wrapper runs in the ticket worktree so the existing packet,
 scope, and evidence commands remain the source of truth. Container or remote VM

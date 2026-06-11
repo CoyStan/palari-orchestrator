@@ -418,6 +418,13 @@ the canonical checkout:
 palari sandbox create APP-0001
 ```
 
+Palari distinguishes worktrees (normal ticket isolation), local sandboxes
+(disposable repo copies for executor experiments), and hardened sandboxes
+(container/VM/remote isolation, not yet shipped). A local sandbox protects the
+canonical checkout from accidental dirtying; it is not a security boundary and
+does not contain a malicious agent. Governance comes from scope, evidence,
+review, and acceptance gates, not from the sandbox.
+
 ## Optional Console
 
 The local console is the primary proof surface for non-technical operators. It
@@ -575,7 +582,7 @@ ship as adapters:
 - Lifecycle visibility: `palari status --next`, `palari doctor lifecycle`, and `palari ticket audit` explain active tickets that are not closed yet.
 - Autonomous hygiene: `palari hygiene` separates generated cache/build artifacts from source changes, highlights stale claims, and shows ticket branches with unintegrated work.
 - Executor wrappers: `palari agent run TICKET-ID --executor opencode` invokes opencode from a Palari packet and records executor evidence.
-- Local sandboxes: `palari sandbox create TICKET-ID` creates a disposable repository copy for executor experiments.
+- Local sandboxes: `palari sandbox create TICKET-ID` creates a disposable repository copy for executor experiments. Not a security boundary; scope and evidence gates remain the control layer.
 - Evidence integrity: `palari ci` writes `reports/evidence/<ticket>/verification.log`, `junit.xml`, `palari.sarif`, and `manifest.json`; `accept` validates manifest status, current commit, and artifact hashes before closing a ticket.
 - Trusted merge evidence: the GitHub adapter uploads and attests `palari-evidence.tgz` on trusted repository runs. GitHub rulesets must be installed before this protects merges.
 - Concurrency: `ticket claim` records lease metadata, `ticket heartbeat` renews it, and `scope-overlaps` blocks path-scope collisions by default.
