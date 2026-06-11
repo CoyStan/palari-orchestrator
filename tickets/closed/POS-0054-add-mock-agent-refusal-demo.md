@@ -1,7 +1,7 @@
 ---
 id: POS-0054
 title: Add mock-agent refusal demo
-status: in-review
+status: accepted
 risk: R2
 priority: P1
 stream: demo
@@ -9,8 +9,8 @@ serves_goal:
 claimed_by: codex
 claimed_at: 2026-06-11T22:05:21Z
 claim_ref: refs/palari/claims/POS-0054
-claim_heartbeat_at: 2026-06-11T22:08:41Z
-claim_expires_at: 2026-06-11T22:13:41Z
+claim_heartbeat_at: 2026-06-11T22:47:48Z
+claim_expires_at: 2026-06-11T22:52:48Z
 allowed_paths:
   - bin/palari
   - lib/palari/demo.bash
@@ -41,8 +41,8 @@ verification:
 target_branch: main
 branch: ticket/POS-0054
 worktree: 
-accepted_by:
-accepted_at:
+accepted_by: quetza
+accepted_at: 2026-06-11T22:48:27Z
 created: 2026-06-11
 updated: 2026-06-11
 ---

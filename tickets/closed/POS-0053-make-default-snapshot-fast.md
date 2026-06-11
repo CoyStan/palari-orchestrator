@@ -1,7 +1,7 @@
 ---
 id: POS-0053
 title: Make default snapshot fast
-status: in-review
+status: accepted
 risk: R2
 priority: P0
 stream: dashboard
@@ -9,8 +9,8 @@ serves_goal:
 claimed_by: codex
 claimed_at: 2026-06-11T21:41:41Z
 claim_ref: refs/palari/claims/POS-0053
-claim_heartbeat_at: 2026-06-11T22:01:24Z
-claim_expires_at: 2026-06-11T22:06:24Z
+claim_heartbeat_at: 2026-06-11T22:46:29Z
+claim_expires_at: 2026-06-11T22:51:29Z
 allowed_paths:
   - bin/palari
   - lib/palari/dashboard_snapshot.bash
@@ -43,8 +43,8 @@ verification:
 target_branch: main
 branch: ticket/POS-0053
 worktree: 
-accepted_by:
-accepted_at:
+accepted_by: quetza
+accepted_at: 2026-06-11T22:47:48Z
 created: 2026-06-11
 updated: 2026-06-11
 ---

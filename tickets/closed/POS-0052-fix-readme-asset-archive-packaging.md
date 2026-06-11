@@ -1,7 +1,7 @@
 ---
 id: POS-0052
 title: Fix README asset archive packaging
-status: in-review
+status: accepted
 risk: R1
 priority: P1
 stream: docs
@@ -9,8 +9,8 @@ serves_goal:
 claimed_by: codex
 claimed_at: 2026-06-11T21:38:17Z
 claim_ref: refs/palari/claims/POS-0052
-claim_heartbeat_at: 2026-06-11T21:41:24Z
-claim_expires_at: 2026-06-11T21:46:24Z
+claim_heartbeat_at: 2026-06-11T22:46:25Z
+claim_expires_at: 2026-06-11T22:51:25Z
 allowed_paths:
   - .gitattributes
   - README.md
@@ -39,8 +39,8 @@ verification:
 target_branch: main
 branch: ticket/POS-0052
 worktree: 
-accepted_by:
-accepted_at:
+accepted_by: quetza
+accepted_at: 2026-06-11T22:46:29Z
 created: 2026-06-11
 updated: 2026-06-11
 ---

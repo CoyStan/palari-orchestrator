@@ -1,7 +1,7 @@
 ---
 id: POS-0051
 title: Fix external Palari root invocation
-status: in-review
+status: accepted
 risk: R2
 priority: P0
 stream: governance
@@ -9,8 +9,8 @@ serves_goal:
 claimed_by: codex
 claimed_at: 2026-06-11T21:34:17Z
 claim_ref: refs/palari/claims/POS-0051
-claim_heartbeat_at: 2026-06-11T21:37:56Z
-claim_expires_at: 2026-06-11T21:42:56Z
+claim_heartbeat_at: 2026-06-11T22:46:07Z
+claim_expires_at: 2026-06-11T22:51:07Z
 allowed_paths:
   - bin/palari
   - scripts/palari
@@ -49,8 +49,8 @@ verification:
 target_branch: main
 branch: ticket/POS-0051
 worktree: 
-accepted_by:
-accepted_at:
+accepted_by: quetza
+accepted_at: 2026-06-11T22:46:25Z
 created: 2026-06-11
 updated: 2026-06-11
 ---
