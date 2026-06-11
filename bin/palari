@@ -3,7 +3,10 @@ set -euo pipefail
 
 ROOT="${PALARI_ROOT:-}"
 if [[ -z "$ROOT" ]]; then
-	if git_root="$(git rev-parse --show-toplevel 2>/dev/null)"; then
+	SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+	if [[ -f "$SCRIPT_ROOT/lib/palari/core.bash" ]]; then
+		ROOT="$SCRIPT_ROOT"
+	elif git_root="$(git rev-parse --show-toplevel 2>/dev/null)" && [[ -f "$git_root/lib/palari/core.bash" ]]; then
 		ROOT="$git_root"
 	else
 		ROOT="$(pwd)"
@@ -86,7 +89,7 @@ commands:
   adopt TARGET [--ci] [--hooks] Copy Palari into an existing git repository.
   doctor [lifecycle]           Check install health or active ticket lifecycle.
   status [--next]              Show compact orchestration status.
-  snapshot --json              Print the repo-native JSON state model.
+  snapshot --json [--full]     Print the repo-native JSON state model.
   hygiene [--strict]           Classify dirty state and autonomous-ticket drift.
   authority [show|check]       Show or check the active agent authority profile.
   role list|show|lint|graph    Inspect optional repo-native authority roles.
@@ -101,7 +104,8 @@ commands:
   run --dry-run [--until blocked] [--goal G] [--json]
                                Read-only queue plan up to the next human gate.
   lead [propose] ...           Alias for propose.
-  demo [--force]               Create local sample tickets, reports, and evidence.
+  demo [--force] [--agent-refusal]
+                               Create local sample fixtures for the console.
   prompt next|ticket|long-run  Print handoff prompts for governed agent work.
   ticket create ID TITLE ...   Create a scoped ticket.
   ticket claim ID [BY]         Claim an open/reopened ticket.
@@ -172,7 +176,8 @@ ticket create options:
   --verify CHECK --review --human --contract --required-report NAME --skill NAME
   --target-branch main --by-role ROLE-ID --delegate-to-role ROLE-ID
 demo options:
-  --force                      Replace existing DEM-0001/DEM-0002 demo fixtures.
+  --force                      Replace existing fixtures for the selected demo.
+  --agent-refusal              Create a mock executor forbidden-path refusal fixture.
 ticket claim options:
   --ttl SECONDS                Lease duration; default from claim_lease_seconds.
   --allow-overlap              Acknowledge overlapping allowed_paths.
@@ -212,7 +217,7 @@ hygiene)
 	;;
 snapshot)
 	shift
-	cmd_snapshot "${1:-"--json"}"
+	cmd_snapshot "$@"
 	;;
 authority)
 	shift

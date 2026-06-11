@@ -37,10 +37,10 @@ jobs:
           sudo "$RUNNER_TEMP/bats-core/install.sh" /usr/local
 
       - name: ShellCheck
-        run: shellcheck -x bin/palari scripts/palari adapters/codex/install.sh tests/run-cli-structure.sh tests/run-goals.sh tests/run-decisions.sh tests/run-queue-dry-run.sh tests/run-adoption.sh tests/run-proposals.sh tests/run-roles.sh tests/run-agent-wrapper.sh tests/run-authority-lifecycle.sh tests/run-github-ci.sh tests/run-hygiene.sh tests/run-golden.sh tests/run-memory.sh tests/run-plugin-structure.sh tests/run-skills.sh tests/run-sandbox.sh tests/run-agent-mock.sh tests/run-agent-codex.sh
+        run: shellcheck -x bin/palari scripts/palari adapters/codex/install.sh tests/run-cli-structure.sh tests/run-goals.sh tests/run-decisions.sh tests/run-queue-dry-run.sh tests/run-adoption.sh tests/run-proposals.sh tests/run-roles.sh tests/run-agent-wrapper.sh tests/run-authority-lifecycle.sh tests/run-github-ci.sh tests/run-hygiene.sh tests/run-golden.sh tests/run-memory.sh tests/run-plugin-structure.sh tests/run-skills.sh tests/run-readme-assets.sh tests/run-sandbox.sh tests/run-agent-mock.sh tests/run-agent-codex.sh
 
       - name: shfmt
-        run: shfmt -d bin/palari scripts/palari adapters/codex/install.sh lib/palari/*.bash tests/run-cli-structure.sh tests/run-goals.sh tests/run-decisions.sh tests/run-queue-dry-run.sh tests/run-adoption.sh tests/run-proposals.sh tests/run-roles.sh tests/run-agent-wrapper.sh tests/run-authority-lifecycle.sh tests/run-github-ci.sh tests/run-hygiene.sh tests/run-golden.sh tests/run-memory.sh tests/run-plugin-structure.sh tests/run-skills.sh tests/run-sandbox.sh tests/run-agent-mock.sh tests/run-agent-codex.sh
+        run: shfmt -d bin/palari scripts/palari adapters/codex/install.sh lib/palari/*.bash tests/run-cli-structure.sh tests/run-goals.sh tests/run-decisions.sh tests/run-queue-dry-run.sh tests/run-adoption.sh tests/run-proposals.sh tests/run-roles.sh tests/run-agent-wrapper.sh tests/run-authority-lifecycle.sh tests/run-github-ci.sh tests/run-hygiene.sh tests/run-golden.sh tests/run-memory.sh tests/run-plugin-structure.sh tests/run-skills.sh tests/run-readme-assets.sh tests/run-sandbox.sh tests/run-agent-mock.sh tests/run-agent-codex.sh
 
       - name: actionlint
         run: actionlint

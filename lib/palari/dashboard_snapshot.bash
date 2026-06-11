@@ -4,7 +4,9 @@ snapshot_next_action_values() {
 	local file="$1"
 	local state="$2"
 	local prefix="$3"
+	local mode="${4:-full}"
 	local id status target accepted_by accepted_at label detail command actor severity
+	local evidence_ready="false" reports_ready="false"
 	id="$(frontmatter_value "$file" id)"
 	[[ -n "$id" ]] || id="$(ticket_title_from_file "$file")"
 	status="$(frontmatter_value "$file" status)"
@@ -38,18 +40,22 @@ snapshot_next_action_values() {
 			command="./bin/palari ticket heartbeat $id"
 			actor="owner"
 			severity="watch"
-		elif ticket_evidence_present_quiet "$id" && ticket_report_lint_quiet "$id"; then
-			label="Move to review"
-			detail="Evidence and required reports are present; hand the ticket to a fresh reviewer."
-			command="./bin/palari ticket ready $id"
-			actor="specialist"
-			severity="next"
 		else
-			label="Finish evidence"
-			detail="Complete scoped work, specialist reporting, and CI evidence before review."
-			command="./bin/palari worktree $id && ./bin/palari packet $id specialist && ./bin/palari ci $id --base $target"
-			actor="specialist"
-			severity="next"
+			ticket_evidence_present_quiet "$id" && evidence_ready="true"
+			snapshot_ticket_reports_ready_quiet "$mode" "$id" "$file" && reports_ready="true"
+			if [[ "$evidence_ready" == "true" && "$reports_ready" == "true" ]]; then
+				label="Move to review"
+				detail="Evidence and required reports are present; hand the ticket to a fresh reviewer."
+				command="./bin/palari ticket ready $id"
+				actor="specialist"
+				severity="next"
+			else
+				label="Finish evidence"
+				detail="Complete scoped work, specialist reporting, and CI evidence before review."
+				command="./bin/palari worktree $id && ./bin/palari packet $id specialist && ./bin/palari ci $id --base $target"
+				actor="specialist"
+				severity="next"
+			fi
 		fi
 		;;
 	in-review)
@@ -59,7 +65,7 @@ snapshot_next_action_values() {
 			command="./bin/palari ci $id --base $target"
 			actor="specialist"
 			severity="blocked"
-		elif ! ticket_report_lint_quiet "$id"; then
+		elif ! snapshot_ticket_reports_ready_quiet "$mode" "$id" "$file"; then
 			label="Complete review reports"
 			detail="A reviewer or required custom/human report is missing."
 			command="./bin/palari packet $id reviewer"
@@ -109,11 +115,58 @@ snapshot_next_action_values() {
 	printf -v "${prefix}_severity" '%s' "$severity"
 }
 
+snapshot_ticket_reports_ready_quiet() {
+	local mode="$1"
+	local ticket_id="$2"
+	local file="$3"
+	local risk status requires_review requires_human technical reviewer human required_report custom_report
+	technical="false"
+	reviewer="false"
+	human="false"
+	if [[ "$mode" == "full" ]]; then
+		ticket_report_lint_quiet "$ticket_id"
+		return $?
+	fi
+	risk="$(frontmatter_value "$file" risk)"
+	status="$(frontmatter_value "$file" status)"
+	requires_review="$(frontmatter_value "$file" requires_review)"
+	requires_human="$(frontmatter_value "$file" requires_human_confirmation)"
+	snapshot_fast_report_present "$REPORTS_DIR" "$ticket_id" technical && technical="true"
+	snapshot_fast_report_present "$REPORTS_DIR" "$ticket_id" reviewer && reviewer="true"
+	snapshot_fast_report_present "$HUMAN_REPORTS_DIR" "$ticket_id" human && human="true"
+	if [[ "$status" == "in-review" || "$status" == "accepted" ]]; then
+		[[ ! "$risk" =~ ^R[234]$ || "$technical" == "true" ]] || return 1
+		[[ !( "$requires_review" == "true" || "$risk" =~ ^R[234]$ ) || "$reviewer" == "true" ]] || return 1
+		[[ !( "$requires_human" == "true" || "$risk" =~ ^R[34]$ ) || "$human" == "true" ]] || return 1
+	fi
+	while IFS= read -r required_report; do
+		[[ -n "$required_report" ]] || continue
+		case "$required_report" in
+		specialist | technical)
+			[[ "$technical" == "true" ]] || return 1
+			;;
+		reviewer)
+			[[ "$reviewer" == "true" ]] || return 1
+			;;
+		human | founder)
+			[[ "$human" == "true" ]] || return 1
+			;;
+		*)
+			custom_report="false"
+			snapshot_fast_report_present "$REPORTS_DIR" "$ticket_id" "$required_report" && custom_report="true"
+			[[ "$custom_report" == "true" ]] || return 1
+			;;
+		esac
+	done < <(ticket_required_reports "$file" | awk '!seen[$0]++')
+	return 0
+}
+
 snapshot_next_action_json() {
 	local file="$1"
 	local state="$2"
+	local mode="${3:-full}"
 	local action_label action_detail action_command action_actor action_severity
-	snapshot_next_action_values "$file" "$state" action
+	snapshot_next_action_values "$file" "$state" action "$mode"
 	printf '{"label":'
 	json_string "$action_label"
 	printf ',"detail":'
@@ -125,6 +178,179 @@ snapshot_next_action_json() {
 	printf ',"severity":'
 	json_string "$action_severity"
 	printf '}'
+}
+
+evidence_summary_json() {
+	local ticket_id="$1"
+	local dir="$ROOT/$EVIDENCE_DIR/$ticket_id"
+	local rel="" first="true" count=0 name has_log="false" has_junit="false" has_sarif="false" has_manifest="false"
+	[[ -d "$dir" ]] && rel="${dir#"$ROOT"/}"
+	[[ -f "$dir/verification.log" ]] && has_log="true"
+	[[ -f "$dir/junit.xml" ]] && has_junit="true"
+	[[ -f "$dir/palari.sarif" ]] && has_sarif="true"
+	[[ -f "$dir/manifest.json" ]] && has_manifest="true"
+	printf '{"path":'
+	json_string "$rel"
+	printf ',"files":['
+	for name in verification.log junit.xml palari.sarif manifest.json; do
+		[[ -f "$dir/$name" ]] || continue
+		[[ "$first" == "true" ]] || printf ','
+		json_string "$name"
+		first="false"
+		count=$((count + 1))
+	done
+	printf '],"has_log":%s,"has_junit":%s,"has_sarif":%s,"has_manifest":%s,"file_count":%s}' \
+		"$has_log" "$has_junit" "$has_sarif" "$has_manifest" "$count"
+}
+
+snapshot_fast_report_present() {
+	local dir="$1"
+	local ticket_id="$2"
+	local kind="$3"
+	local slug="${kind,,}"
+	slug="${slug//_/-}"
+	case "$kind" in
+	technical | specialist)
+		compgen -G "$ROOT/$dir/${ticket_id}-technical-report.md" >/dev/null && return 0
+		compgen -G "$ROOT/$dir/${ticket_id}-specialist-report.md" >/dev/null && return 0
+		compgen -G "$ROOT/$dir/${ticket_id}"'*technical*.md' >/dev/null && return 0
+		compgen -G "$ROOT/$dir/${ticket_id}"'*specialist*.md' >/dev/null && return 0
+		;;
+	reviewer)
+		compgen -G "$ROOT/$dir/${ticket_id}-reviewer-note.md" >/dev/null && return 0
+		compgen -G "$ROOT/$dir/${ticket_id}"'*review*.md' >/dev/null && return 0
+		;;
+	human | founder)
+		compgen -G "$ROOT/$dir/${ticket_id}"'*.md' >/dev/null && return 0
+		compgen -G "$ROOT/$dir/${ticket_id}"'*.markdown' >/dev/null && return 0
+		;;
+	*)
+		compgen -G "$ROOT/$dir/${ticket_id}"*"${slug}"'*.md' >/dev/null && return 0
+		compgen -G "$ROOT/$dir/${ticket_id}"*"${slug}"'*.markdown' >/dev/null && return 0
+		;;
+	esac
+	return 1
+}
+
+reports_summary_json() {
+	local ticket_id="$1"
+	local file="$2"
+	local required_report first="true"
+	local technical="false" reviewer="false" human="false" custom_present
+	snapshot_fast_report_present "$REPORTS_DIR" "$ticket_id" technical && technical="true"
+	snapshot_fast_report_present "$REPORTS_DIR" "$ticket_id" reviewer && reviewer="true"
+	snapshot_fast_report_present "$HUMAN_REPORTS_DIR" "$ticket_id" human && human="true"
+	printf '{"technical":%s,"reviewer":%s,"human":%s,"custom":[' "$technical" "$reviewer" "$human"
+	while IFS= read -r required_report; do
+		[[ -n "$required_report" ]] || continue
+		case "$required_report" in
+		specialist | technical | reviewer | human | founder) continue ;;
+		esac
+		custom_present="false"
+		snapshot_fast_report_present "$REPORTS_DIR" "$ticket_id" "$required_report" && custom_present="true"
+		[[ "$first" == "true" ]] || printf ','
+		printf '{"name":'
+		json_string "$required_report"
+		printf ',"present":%s}' "$custom_present"
+		first="false"
+	done < <(ticket_required_reports "$file" | awk '!seen[$0]++')
+	printf ']}'
+}
+
+snapshot_ticket_fast_json() {
+	local file="$1"
+	local state="$2"
+	local ticket_id title status risk priority stream rel claimed_by claimed_at claim_ref expires heartbeat branch worktree lease_status
+	local created_by_role delegated_to_role accepted_by accepted_at implemented_by
+	ticket_id="$(frontmatter_value "$file" id)"
+	[[ -n "$ticket_id" ]] || ticket_id="$(ticket_title_from_file "$file")"
+	title="$(frontmatter_value "$file" title)"
+	[[ -n "$title" ]] || title="$ticket_id"
+	status="$(frontmatter_value "$file" status)"
+	[[ -n "$status" ]] || status="$([[ "$state" == "accepted" ]] && printf accepted || printf open)"
+	risk="$(frontmatter_value "$file" risk)"
+	priority="$(frontmatter_value "$file" priority)"
+	stream="$(frontmatter_value "$file" stream)"
+	rel="${file#"$ROOT"/}"
+	claimed_by="$(frontmatter_value "$file" claimed_by)"
+	claimed_at="$(frontmatter_value "$file" claimed_at)"
+	claim_ref="$(frontmatter_value "$file" claim_ref)"
+	expires="$(frontmatter_value "$file" claim_expires_at)"
+	heartbeat="$(frontmatter_value "$file" claim_heartbeat_at)"
+	created_by_role="$(frontmatter_value "$file" created_by_role)"
+	[[ -n "$created_by_role" ]] || created_by_role="$(frontmatter_value "$file" issued_by_role)"
+	delegated_to_role="$(frontmatter_value "$file" delegated_to_role)"
+	[[ -n "$delegated_to_role" ]] || delegated_to_role="$(frontmatter_value "$file" delegate_to_role)"
+	accepted_by="$(frontmatter_value "$file" accepted_by)"
+	accepted_at="$(frontmatter_value "$file" accepted_at)"
+	implemented_by="$(frontmatter_value "$file" implemented_by)"
+	branch="$(ticket_declared_branch "$file" "$ticket_id")"
+	worktree="$(ticket_declared_worktree "$file" "$ticket_id")"
+	lease_status="$(ticket_lease_status "$file")"
+	printf '{"id":'
+	json_string "$ticket_id"
+	printf ',"title":'
+	json_string "$title"
+	printf ',"status":'
+	json_string "$status"
+	printf ',"risk":'
+	json_string "${risk:-R1}"
+	printf ',"priority":'
+	json_string "${priority:-P2}"
+	printf ',"stream":'
+	json_string "${stream:-process}"
+	printf ',"state":'
+	json_string "$state"
+	printf ',"path":'
+	json_string "$rel"
+	printf ',"allowed_paths":'
+	json_frontmatter_list "$file" allowed_paths
+	printf ',"forbidden_paths":'
+	json_frontmatter_list "$file" forbidden_paths
+	printf ',"verification":'
+	json_frontmatter_list "$file" verification
+	printf ',"required_reports":'
+	ticket_required_reports_json "$file"
+	printf ',"claimed_by":'
+	json_string "$claimed_by"
+	printf ',"claimed_at":'
+	json_string "$claimed_at"
+	printf ',"created_by_role":'
+	json_string "$created_by_role"
+	printf ',"delegated_to_role":'
+	json_string "$delegated_to_role"
+	printf ',"accepted_by":'
+	json_string "$accepted_by"
+	printf ',"accepted_at":'
+	json_string "$accepted_at"
+	printf ',"implemented_by":'
+	json_string "$implemented_by"
+	printf ',"claim_ref":'
+	json_string "$claim_ref"
+	printf ',"claim_expires_at":'
+	json_string "$expires"
+	printf ',"claim_heartbeat_at":'
+	json_string "$heartbeat"
+	printf ',"requires_review":%s,"requires_human_confirmation":%s' \
+		"$(json_bool "$(frontmatter_value "$file" requires_review)")" \
+		"$(json_bool "$(frontmatter_value "$file" requires_human_confirmation)")"
+	printf ',"branch":'
+	json_string "$branch"
+	printf ',"worktree":'
+	json_string "$worktree"
+	printf ',"evidence":'
+	evidence_summary_json "$ticket_id"
+	printf ',"reports":'
+	reports_summary_json "$ticket_id" "$file"
+	printf ',"next_action":'
+	snapshot_next_action_json "$file" "$state" fast
+	printf ',"lease":{"status":'
+	json_string "$lease_status"
+	printf ',"expires_at":'
+	json_string "$expires"
+	printf ',"seconds_remaining":'
+	ticket_lease_remaining "$file"
+	printf '}}'
 }
 
 snapshot_role_lint_json() {
@@ -199,27 +425,71 @@ snapshot_role_json() {
 	printf '}}'
 }
 
+snapshot_role_fast_json() {
+	local file="$1"
+	local id title status tier risk rel
+	id="$(frontmatter_value "$file" id)"
+	title="$(frontmatter_value "$file" title)"
+	status="$(frontmatter_value "$file" status)"
+	tier="$(frontmatter_value "$file" tier)"
+	risk="$(frontmatter_value "$file" max_risk)"
+	rel="${file#"$ROOT"/}"
+	printf '{"id":'
+	json_string "$id"
+	printf ',"title":'
+	json_string "$title"
+	printf ',"status":'
+	json_string "$status"
+	printf ',"tier":'
+	json_string "$tier"
+	printf ',"max_risk":'
+	json_string "$risk"
+	printf ',"path":'
+	json_string "$rel"
+	printf ',"allowed_paths":'
+	json_frontmatter_list "$file" allowed_paths
+	printf '}'
+}
+
 snapshot_role_items_json() {
+	local mode="${1:-fast}"
 	local file first="true"
 	printf '['
 	while IFS= read -r file; do
 		[[ -n "$file" ]] || continue
 		[[ "$first" == "true" ]] || printf ','
-		snapshot_role_json "$file"
+		if [[ "$mode" == "full" ]]; then
+			snapshot_role_json "$file"
+		else
+			snapshot_role_fast_json "$file"
+		fi
 		first="false"
 	done < <(role_files)
 	printf ']'
 }
 
+snapshot_role_lint_shallow_json() {
+	local count
+	count="$(role_files | wc -l | tr -d ' ')"
+	printf '{"ok":true,"issues":0,"checked":%s,"mode":"shallow","command":"./bin/palari role lint","detail":' "$count"
+	json_string "Skipped in the fast snapshot; run ./bin/palari role lint or ./bin/palari snapshot --json --full for full diagnostics."
+	printf '}'
+}
+
 snapshot_roles_json() {
+	local mode="${1:-fast}"
 	local active proposed revoked
 	active="$(role_files_for_dir "$ROLES_ACTIVE_DIR" | wc -l | tr -d ' ')"
 	proposed="$(role_files_for_dir "$ROLES_PROPOSED_DIR" | wc -l | tr -d ' ')"
 	revoked="$(role_files_for_dir "$ROLES_REVOKED_DIR" | wc -l | tr -d ' ')"
 	printf '{"counts":{"active":%s,"proposed":%s,"revoked":%s},"lint":' "$active" "$proposed" "$revoked"
-	snapshot_role_lint_json
+	if [[ "$mode" == "full" ]]; then
+		snapshot_role_lint_json
+	else
+		snapshot_role_lint_shallow_json
+	fi
 	printf ',"items":'
-	snapshot_role_items_json
+	snapshot_role_items_json "$mode"
 	printf '}'
 }
 
@@ -259,12 +529,13 @@ snapshot_inbox_label() {
 
 snapshot_inbox_item_json() {
 	local file="$1"
+	local mode="${2:-fast}"
 	local id title status category category_label action_label action_detail action_command action_actor action_severity
 	id="$(frontmatter_value "$file" id)"
 	[[ -n "$id" ]] || id="$(ticket_title_from_file "$file")"
 	title="$(frontmatter_value "$file" title)"
 	status="$(frontmatter_value "$file" status)"
-	snapshot_next_action_values "$file" "active" action
+	snapshot_next_action_values "$file" "active" action "$mode"
 	category="$(snapshot_inbox_category "$status" "$action_actor" "$action_severity" "$action_label")"
 	SNAPSHOT_LAST_INBOX_CATEGORY="$category"
 	category_label="$(snapshot_inbox_label "$category")"
@@ -314,13 +585,14 @@ snapshot_operator_inbox_count_category() {
 }
 
 snapshot_operator_inbox_json() {
+	local mode="${1:-fast}"
 	local file first="true"
 	snapshot_operator_inbox_counts_reset
 	printf '['
 	while IFS= read -r file; do
 		[[ -n "$file" ]] || continue
 		[[ "$first" == "true" ]] || printf ','
-		snapshot_inbox_item_json "$file"
+		snapshot_inbox_item_json "$file" "$mode"
 		snapshot_operator_inbox_count_category "$SNAPSHOT_LAST_INBOX_CATEGORY"
 		first="false"
 	done < <(ticket_files)
@@ -359,6 +631,7 @@ snapshot_open_decisions_json() {
 }
 
 snapshot_operator_json() {
+	local mode="${1:-fast}"
 	local file count=0
 	file=""
 	while IFS= read -r file; do
@@ -366,9 +639,9 @@ snapshot_operator_json() {
 	done < <(ticket_files)
 	if [[ -n "$file" ]]; then
 		printf '{"has_active_work":true,"next_action":'
-		snapshot_next_action_json "$file" "active"
+		snapshot_next_action_json "$file" "active" "$mode"
 		printf ',"inbox":'
-		snapshot_operator_inbox_json
+		snapshot_operator_inbox_json "$mode"
 		printf ',"inbox_counts":'
 		snapshot_operator_inbox_counts_json
 		printf ',"open_decisions":'

@@ -1,0 +1,35 @@
+# Palari CI Evidence
+
+- Ticket: POS-0052
+- Base ref: HEAD
+- Created: 2026-06-11T22:46:26Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0052 (0 changed path(s))
+```
+
+## lint
+
+```text
+lint: tickets/open/POS-0052-fix-readme-asset-archive-packaging.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+report-lint: ok for POS-0052
+lint: ok for POS-0052
+```
+
+## verification 1
+
+Command: `tests/run-readme-assets.sh`
+
+```text
+readme-assets: ok (3 asset(s))
+```
+
+## verification 2
+
+Command: `shellcheck -x tests/run-readme-assets.sh`
+
+```text
+
+```

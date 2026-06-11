@@ -2,19 +2,40 @@
 
 ## Unreleased
 
+- Fixed sandbox demo/test baseline cleanliness (POS-0055). `palari sandbox
+  create` now commits files produced by the sandbox's own `palari init`, so
+  `sandbox list` and `sandbox inspect` start from a clean local sandbox after
+  creation even when release archives omit governed history directories.
+- Added a mock-agent refusal demo fixture (POS-0054). `palari demo
+  --agent-refusal` writes `DEM-0003`, a blocked ticket with preserved
+  mock-executor evidence showing a forbidden `.env` write attempt refused by
+  scope-check. This complements the real deterministic mock executor tests
+  without invoking an AI tool, network, or credentials.
+- Made the default dashboard snapshot fast (POS-0053). `palari snapshot --json`
+  and `palari web --check` now return the live operator view: active tickets,
+  lightweight role rows, evidence/report presence, and shallow role diagnostics.
+  Use `--full` for closed tickets, full report diagnostics, and full role lint.
+- Fixed README asset packaging for release/source archives (POS-0052). README
+  `assets/readme/*` references are now checked by `tests/run-readme-assets.sh`
+  and PNG README assets are no longer blanket `export-ignore`d.
+- Fixed external Palari package invocation for adoption flows (POS-0051).
+  `bin/palari` now resolves its own package root before falling back to a
+  caller git root, and `scripts/palari` pins `PALARI_ROOT`. This makes
+  `/path/to/palari/bin/palari adopt /path/to/target --dry-run` work from the
+  target repo or any other current directory. Regression coverage lives in
+  `tests/run-adoption.sh`.
 - Packet skill polish from review findings (POS-0049): duplicate `--skill`
   values are deduplicated at ticket creation, packets with declared-but-
   missing skills no longer also print "none declared", and the excerpt
   pointer only appears when the skill body actually exceeds the excerpt cap.
 - Added Codex as a governed executor (POS-0048). `palari agent run TICKET-ID
   --executor codex [--dry-run]` runs Codex through the shared lifecycle
-  (worktree, packet, evidence, scope-check, ci); the CLI contract -
-  `codex exec --cd --sandbox workspace-write --json --output-last-message`,
-  verified against codex-cli 0.138.0 - is isolated in one shim function. New
-  `palari codex doctor` reports readiness (AGENTS.md, CLI, prompts, executor
-  entry point) and `palari codex install` wraps the prompt installer.
-  Validated by `tests/run-agent-codex.sh` (dry-run based; no Codex CLI or
-  network required).
+  (worktree, packet, evidence, scope-check, ci); the current `codex exec`
+  invocation is isolated in one shim function. New `palari codex doctor`
+  reports readiness (AGENTS.md, CLI, prompts, executor entry point) and
+  `palari codex install` wraps the prompt installer. Validated by
+  `tests/run-agent-codex.sh` (dry-run based; no Codex CLI or network
+  required).
 - Added a deterministic mock executor (POS-0047). `palari agent run TICKET-ID
   --executor mock --scenario safe|forbidden-path|outside-scope` runs the full
   governed lifecycle (worktree, packet, evidence, scope-check, ci) with a

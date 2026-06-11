@@ -33,6 +33,21 @@ git commit -m "target baseline" >/dev/null
 grep -Fq "adopt target must be an existing git repository" "$TMP_ROOT/dry-run.err"
 test ! -e "$DRY_TARGET/bin"
 
+(cd "$TARGET" && "$SOURCE/bin/palari" adopt "$TARGET" --dry-run) >"$TMP_ROOT/external-from-target.out"
+grep -Fq "adopt: source $SOURCE" "$TMP_ROOT/external-from-target.out"
+grep -Fq "adopt: target $TARGET" "$TMP_ROOT/external-from-target.out"
+grep -Fq "adopt: dry-run complete" "$TMP_ROOT/external-from-target.out"
+
+(cd "$TMP_ROOT" && "$SOURCE/bin/palari" adopt "$TARGET" --dry-run) >"$TMP_ROOT/external-from-tmp.out"
+grep -Fq "adopt: source $SOURCE" "$TMP_ROOT/external-from-tmp.out"
+grep -Fq "adopt: target $TARGET" "$TMP_ROOT/external-from-tmp.out"
+grep -Fq "adopt: dry-run complete" "$TMP_ROOT/external-from-tmp.out"
+
+(cd "$TARGET" && "$SOURCE/scripts/palari" adopt "$TARGET" --dry-run) >"$TMP_ROOT/wrapper-from-target.out"
+grep -Fq "adopt: source $SOURCE" "$TMP_ROOT/wrapper-from-target.out"
+grep -Fq "adopt: target $TARGET" "$TMP_ROOT/wrapper-from-target.out"
+grep -Fq "adopt: dry-run complete" "$TMP_ROOT/wrapper-from-target.out"
+
 (cd "$SOURCE" && ./bin/palari adopt "$TARGET" --ci --hooks) >"$TMP_ROOT/adopt.out"
 grep -Fq "adopt: source $SOURCE" "$TMP_ROOT/adopt.out"
 grep -Fq "adopt: target $TARGET" "$TMP_ROOT/adopt.out"

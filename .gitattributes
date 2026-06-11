@@ -8,7 +8,6 @@ reports/human/POS-* export-ignore
 reports/evidence/POS-* export-ignore
 research/pilots/*/runs/** export-ignore
 docs/audits/** export-ignore
-assets/readme/*.png export-ignore
 
 # Normalize shell and config line endings.
 *.bash text eol=lf

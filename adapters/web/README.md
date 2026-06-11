@@ -7,7 +7,7 @@ are doing without reading every Markdown file by hand.
 It is intentionally an adapter:
 
 - the repository remains the source of truth
-- dashboard state comes from `palari snapshot --json`
+- dashboard state comes from fast `palari snapshot --json`
 - commands are shown as copyable CLI actions
 - acceptance authority stays in `palari accept`
 - no database, package manager, or frontend build step is required
@@ -39,10 +39,15 @@ Options:
 ```bash
 ./bin/palari web --host 127.0.0.1 --port 8765
 ./bin/palari web --check
+./bin/palari web --check --full
 ```
 
-`--check` prints the same JSON produced by `palari snapshot --json`. It is
-useful for tests, CI, and debugging adapter reads.
+`--check` prints the same fast JSON produced by `palari snapshot --json`. It is
+useful for tests, CI, and debugging adapter reads. The fast snapshot is the
+live operator view: active tickets, lightweight role rows, evidence/report
+presence, and shallow role diagnostics. Use `--check --full` or
+`palari snapshot --json --full` when you need closed-ticket history, full report
+diagnostics, and full role-lint output.
 
 The server is a local stdlib viewer. It refuses non-loopback hosts unless
 `--unsafe-bind` is set and is not a production web service.

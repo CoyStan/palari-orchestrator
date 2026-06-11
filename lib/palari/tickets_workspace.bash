@@ -647,6 +647,10 @@ cmd_sandbox_create() {
 	git -C "$target" add .
 	git -C "$target" commit -m "sandbox baseline for $ticket_id" >/dev/null
 	"$target/bin/palari" init >/dev/null
+	git -C "$target" add .
+	if ! git -C "$target" diff --cached --quiet; then
+		git -C "$target" commit -m "initialize palari sandbox" >/dev/null
+	fi
 	sandbox_metadata_write "$target" "$ticket_id" "$target_branch" \
 		"$(git -C "$ROOT" rev-parse HEAD)"
 

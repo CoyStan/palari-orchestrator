@@ -1,0 +1,43 @@
+# Palari CI Evidence
+
+- Ticket: POS-0053
+- Base ref: HEAD
+- Created: 2026-06-11T22:46:29Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0053 (0 changed path(s))
+```
+
+## lint
+
+```text
+lint: tickets/open/POS-0053-make-default-snapshot-fast.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+report-lint: ok for POS-0053
+lint: ok for POS-0053
+```
+
+## verification 1
+
+Command: `tests/run-dashboard-rubric.sh`
+
+```text
+dashboard-rubric: ok (structure, custody surface, contrast both themes, snapshot contract)
+```
+
+## verification 2
+
+Command: `tests/run-cli-structure.sh`
+
+```text
+cli-structure: ok
+```
+
+## verification 3
+
+Command: `python3 -m py_compile adapters/web/server.py`
+
+```text
+
+```
