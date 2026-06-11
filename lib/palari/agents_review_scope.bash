@@ -486,6 +486,17 @@ cmd_packet() {
 	printf '  - result state\n  - changed paths\n  - verification passed/failed/not run\n  - blockers or scope conflicts\n  - risks/follow-ups\n  - next action for orchestrator/human\n'
 }
 
+skill_body_line_count() {
+	local file="$1"
+	awk '
+    NR == 1 && $0 == "---" { in_fm = 1; next }
+    in_fm && $0 == "---" { in_fm = 0; next }
+    in_fm { next }
+    NF { count += 1 }
+    END { print count + 0 }
+  ' "$file"
+}
+
 print_skill_excerpt() {
 	local file="$1"
 	local limit="${2:-10}"
@@ -503,22 +514,24 @@ print_skill_excerpt() {
 
 print_packet_skills() {
 	local ticket_file="$1"
-	local name skill_file desc count=0
+	local name skill_file desc declared=0
 	printf 'Relevant Skills:\n'
 	while IFS= read -r name; do
 		[[ -n "$name" ]] || continue
+		declared=$((declared + 1))
 		if skill_file="$(find_skill_file "$name")"; then
 			desc="$(frontmatter_value "$skill_file" description)"
 			printf '  - %s (%s)\n' "$name" "${skill_file#"$ROOT"/}"
 			[[ -z "$desc" ]] || printf '    %s\n' "$desc"
 			print_skill_excerpt "$skill_file" 10
-			printf '      (excerpt; read the full skill before editing)\n'
-			count=$((count + 1))
+			if (($(skill_body_line_count "$skill_file") > 10)); then
+				printf '      (excerpt; read the full skill before editing)\n'
+			fi
 		else
 			printf '  - %s (missing; run palari skill list)\n' "$name"
 		fi
-	done < <(frontmatter_list_items "$ticket_file" related_skills)
-	((count > 0)) || printf '  - none declared\n'
+	done < <(frontmatter_list_items "$ticket_file" related_skills | awk '!seen[$0]++')
+	((declared > 0)) || printf '  - none declared\n'
 	printf '  Skills guide execution; the ticket controls authority and scope.\n\n'
 }
 

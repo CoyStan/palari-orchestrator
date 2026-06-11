@@ -103,6 +103,11 @@ cmd_ticket_create() {
 		die "--delegate-to-role requires --by-role so authority can be checked"
 	fi
 	if ((${#related_skills[@]} > 0)); then
+		local -a deduped_skills=()
+		while IFS= read -r arg; do
+			[[ -n "$arg" ]] && deduped_skills+=("$arg")
+		done < <(printf '%s\n' "${related_skills[@]}" | awk '!seen[$0]++')
+		related_skills=("${deduped_skills[@]}")
 		for arg in "${related_skills[@]}"; do
 			find_skill_file "$arg" >/dev/null || die "related skill not found: $arg (see palari skill list)"
 		done

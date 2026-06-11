@@ -60,7 +60,7 @@ run_safe_scenario_passes_gates() {
 	test -f "$WORKTREE/docs/mock-executor.md"
 	test -f "$WORKTREE/reports/evidence/LAB-0303/executor/mock/run.stdout"
 	test -f "$WORKTREE/reports/evidence/LAB-0303/executor/mock/command.txt"
-	grep -Fq "0" "$WORKTREE/reports/evidence/LAB-0303/executor/mock/run.exit"
+	grep -Fxq "0" "$WORKTREE/reports/evidence/LAB-0303/executor/mock/run.exit"
 }
 
 run_forbidden_path_is_refused() {

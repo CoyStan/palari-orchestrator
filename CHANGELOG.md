@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Packet skill polish from review findings (POS-0049): duplicate `--skill`
+  values are deduplicated at ticket creation, packets with declared-but-
+  missing skills no longer also print "none declared", and the excerpt
+  pointer only appears when the skill body actually exceeds the excerpt cap.
 - Added Codex as a governed executor (POS-0048). `palari agent run TICKET-ID
   --executor codex [--dry-run]` runs Codex through the shared lifecycle
   (worktree, packet, evidence, scope-check, ci); the CLI contract -

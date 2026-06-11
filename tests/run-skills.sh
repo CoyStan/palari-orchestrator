@@ -194,6 +194,46 @@ run_lint_warns_on_missing_related_skill() {
 	grep -Fq "lint: ok for LAB-0104" "$TMP_ROOT/lint-dangling.out"
 }
 
+run_packet_polish() {
+	mkdir -p agent-skills/shorty
+	cat >agent-skills/shorty/SKILL.md <<'EOF'
+---
+name: shorty
+description: A short skill that fits one excerpt.
+---
+
+# Shorty
+
+One rule only.
+EOF
+	./bin/palari skill create doomed2 --description "Will vanish before packet" >/dev/null
+	./bin/palari ticket create LAB-0105 "Packet polish" \
+		--allowed "docs/**" \
+		--allowed "tickets/**" \
+		--allowed "reports/**" \
+		--verify "noop" \
+		--skill shorty \
+		--skill shorty \
+		--skill doomed2 >/dev/null
+	test "$(grep -Fc -- '- shorty' "$(find tickets/open -name 'LAB-0105-*.md')")" = "1"
+	rm -rf agent-skills/doomed2
+	git add .
+	git commit -m "packet polish baseline" >/dev/null
+	./bin/palari worktree LAB-0105 >/dev/null
+	./bin/palari packet LAB-0105 specialist >"$TMP_ROOT/polish-packet.out"
+	grep -Fq "shorty (agent-skills/shorty/SKILL.md)" "$TMP_ROOT/polish-packet.out"
+	if grep -Fq "(excerpt; read the full skill before editing)" "$TMP_ROOT/polish-packet.out"; then
+		echo "short skill bodies must not print the excerpt pointer" >&2
+		exit 1
+	fi
+	grep -Fq "doomed2 (missing; run palari skill list)" "$TMP_ROOT/polish-packet.out"
+	if grep -Fq "none declared" "$TMP_ROOT/polish-packet.out"; then
+		echo "declared-but-missing skills must not print none declared" >&2
+		exit 1
+	fi
+	rm -rf agent-skills/shorty
+}
+
 run_shipped_skills_are_discoverable
 run_clean_repo_lints_ok
 run_generated_skill_lints_ok
@@ -207,5 +247,6 @@ run_ticket_create_rejects_unknown_skill
 run_packet_includes_related_skills
 run_packet_without_skills_says_none
 run_lint_warns_on_missing_related_skill
+run_packet_polish
 
 printf 'skills: ok\n'
