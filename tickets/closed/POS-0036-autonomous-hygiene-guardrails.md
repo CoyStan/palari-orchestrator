@@ -1,15 +1,15 @@
 ---
 id: POS-0036
 title: Autonomous hygiene guardrails
-status: in-review
+status: accepted
 risk: R2
 priority: P1
 stream: infrastructure
 claimed_by: codex
 claimed_at: 2026-06-10T20:11:59Z
 claim_ref: refs/palari/claims/POS-0036
-claim_heartbeat_at: 2026-06-10T20:11:59Z
-claim_expires_at: 2026-06-10T20:16:59Z
+claim_heartbeat_at: 2026-06-11T06:57:29Z
+claim_expires_at: 2026-06-11T07:02:29Z
 allowed_paths:
   - .github/workflows/**
   - .gitignore
@@ -45,10 +45,10 @@ verification:
 target_branch: main
 branch: ticket/POS-0036
 worktree: /home/quetza/palari-orchestrator-worktrees/autonomous-hygiene/../palari-orchestrator-worktrees/POS-0036
-accepted_by:
-accepted_at:
+accepted_by: founder
+accepted_at: 2026-06-11T06:59:28Z
 created: 2026-06-10
-updated: 2026-06-10
+updated: 2026-06-11
 ---
 
 # POS-0036 Autonomous hygiene guardrails
