@@ -123,6 +123,26 @@ run_multi_ticket_case() {
 	grep -Fq "ci: ok for LAB-0305+LAB-0306" "$TMP_ROOT/multi-ticket.out"
 }
 
+run_many_changed_closed_case() {
+	local work ticket_file i ticket
+	work="$(new_repo many-changed-closed)"
+	cd "$work"
+	git switch -c feature/many-changed-closed >/dev/null
+	for i in $(seq 1 35); do
+		printf -v ticket 'LAB-%04d' "$((400 + i))"
+		create_doc_ticket "$ticket"
+		ticket_file="$(find tickets/open -maxdepth 1 -name "$ticket-*.md" | head -n 1)"
+		sed -i 's/^status: open$/status: accepted/' "$ticket_file"
+		mkdir -p tickets/closed
+		mv "$ticket_file" tickets/closed/
+	done
+	commit_case "many changed closed tickets"
+	./bin/palari github ci --base main >"$TMP_ROOT/many-changed-closed.out"
+	grep -Fq "github ci: tickets: LAB-0401" "$TMP_ROOT/many-changed-closed.out"
+	grep -Eq '^ci: ok for bundle-35-[0-9a-f]{16}$' "$TMP_ROOT/many-changed-closed.out"
+	find reports/evidence -maxdepth 1 -type d -name 'bundle-35-*' | grep -q .
+}
+
 run_accepted_evidence_and_future_open_case() {
 	local work ticket_file aggregate_log
 	work="$(new_repo accepted-evidence)"
@@ -168,6 +188,7 @@ run_branch_case
 run_changed_open_case
 run_changed_closed_case
 run_multi_ticket_case
+run_many_changed_closed_case
 run_accepted_evidence_and_future_open_case
 
 printf 'github-ci: ok\n'

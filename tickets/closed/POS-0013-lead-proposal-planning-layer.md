@@ -27,9 +27,9 @@ allowed_paths:
 forbidden_paths:
   - .env
   - .env.*
-  - **/secrets/**
-  - **/*secret*
-  - **/*token*
+  - "**/secrets/**"
+  - "**/*secret*"
+  - "**/*token*"
   - infra/prod/**
   - prod/**
 requires_human_confirmation: false
@@ -41,7 +41,7 @@ verification:
   - bash -n bin/palari tests/run-proposals.sh tests/run-golden.sh tests/run-agent-wrapper.sh
 target_branch: main
 branch: ticket/POS-0013
-worktree: /home/quetza/palari-orchestrator/../palari-orchestrator-worktrees/POS-0013
+worktree:
 accepted_by: founder
 accepted_at: 2026-06-07T09:25:31Z
 created: 2026-06-07

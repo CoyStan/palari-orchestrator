@@ -17,15 +17,15 @@ allowed_paths:
 forbidden_paths:
   - .env
   - .env.*
-  - **/secrets/**
-  - **/*secret*
-  - **/*token*
+  - "**/secrets/**"
+  - "**/*secret*"
+  - "**/*token*"
   - infra/prod/**
   - prod/**
 requires_human_confirmation: false
 requires_review: false
 verification:
-  - grep -q '^permissions: read-all$' .github/workflows/scorecard.yml && grep -q '^      id-token: write$' .github/workflows/scorecard.yml
+  - "grep -q '^permissions: read-all$' .github/workflows/scorecard.yml && grep -q '^      id-token: write$' .github/workflows/scorecard.yml"
 target_branch: main
 branch: ticket/POS-0015
 worktree:
@@ -55,7 +55,7 @@ Scorecard's workflow permission restrictions.
 
 ## Verification
 
-- grep -q '^permissions: read-all$' .github/workflows/scorecard.yml && grep -q '^      id-token: write$' .github/workflows/scorecard.yml
+- "grep -q '^permissions: read-all$' .github/workflows/scorecard.yml && grep -q '^      id-token: write$' .github/workflows/scorecard.yml"
 
 ## Ticket Completion Contract
 

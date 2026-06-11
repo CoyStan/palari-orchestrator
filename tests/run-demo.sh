@@ -62,4 +62,15 @@ grep -Fq "pass --force to replace demo fixtures" "$TMP_ROOT/demo-again.out"
 ./bin/palari demo --force >"$TMP_ROOT/demo-force.out"
 grep -Fq "demo: wrote local Palari operator fixtures" "$TMP_ROOT/demo-force.out"
 
+# New fixtures: demo goal links both tickets and one open decision exists.
+[[ -f goals/active/GOAL-0099-demo-evaluate-palari-governance.md ]] ||
+	fail "demo goal fixture missing"
+grep -Fq "serves_goal: GOAL-0099" tickets/open/DEM-0001-*.md ||
+	fail "DEM-0001 not linked to demo goal"
+[[ -f decisions/open/DEC-0099-demo-choose-console-refresh-interval.md ]] ||
+	fail "demo decision fixture missing"
+./bin/palari run --dry-run >"$TMP_ROOT/demo-plan.out"
+grep -Eq '^stop +DEC-0099' "$TMP_ROOT/demo-plan.out" ||
+	fail "dry-run should surface the demo decision as a stop item"
+
 printf 'demo: ok\n'

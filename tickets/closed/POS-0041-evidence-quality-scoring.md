@@ -23,9 +23,9 @@ allowed_paths:
 forbidden_paths:
   - .env
   - .env.*
-  - **/secrets/**
-  - **/*secret*
-  - **/*token*
+  - "**/secrets/**"
+  - "**/*secret*"
+  - "**/*token*"
   - infra/prod/**
   - prod/**
 requires_human_confirmation: false
@@ -36,7 +36,7 @@ verification:
   - git diff --check
 target_branch: main
 branch: ticket/POS-0041
-worktree: /home/quetza/palari-orchestrator-worktrees/POS-0041/../palari-orchestrator-worktrees/POS-0041
+worktree:
 accepted_by: quetza
 accepted_at: 2026-06-11T05:40:43Z
 created: 2026-06-10

@@ -9,12 +9,26 @@ REQUIRED_FIELDS=(
 	branch worktree claimed_by claimed_at claim_ref claim_heartbeat_at claim_expires_at
 	accepted_by accepted_at created updated
 )
+# Precise, auditable secret-surface patterns. Substring globs such as
+# "**/*secret*" or "**/*token*" are intentionally avoided: they block
+# legitimate source files (for example gate/forgegate/token.py) while a
+# renamed credentials file evades them. Pair these path rules with content
+# scanning (for example gitleaks) in CI for real secret protection.
 DEFAULT_FORBIDDEN_PATHS=(
 	".env"
 	".env.*"
+	"**/.env"
+	"**/.env.*"
 	"**/secrets/**"
-	"**/*secret*"
-	"**/*token*"
+	"**/*.pem"
+	"**/*.key"
+	"**/*.keystore"
+	"**/*.p12"
+	"**/id_rsa*"
+	"**/id_ed25519*"
+	"**/credentials*"
+	"**/.aws/**"
+	"**/.ssh/**"
 	"infra/prod/**"
 	"prod/**"
 )
@@ -129,6 +143,12 @@ EVIDENCE_DIR="$(cfg evidence_dir "reports/evidence")"
 ROLES_ACTIVE_DIR="$(cfg roles_active_dir "roles/active")"
 ROLES_PROPOSED_DIR="$(cfg roles_proposed_dir "roles/proposed")"
 ROLES_REVOKED_DIR="$(cfg roles_revoked_dir "roles/revoked")"
+GOALS_ACTIVE_DIR="$(cfg goals_active_dir "goals/active")"
+GOALS_PROPOSED_DIR="$(cfg goals_proposed_dir "goals/proposed")"
+GOALS_CLOSED_DIR="$(cfg goals_closed_dir "goals/closed")"
+DECISIONS_OPEN_DIR="$(cfg decisions_open_dir "decisions/open")"
+DECISIONS_DECIDED_DIR="$(cfg decisions_decided_dir "decisions/decided")"
+REQUIRE_SERVES_GOAL="$(cfg require_serves_goal "warn")"
 DEFAULT_BRANCH="$(cfg default_branch "main")"
 WORKTREE_BASE="$(cfg worktree_base "../$(basename "$ROOT")-worktrees")"
 CLAIM_LEASE_SECONDS="$(cfg claim_lease_seconds "300")"
@@ -138,11 +158,26 @@ MEMORY_INDEX_BACKEND="$(cfg memory_index_backend "sqlite")"
 
 abs_path() {
 	local path="$1"
-	if [[ "$path" == /* ]]; then
-		printf '%s\n' "$path"
-	else
-		printf '%s/%s\n' "$ROOT" "$path"
-	fi
+	[[ "$path" == /* ]] || path="$ROOT/$path"
+	# Normalize "." and ".." segments so computed worktree paths are stable
+	# and never re-embed traversal segments (the source of a past committed
+	# "ID/../base/ID" artifact).
+	local IFS='/' segment
+	local -a parts=() out=()
+	read -r -a parts <<<"$path"
+	for segment in "${parts[@]}"; do
+		case "$segment" in
+		"" | ".") ;;
+		"..")
+			((${#out[@]} > 0)) && unset 'out[${#out[@]}-1]'
+			;;
+		*) out+=("$segment") ;;
+		esac
+	done
+	printf '/%s\n' "$(
+		IFS='/'
+		printf '%s' "${out[*]-}"
+	)"
 }
 
 WORKTREE_BASE_ABS="$(abs_path "$WORKTREE_BASE")"
@@ -204,6 +239,16 @@ sha256_file() {
 		sha256sum "$file" | awk '{ print $1 }'
 	elif command -v shasum >/dev/null 2>&1; then
 		shasum -a 256 "$file" | awk '{ print $1 }'
+	else
+		die "sha256sum or shasum is required for evidence integrity checks"
+	fi
+}
+
+sha256_text() {
+	if command -v sha256sum >/dev/null 2>&1; then
+		sha256sum | awk '{ print $1 }'
+	elif command -v shasum >/dev/null 2>&1; then
+		shasum -a 256 | awk '{ print $1 }'
 	else
 		die "sha256sum or shasum is required for evidence integrity checks"
 	fi
@@ -350,6 +395,24 @@ frontmatter_list_items() {
       gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
       gsub(/^["'\'']|["'\'']$/, "", value)
       if (value != "") print value
+    }
+  ' "$file"
+}
+
+frontmatter_yaml_issues() {
+	# Print one line per frontmatter line that a strict YAML parser would
+	# reject or misread: unquoted list items or scalars starting with an
+	# alias/anchor/tag indicator (*, &, !). Palari's own parser tolerates
+	# these, but tickets must stay valid YAML for external tooling.
+	local file="$1"
+	awk '
+    NR == 1 && $0 == "---" { in_fm = 1; next }
+    in_fm && $0 == "---" { exit }
+    in_fm && $0 ~ /^[[:space:]]*-[[:space:]]+[*&!]/ {
+      printf "line %d: unquoted YAML list item starts with an indicator character: %s\n", NR, $0
+    }
+    in_fm && $0 ~ /^[A-Za-z0-9_]+:[[:space:]]+[*&!]/ {
+      printf "line %d: unquoted YAML scalar starts with an indicator character: %s\n", NR, $0
     }
   ' "$file"
 }
@@ -675,6 +738,29 @@ valid_skill_name() {
 	[[ "$name" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]]
 }
 
+yaml_quote_item() {
+	# Quote any scalar that a strict YAML parser would misread: leading
+	# indicator characters (*, &, !, ?, -, etc), comments, or mapping colons.
+	local value="$1"
+	local needs_quote="false"
+	case "$value" in
+	"" | [\*\&\!\?\|\>\%\@\`\"\'\{\}\[\]-]* | ,*) needs_quote="true" ;;
+	esac
+	case "$value" in
+	*": "* | *"#"* | *:) needs_quote="true" ;;
+	esac
+	if [[ "$value" == *$'\t'* ]]; then
+		needs_quote="true"
+	fi
+	if [[ "$needs_quote" == "true" ]]; then
+		value="${value//\\/\\\\}"
+		value="${value//\"/\\\"}"
+		printf '"%s"' "$value"
+	else
+		printf '%s' "$value"
+	fi
+}
+
 write_yaml_list() {
 	local name="$1"
 	shift
@@ -685,7 +771,7 @@ write_yaml_list() {
 		return
 	fi
 	for value in "$@"; do
-		printf '  - %s\n' "$value"
+		printf '  - %s\n' "$(yaml_quote_item "$value")"
 	done
 }
 

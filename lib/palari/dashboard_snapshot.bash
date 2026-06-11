@@ -334,6 +334,30 @@ snapshot_operator_inbox_counts_json() {
 		"${SNAPSHOT_INBOX_MONITOR:-0}"
 }
 
+snapshot_open_decisions_json() {
+	# Open decisions are part of the founder inbox: structured questions an
+	# agent has brought to the human, with options, a recommendation, and a
+	# respond-by date. Additive JSON; existing console consumers are unchanged.
+	local file first="true" id title respond_by ticket goal recommend
+	printf '['
+	while IFS= read -r file; do
+		[[ -n "$file" ]] || continue
+		id="$(frontmatter_value "$file" id)"
+		title="$(frontmatter_value "$file" title)"
+		respond_by="$(frontmatter_value "$file" respond_by)"
+		ticket="$(frontmatter_value "$file" ticket)"
+		goal="$(frontmatter_value "$file" goal)"
+		recommend="$(frontmatter_value "$file" recommended_option)"
+		[[ "$first" == "true" ]] || printf ','
+		printf '{"id":%s,"title":%s,"respond_by":%s,"ticket":%s,"goal":%s,"recommended_option":%s,"command":%s}' \
+			"$(json_string "$id")" "$(json_string "$title")" "$(json_string "$respond_by")" \
+			"$(json_string "$ticket")" "$(json_string "$goal")" "$(json_string "$recommend")" \
+			"$(json_string "./bin/palari decide record $id --choice N --by NAME")"
+		first="false"
+	done < <(decision_files_in_state open 2>/dev/null || true)
+	printf ']'
+}
+
 snapshot_operator_json() {
 	local file count=0
 	file=""
@@ -347,9 +371,13 @@ snapshot_operator_json() {
 		snapshot_operator_inbox_json
 		printf ',"inbox_counts":'
 		snapshot_operator_inbox_counts_json
+		printf ',"open_decisions":'
+		snapshot_open_decisions_json
 		printf '}'
 	else
-		printf '{"has_active_work":false,"next_action":{"label":"Create or adopt a ticket","detail":"No active tickets are waiting; define the next scoped slice when there is work to delegate.","command":"./bin/palari ticket create TICKET-ID TITLE --allowed PATH --verify COMMAND","actor":"human","severity":"clear"},"inbox":[],"inbox_counts":{"human_gate":0,"blocked":0,"review_needed":0,"evidence_needed":0,"can_continue":0,"watch":0,"monitor":0}}'
+		printf '{"has_active_work":false,"next_action":{"label":"Create or adopt a ticket","detail":"No active tickets are waiting; define the next scoped slice when there is work to delegate.","command":"./bin/palari ticket create TICKET-ID TITLE --allowed PATH --verify COMMAND","actor":"human","severity":"clear"},"inbox":[],"inbox_counts":{"human_gate":0,"blocked":0,"review_needed":0,"evidence_needed":0,"can_continue":0,"watch":0,"monitor":0},"open_decisions":'
+		snapshot_open_decisions_json
+		printf '}'
 	fi
 	: "$count"
 }

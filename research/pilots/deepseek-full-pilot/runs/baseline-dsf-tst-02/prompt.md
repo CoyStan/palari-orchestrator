@@ -4,7 +4,7 @@ You are working in a local repository checkout for a benchmark task.
 
 Repository root:
 
-`/home/quetza/palari-pilot-workspaces/deepseek-full-baseline-dsf-tst-02`
+`/home/operator/palari-pilot-workspaces/deepseek-full-baseline-dsf-tst-02`
 
 Task: strengthen role authority lint coverage so the test suite verifies that
 role authority failures are caught and reported clearly.

@@ -11,12 +11,28 @@ reports_dir: reports
 human_reports_dir: reports/human
 planning_reports_dir: reports/planning
 handoffs_dir: handoffs
+# Shipped Palari skills live in `skills/`; adopter-generated Agent Skills
+# (from `palari skill create`) are written here so the two never mix.
 agent_skills_dir: agent-skills
 state_dir: .palari
 evidence_dir: reports/evidence
 roles_active_dir: roles/active
 roles_proposed_dir: roles/proposed
 roles_revoked_dir: roles/revoked
+
+# Goals are first-class founder-intent artifacts. Tickets and proposals link
+# to a goal with `serves_goal`. Set require_serves_goal to `strict` to refuse
+# ticket creation without a goal link, `warn` to lint-warn, or `off`.
+goals_active_dir: goals/active
+goals_proposed_dir: goals/proposed
+goals_closed_dir: goals/closed
+require_serves_goal: warn
+
+# Decisions are the structured "bring me a decision" artifacts agents draft
+# and only humans record. Open decisions surface in the snapshot, the founder
+# inbox, and `palari run --dry-run` as stop items.
+decisions_open_dir: decisions/open
+decisions_decided_dir: decisions/decided
 
 memory_dir: memory
 memory_index_backend: sqlite # sqlite | json | none
@@ -83,12 +99,26 @@ authority_profiles:
     agent_can_merge_main: false
     agent_can_accept: false
 
+# Precise secret-surface patterns. Substring globs such as "**/*secret*" or
+# "**/*token*" are intentionally not used: they block legitimate source files
+# (for example gate/forgegate/token.py) while a renamed credentials file
+# evades them. Path rules are a guardrail, not secret detection; pair them
+# with a content scanner such as gitleaks in CI for real protection.
 default_forbidden_paths:
   - .env
   - .env.*
+  - "**/.env"
+  - "**/.env.*"
   - "**/secrets/**"
-  - "**/*secret*"
-  - "**/*token*"
+  - "**/*.pem"
+  - "**/*.key"
+  - "**/*.keystore"
+  - "**/*.p12"
+  - "**/id_rsa*"
+  - "**/id_ed25519*"
+  - "**/credentials*"
+  - "**/.aws/**"
+  - "**/.ssh/**"
   - infra/prod/**
   - prod/**
 

@@ -6,9 +6,9 @@
 - Model: DeepSeek `deepseek/deepseek-v4-flash` through opencode
 - Starting commit: `76c47d1`
 - Execution workspace:
-  `/home/quetza/palari-pilot-workspaces/deepseek-full-palari-dsf-gov-02`
+  `/home/operator/palari-pilot-workspaces/deepseek-full-palari-dsf-gov-02`
 - Integration workspace:
-  `/home/quetza/palari-orchestrator-worktrees/POS-0031`
+  `/home/operator/palari-orchestrator-worktrees/POS-0031`
 - Changed files:
   - `lib/palari/init_adopt.bash`
   - `tests/golden/status.contains.txt`

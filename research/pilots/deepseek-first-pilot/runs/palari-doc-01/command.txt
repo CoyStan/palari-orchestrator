@@ -1,1 +1,1 @@
-cd /home/quetza/palari-pilot-workspaces/deepseek-palari-doc-01-root-20260609T132645Z && ./bin/palari agent run PLT-1001 --executor opencode --model deepseek/deepseek-v4-flash --prompt <prompt>
+cd /home/operator/palari-pilot-workspaces/deepseek-palari-doc-01-root-20260609T132645Z && ./bin/palari agent run PLT-1001 --executor opencode --model deepseek/deepseek-v4-flash --prompt <prompt>

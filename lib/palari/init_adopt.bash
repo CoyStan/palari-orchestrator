@@ -22,7 +22,7 @@ cmd_init() {
 		*) die "unknown init option: $1" ;;
 		esac
 	done
-	for dir in "$PROPOSED_DIR" "$OPEN_DIR" "$CLOSED_DIR" "$REPORTS_DIR" "$HUMAN_REPORTS_DIR" "$PLANNING_REPORTS_DIR" "$EVIDENCE_DIR" "$HANDOFFS_DIR" "$ROLES_ACTIVE_DIR" "$ROLES_PROPOSED_DIR" "$ROLES_REVOKED_DIR"; do
+	for dir in "$PROPOSED_DIR" "$OPEN_DIR" "$CLOSED_DIR" "$REPORTS_DIR" "$HUMAN_REPORTS_DIR" "$PLANNING_REPORTS_DIR" "$EVIDENCE_DIR" "$HANDOFFS_DIR" "$ROLES_ACTIVE_DIR" "$ROLES_PROPOSED_DIR" "$ROLES_REVOKED_DIR" "$GOALS_ACTIVE_DIR" "$GOALS_PROPOSED_DIR" "$GOALS_CLOSED_DIR" "$DECISIONS_OPEN_DIR" "$DECISIONS_DECIDED_DIR"; do
 		mkdir -p "$ROOT/$dir"
 		: >"$ROOT/$dir/.gitkeep"
 	done
@@ -315,6 +315,9 @@ cmd_doctor() {
 	doctor_check_file "lib/palari/dashboard_snapshot.bash" errors
 	doctor_check_file "lib/palari/adapters_snapshot.bash" errors
 	doctor_check_file "lib/palari/gate.bash" errors
+	doctor_check_file "lib/palari/goals.bash" errors
+	doctor_check_file "lib/palari/decisions.bash" errors
+	doctor_check_file "lib/palari/run.bash" errors
 	doctor_check_file "adapters/gate/palari_gate.py" errors
 	doctor_check_file "gate/forgegate/gate.py" errors
 	doctor_check_file "layouts/palari-change.yml" errors
@@ -341,6 +344,46 @@ cmd_doctor() {
 	doctor_check_dir "$PLANNING_REPORTS_DIR" errors
 	doctor_check_dir "$EVIDENCE_DIR" errors
 	doctor_check_dir "$HANDOFFS_DIR" errors
+	# Strict YAML audit: Palari's own parser is tolerant, but tickets, roles,
+	# goals, and decisions must stay valid YAML for external tooling. Uses
+	# python3+PyYAML when present; degrades to a warning when absent.
+	if command -v python3 >/dev/null 2>&1 && python3 -c 'import yaml' >/dev/null 2>&1; then
+		local yaml_bad
+		yaml_bad="$(
+			python3 - "$ROOT" <<'PYEOF'
+import sys, glob, os
+import yaml
+root = sys.argv[1]
+bad = 0
+patterns = ["tickets/**/*.md", "roles/**/*.md", "goals/**/*.md", "decisions/**/*.md"]
+for pattern in patterns:
+    for f in glob.glob(os.path.join(root, pattern), recursive=True):
+        try:
+            s = open(f, encoding="utf-8").read()
+        except OSError:
+            continue
+        if not s.startswith("---"):
+            continue
+        parts = s.split("---", 2)
+        if len(parts) < 3:
+            continue
+        try:
+            yaml.safe_load(parts[1])
+        except yaml.YAMLError as e:
+            print(f"{os.path.relpath(f, root)}: {str(e).splitlines()[0]}", file=sys.stderr)
+            bad += 1
+print(bad)
+PYEOF
+		)"
+		if [[ "$yaml_bad" == "0" ]]; then
+			printf 'doctor: ok strict yaml frontmatter\n'
+		else
+			printf 'doctor: %s file(s) with invalid YAML frontmatter (see above)\n' "$yaml_bad" >&2
+			errors=$((errors + 1))
+		fi
+	else
+		printf 'doctor: warning python3+PyYAML unavailable; skipping strict YAML frontmatter audit\n'
+	fi
 	if [[ -d "$ROOT/$ROLES_ACTIVE_DIR" || -d "$ROOT/$ROLES_PROPOSED_DIR" || -d "$ROOT/$ROLES_REVOKED_DIR" ]]; then
 		doctor_check_dir "$ROLES_ACTIVE_DIR" errors
 		doctor_check_dir "$ROLES_PROPOSED_DIR" errors

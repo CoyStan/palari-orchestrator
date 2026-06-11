@@ -53,13 +53,34 @@ Use `palari role lint` before relying on role-issued tickets. A role may not
 activate itself or grant a child authority the parent role does not already
 hold.
 
+## Goals And Decisions
+
+Founder direction enters the repo as goals, and agent judgment returns to the
+founder as decisions. See `contracts/goals-and-decisions.md`.
+
+- Goals live under `goals/active|proposed|closed`. They make intent
+  machine-readable; they never grant authority. Tickets and proposals link to
+  a goal with `serves_goal` (`--goal GOAL-ID` at creation). Agents may propose
+  goals; only a human adopts, achieves, or drops them.
+- When work needs human judgment, do not park it as a vague `needs-human`
+  ticket. Draft a decision with `palari decide create`: one question, two or
+  more options with tradeoffs, a recommendation, a respond-by date, and an
+  explicit default. Only a human records the outcome with
+  `palari decide record`. Defaults may never include accept, merge, push,
+  deploy, spend, or credential actions.
+- `palari run --dry-run [--goal GOAL-ID] [--json]` prints the read-only queue
+  plan up to the next human gate. Open decisions and human gates surface as
+  stop items first. `palari run` without `--dry-run` fails closed; supervised
+  and autonomous execution modes do not exist yet.
+
 ## Ticket Workflow
 
 1. Refresh repository state with `git status --short --branch` and
    `palari status`.
 2. When intent is still messy, create a proposal with `palari propose create`,
    review it, then adopt it with `palari propose adopt`. The lead/planner may
-   propose work but cannot authorize implementation.
+   propose work but cannot authorize implementation. Link proposals and
+   tickets to the goal they serve (`--goal GOAL-ID`).
 3. Create or select a ticket with risk, allowed paths, forbidden paths,
    verification, review gates, and human gates.
    Use `palari ticket create ... --by-role ROLE-ID --delegate-to-role ROLE-ID`
@@ -100,6 +121,15 @@ hold.
   a replacement for ticket files, reports, packets, or `accept`.
 - Repo-specific app preferences, browser scripts, screenshots, founder taste,
   and private connectors belong in adapters, not in the Palari core.
+
+## Secrets
+
+Forbidden path patterns are a guardrail, not secret detection. They use
+precise globs (key files, `.env`, secrets directories) rather than substring
+matches, because substring globs block legitimate source files while renamed
+credentials evade them. Run a content scanner such as gitleaks in CI for real
+protection, and stop immediately if work would read or write credential
+material.
 
 ## Memory
 

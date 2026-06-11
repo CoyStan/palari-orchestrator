@@ -309,6 +309,11 @@ cmd_ci() {
 			IFS=+
 			printf '%s' "${tickets[*]}"
 		)"
+		if ((${#ticket_label} > 120)); then
+			local ticket_hash
+			ticket_hash="$(printf '%s' "$ticket_label" | sha256_text | cut -c1-16)"
+			ticket_label="bundle-${#tickets[@]}-$ticket_hash"
+		fi
 	fi
 	local reuse_single_evidence="false" single_ticket_file=""
 	if ((${#tickets[@]} == 1)); then

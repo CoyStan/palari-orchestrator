@@ -1,6 +1,8 @@
 # shellcheck shell=bash
 # shellcheck disable=SC2153 # This module is sourced after core.bash and ticket helpers.
 demo_ticket_ids=(DEM-0001 DEM-0002)
+demo_goal_id="GOAL-0099"
+demo_decision_id="DEC-0099"
 
 demo_ticket_exists() {
 	local id="$1"
@@ -20,6 +22,11 @@ demo_reset_ticket() {
 	rm -f "$ROOT/$HUMAN_REPORTS_DIR/$id-human-report.md"
 	rm -f "$ROOT/$HANDOFFS_DIR/$id-handoff.md"
 	rm -rf "$ROOT/$EVIDENCE_DIR/$id"
+}
+
+demo_reset_goal_and_decision() {
+	rm -f "$ROOT/$GOALS_ACTIVE_DIR/$demo_goal_id-"*.md "$ROOT/$GOALS_PROPOSED_DIR/$demo_goal_id-"*.md "$ROOT/$GOALS_CLOSED_DIR/$demo_goal_id-"*.md
+	rm -f "$ROOT/$DECISIONS_OPEN_DIR/$demo_decision_id-"*.md "$ROOT/$DECISIONS_DECIDED_DIR/$demo_decision_id-"*.md
 }
 
 demo_write_review_ready_reports() {
@@ -220,8 +227,17 @@ cmd_demo() {
 			demo_reset_ticket "$id"
 		fi
 	done
+	if find_goal_file "$demo_goal_id" >/dev/null 2>&1 || find_decision_file "$demo_decision_id" >/dev/null 2>&1; then
+		[[ "$force" == "true" ]] || die "demo goal/decision fixtures already exist; pass --force to replace demo fixtures"
+		demo_reset_goal_and_decision
+	fi
+
+	cmd_goal_create "$demo_goal_id" "Demo: evaluate Palari governance" \
+		--owner founder \
+		--success "An operator can see the queue, role boundary, evidence, decisions, and human gate" >/dev/null
 
 	cmd_ticket_create DEM-0001 "Operator console quickstart" \
+		--goal "$demo_goal_id" \
 		--stream demo \
 		--risk R1 \
 		--priority P1 \
@@ -246,6 +262,7 @@ cmd_demo() {
 	demo_write_evidence DEM-0001
 
 	cmd_ticket_create DEM-0002 "Human approval gate" \
+		--goal "$demo_goal_id" \
 		--stream demo \
 		--risk R2 \
 		--priority P0 \
@@ -262,8 +279,19 @@ cmd_demo() {
 		"updated"$'\035'"$(today_utc)"$'\034'
 	demo_write_human_gate_notes
 
+	cmd_decide_create "$demo_decision_id" "Demo: choose console refresh interval" \
+		--ticket DEM-0001 \
+		--goal "$demo_goal_id" \
+		--option "5 seconds (snappier, more polling)" \
+		--option "30 seconds (calmer, may lag)" \
+		--recommend 2 --default 2 --respond-by "$(today_utc)" \
+		--raised-by demo-specialist >/dev/null
+
 	printf 'demo: wrote local Palari operator fixtures\n'
+	printf 'goal: %s active with both demo tickets linked\n' "$demo_goal_id"
 	printf 'ticket: DEM-0001 in-review with reports and evidence\n'
 	printf 'ticket: DEM-0002 needs human approval before implementation\n'
+	printf 'decision: %s open; record it with ./bin/palari decide record %s --choice N --by YOU\n' "$demo_decision_id" "$demo_decision_id"
+	printf 'plan: ./bin/palari run --dry-run\n'
 	printf 'next: ./bin/palari web\n'
 }

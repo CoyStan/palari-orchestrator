@@ -13,9 +13,15 @@ allowed_paths:
 forbidden_paths:
   - .env
   - .env.*
+  - "**/.env"
+  - "**/.env.*"
   - "**/secrets/**"
-  - "**/*secret*"
-  - "**/*token*"
+  - "**/*.pem"
+  - "**/*.key"
+  - "**/*.keystore"
+  - "**/id_rsa*"
+  - "**/id_ed25519*"
+  - "**/credentials*"
   - infra/prod/**
   - prod/**
 max_risk: R2

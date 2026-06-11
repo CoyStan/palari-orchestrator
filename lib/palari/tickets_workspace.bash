@@ -10,6 +10,7 @@ cmd_ticket_create() {
 	local requires_review="false" requires_human="false"
 	local target_branch="$DEFAULT_BRANCH"
 	local by_role="" delegate_to_role=""
+	local serves_goal=""
 	local -a allowed=()
 	local -a forbidden=()
 	local -a verification=()
@@ -70,6 +71,10 @@ cmd_ticket_create() {
 			delegate_to_role="$2"
 			shift 2
 			;;
+		--goal)
+			serves_goal="$2"
+			shift 2
+			;;
 		*) die "unknown ticket create option: $arg" ;;
 		esac
 	done
@@ -83,6 +88,12 @@ cmd_ticket_create() {
 	fi
 	in_words "$risk" "$VALID_RISKS" || die "invalid risk: $risk"
 	in_words "$priority" "$VALID_PRIORITIES" || die "invalid priority: $priority"
+	if [[ -n "$serves_goal" ]]; then
+		valid_goal_id "$serves_goal" || die "invalid goal id: $serves_goal; use GOAL-0001"
+		find_goal_file "$serves_goal" active >/dev/null || die "active goal not found: $serves_goal (see goals/active)"
+	elif [[ "$REQUIRE_SERVES_GOAL" == "strict" ]]; then
+		die "require_serves_goal is strict: pass --goal GOAL-ID linking this ticket to an active goal"
+	fi
 	if [[ -n "$delegate_to_role" && -z "$by_role" ]]; then
 		die "--delegate-to-role requires --by-role so authority can be checked"
 	fi
@@ -104,7 +115,11 @@ cmd_ticket_create() {
 	[[ ! -e "$file" ]] || die "ticket already exists: ${file#"$ROOT"/}"
 	created="$(today_utc)"
 	branch="$(ticket_default_branch "$id")"
-	worktree="$(ticket_default_worktree "$id")"
+	# The worktree path is machine-local state. It is computed from
+	# worktree_base at runtime (see ticket_declared_worktree) instead of
+	# being committed into ticket frontmatter, which leaked absolute home
+	# paths and broke when worktree_base differed between machines.
+	worktree=""
 
 	if [[ -n "$by_role" ]]; then
 		local parent_role_file candidate authority_result escalation_file
@@ -165,6 +180,7 @@ cmd_ticket_create() {
 		printf 'risk: %s\n' "$risk"
 		printf 'priority: %s\n' "$priority"
 		printf 'stream: %s\n' "$stream"
+		printf 'serves_goal: %s\n' "$serves_goal"
 		printf 'claimed_by:\n'
 		printf 'claimed_at:\n'
 		printf 'claim_ref:\n'

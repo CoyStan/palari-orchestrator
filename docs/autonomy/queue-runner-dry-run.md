@@ -1,5 +1,10 @@
 # Queue Runner Dry-Run Specification
 
+Status: implemented as `palari run --dry-run` (see `lib/palari/run.bash`).
+`palari run` without `--dry-run` fails closed; supervised and autonomous
+execution modes remain future work. Open decisions (`decisions/open`) surface
+as stop items at the top of every plan.
+
 ## Purpose
 
 `palari run --dry-run --until blocked` should answer one question before any
@@ -35,14 +40,17 @@ Dry-run output should be a structured run plan with:
 - tickets skipped and why,
 - human decisions required before further progress.
 
-The output should be both human-readable and machine-readable. A future command
-may support:
+The output should be both human-readable and machine-readable. The implemented command supports:
 
 ```bash
-./bin/palari run --dry-run --until blocked
-./bin/palari run --dry-run --until blocked --goal "Build the Play Store MVP"
-./bin/palari run --dry-run --until blocked --json
+./bin/palari run --dry-run
+./bin/palari run --dry-run --until blocked --goal GOAL-0001
+./bin/palari run --dry-run --json
+./bin/palari run --dry-run --max 5
 ```
+
+The `--goal` filter takes a goal id rather than free text, so prioritization
+is traceable to a repo artifact (see `contracts/goals-and-decisions.md`).
 
 ## Ticket Selection
 

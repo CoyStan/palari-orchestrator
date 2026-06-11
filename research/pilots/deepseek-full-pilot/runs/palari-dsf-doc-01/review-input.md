@@ -10,9 +10,9 @@
 - Starting commit: `1236a08` execution baseline; POS-0026 frozen baseline was
   `475b0d0`
 - Slot worktree:
-  `/home/quetza/palari-pilot-workspaces/deepseek-full-palari-dsf-doc-01`
+  `/home/operator/palari-pilot-workspaces/deepseek-full-palari-dsf-doc-01`
 - Palari ticket worktree:
-  `/home/quetza/palari-orchestrator-worktrees/POS-0029-run`
+  `/home/operator/palari-orchestrator-worktrees/POS-0029-run`
 
 ## Evidence
 

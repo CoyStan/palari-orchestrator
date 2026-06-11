@@ -10,7 +10,7 @@
 - Starting commit: `1236a08` execution baseline; POS-0026 frozen baseline was
   `475b0d0`
 - Worktree or branch:
-  `/home/quetza/palari-pilot-workspaces/deepseek-full-baseline-dsf-cli-01`,
+  `/home/operator/palari-pilot-workspaces/deepseek-full-baseline-dsf-cli-01`,
   detached slot worktree
 
 ## Evidence
