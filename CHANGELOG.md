@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Added a mock-agent refusal demo fixture (POS-0054). `palari demo
+  --agent-refusal` writes `DEM-0003`, a blocked ticket with preserved
+  mock-executor evidence showing a forbidden `.env` write attempt refused by
+  scope-check. This complements the real deterministic mock executor tests
+  without invoking an AI tool, network, or credentials.
 - Made the default dashboard snapshot fast (POS-0053). `palari snapshot --json`
   and `palari web --check` now return the live operator view: active tickets,
   lightweight role rows, evidence/report presence, and shallow role diagnostics.

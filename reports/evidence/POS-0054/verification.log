@@ -1,0 +1,46 @@
+# Palari CI Evidence
+
+- Ticket: POS-0054
+- Base ref: local working tree
+- Created: 2026-06-11T22:08:42Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0054 (14 changed path(s))
+```
+
+## lint
+
+```text
+lint: tickets/open/POS-0054-add-mock-agent-refusal-demo.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+report-lint: ok for POS-0054
+lint: ok for POS-0054
+```
+
+## verification 1
+
+Command: `tests/run-demo.sh`
+
+```text
+lint: tickets/open/DEM-0003-mock-agent-forbidden-path-refusal.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+demo: ok
+```
+
+## verification 2
+
+Command: `tests/run-agent-mock.sh`
+
+```text
+Preparing worktree (new branch 'ticket/LAB-0300')
+Preparing worktree (new branch 'ticket/LAB-0303')
+agent-mock: ok
+```
+
+## verification 3
+
+Command: `shellcheck -x bin/palari lib/palari/demo.bash lib/palari/agents_review_scope.bash tests/run-demo.sh tests/run-agent-mock.sh`
+
+```text
+
+```

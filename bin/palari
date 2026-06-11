@@ -104,7 +104,8 @@ commands:
   run --dry-run [--until blocked] [--goal G] [--json]
                                Read-only queue plan up to the next human gate.
   lead [propose] ...           Alias for propose.
-  demo [--force]               Create local sample tickets, reports, and evidence.
+  demo [--force] [--agent-refusal]
+                               Create local sample fixtures for the console.
   prompt next|ticket|long-run  Print handoff prompts for governed agent work.
   ticket create ID TITLE ...   Create a scoped ticket.
   ticket claim ID [BY]         Claim an open/reopened ticket.
@@ -175,7 +176,8 @@ ticket create options:
   --verify CHECK --review --human --contract --required-report NAME --skill NAME
   --target-branch main --by-role ROLE-ID --delegate-to-role ROLE-ID
 demo options:
-  --force                      Replace existing DEM-0001/DEM-0002 demo fixtures.
+  --force                      Replace existing fixtures for the selected demo.
+  --agent-refusal              Create a mock executor forbidden-path refusal fixture.
 ticket claim options:
   --ttl SECONDS                Lease duration; default from claim_lease_seconds.
   --allow-overlap              Acknowledge overlapping allowed_paths.

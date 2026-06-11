@@ -96,7 +96,16 @@ The demo writes two sample tickets:
 | `DEM-0001` | A role-delegated ticket in review with reports and evidence, ready for human acceptance. |
 | `DEM-0002` | A higher-risk ticket stopped at `needs-human` until an operator approves the gate. |
 
-Use `./bin/palari demo --force` to replace only the demo fixtures. The command
+To see a deterministic agent-refusal fixture:
+
+```bash
+./bin/palari demo --agent-refusal
+```
+
+That writes `DEM-0003`, a blocked ticket with preserved mock-executor evidence
+showing a forbidden `.env` write attempt refused by scope-check.
+
+Use `./bin/palari demo --force` to replace the selected demo fixtures. The command
 does not run an agent, change production paths, merge, push, or accept work.
 It exists so a founder, operator, or reviewer can see the queue, role boundary,
 evidence surface, and human gate immediately.
@@ -497,7 +506,7 @@ palari packet WEB-0002 specialist
 | --- | --- |
 | `palari init` | Create the ticket, report, and handoff directories expected by the workflow. |
 | `palari adopt /path/to/repo` | Copy Palari into an existing git repo, initialize it, and run the doctor. |
-| `palari demo [--force]` | Create local sample tickets, reports, and evidence for the operator console. |
+| `palari demo [--force] [--agent-refusal]` | Create local sample tickets, reports, and evidence for the operator console. |
 | `palari doctor` | Check whether the current repo has the required Palari files and directories. |
 | `palari doctor lifecycle` | Explain the next action for active tickets. |
 | `palari status [--next]` | Show current tickets and optionally the next required lifecycle action. |
@@ -579,7 +588,7 @@ ship as adapters:
 - GitHub rulesets: `palari init --ci` writes `.github/palari-required-checks.ruleset.json`.
 - GitHub ticket discovery: `palari github ci` fails closed when no PR ticket is discoverable and prints the allowed ticketed and repo-only paths.
 - Adoption: `palari adopt TARGET` copies the portable package into an existing git repository and runs `palari doctor`.
-- Local demo: `palari demo` writes only `DEM-0001` and `DEM-0002` sample fixtures so first-time users can inspect the console without an agent runner.
+- Local demo: `palari demo` writes `DEM-0001` and `DEM-0002` sample fixtures so first-time users can inspect the console without an agent runner. `palari demo --agent-refusal` writes `DEM-0003`, a blocked mock-executor refusal fixture with preserved evidence.
 - Local hooks: `palari init --hooks` writes `lefthook.yml` for fast advisory checks.
 - Lead proposals: `palari propose create`, `palari propose packet`, and `palari propose adopt` separate planning authority from implementation authority.
 - Authority profiles: `palari authority` makes agent commit, push, PR, merge, and accept permissions explicit per repository.

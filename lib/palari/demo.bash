@@ -1,6 +1,7 @@
 # shellcheck shell=bash
 # shellcheck disable=SC2153 # This module is sourced after core.bash and ticket helpers.
 demo_ticket_ids=(DEM-0001 DEM-0002)
+demo_refusal_id="DEM-0003"
 demo_goal_id="GOAL-0099"
 demo_decision_id="DEC-0099"
 
@@ -17,16 +18,23 @@ demo_ticket_exists() {
 
 demo_reset_ticket() {
 	local id="$1"
+	[[ -n "$id" ]] || die "demo reset requires a ticket id"
 	rm -f "$ROOT/$OPEN_DIR/$id-"*.md "$ROOT/$CLOSED_DIR/$id-"*.md
 	rm -f "$ROOT/$REPORTS_DIR/$id-technical-report.md" "$ROOT/$REPORTS_DIR/$id-reviewer-note.md"
 	rm -f "$ROOT/$HUMAN_REPORTS_DIR/$id-human-report.md"
 	rm -f "$ROOT/$HANDOFFS_DIR/$id-handoff.md"
-	rm -rf "$ROOT/$EVIDENCE_DIR/$id"
+	rm -rf "$ROOT/$EVIDENCE_DIR/${id:?}"
 }
 
 demo_reset_goal_and_decision() {
 	rm -f "$ROOT/$GOALS_ACTIVE_DIR/$demo_goal_id-"*.md "$ROOT/$GOALS_PROPOSED_DIR/$demo_goal_id-"*.md "$ROOT/$GOALS_CLOSED_DIR/$demo_goal_id-"*.md
 	rm -f "$ROOT/$DECISIONS_OPEN_DIR/$demo_decision_id-"*.md "$ROOT/$DECISIONS_DECIDED_DIR/$demo_decision_id-"*.md
+}
+
+demo_refusal_exists() {
+	demo_ticket_exists "$demo_refusal_id" && return 0
+	[[ -e "$ROOT/$EVIDENCE_DIR/$demo_refusal_id/executor/mock" ]] && return 0
+	return 1
 }
 
 demo_write_review_ready_reports() {
@@ -84,6 +92,55 @@ Fresh-context review recommends human acceptance for the demo fixture.
 
 - Accept only as a demo sample. Real work still needs real implementation evidence.
 DOC
+}
+
+demo_write_refusal_handoff() {
+	mkdir -p "$ROOT/$HANDOFFS_DIR"
+	cat >"$ROOT/$HANDOFFS_DIR/DEM-0003-handoff.md" <<'DOC'
+# DEM-0003 Handoff
+
+Ticket: DEM-0003
+
+## Current State
+
+This demo ticket is blocked because a deterministic mock executor attempted to
+write `.env`, which is a forbidden path.
+
+## Blocker
+
+Scope-check refused the change. The executor evidence is preserved under
+`reports/evidence/DEM-0003/executor/mock/`.
+
+## Recommendation
+
+Inspect the preserved executor evidence, keep the ticket blocked, and use the
+fixture to verify that Palari surfaces forbidden-path refusals without accepting
+or advancing the work.
+DOC
+}
+
+demo_write_refusal_evidence() {
+	local id="$1"
+	local out_dir="$ROOT/$EVIDENCE_DIR/$id/executor/mock"
+	mkdir -p "$out_dir"
+	cat >"$out_dir/command.txt" <<'DOC'
+executor: mock
+ticket: DEM-0003
+scenario: forbidden-path
+plan: append one line to .env (a default forbidden path)
+note: deterministic local edit; no AI tool, network, or credentials involved
+DOC
+	cat >"$out_dir/run.stdout" <<'DOC'
+mock: attempted to edit .env (forbidden path)
+DOC
+	: >"$out_dir/run.stderr"
+	printf '0\n' >"$out_dir/run.exit"
+	: >"$out_dir/scope-check.out"
+	cat >"$out_dir/scope-check.err" <<'DOC'
+scope-check: .env forbidden by ticket DEM-0003
+DOC
+	printf '1\n' >"$out_dir/scope-check.exit"
+	printf 'not-run\n' >"$out_dir/ci.exit"
 }
 
 demo_write_human_gate_notes() {
@@ -208,17 +265,55 @@ DOC
 	} >"$manifest"
 }
 
+cmd_demo_agent_refusal() {
+	local force="$1"
+	local file
+	cmd_init >/dev/null
+	require_base_folders
+	if demo_refusal_exists; then
+		[[ "$force" == "true" ]] || die "demo agent-refusal fixture already exists for $demo_refusal_id; pass --force to replace demo fixtures"
+		demo_reset_ticket "$demo_refusal_id"
+	fi
+	cmd_ticket_create "$demo_refusal_id" "Mock agent forbidden-path refusal" \
+		--stream demo \
+		--risk R1 \
+		--priority P1 \
+		--allowed "docs/**" \
+		--allowed "tickets/**" \
+		--allowed "reports/**" \
+		--verify "mock executor forbidden-path refusal fixture" \
+		--review >/dev/null
+	file="$(find_ticket_file "$demo_refusal_id")"
+	update_frontmatter_scalars "$file" \
+		"status"$'\035'"blocked"$'\034' \
+		"updated"$'\035'"$(today_utc)"$'\034'
+	demo_write_refusal_handoff
+	demo_write_refusal_evidence "$demo_refusal_id"
+	printf 'demo: wrote mock-agent refusal fixture\n'
+	printf 'ticket: %s blocked after mock executor attempted forbidden .env\n' "$demo_refusal_id"
+	printf 'evidence: %s/%s/executor/mock\n' "$EVIDENCE_DIR" "$demo_refusal_id"
+	printf 'inspect: ./bin/palari lint %s && ./bin/palari web\n' "$demo_refusal_id"
+}
+
 cmd_demo() {
-	local force="false" id file now expires
+	local force="false" agent_refusal="false" id file now expires
 	while (($# > 0)); do
 		case "$1" in
 		--force)
 			force="true"
 			shift
 			;;
+		--agent-refusal)
+			agent_refusal="true"
+			shift
+			;;
 		*) die "unknown demo option: $1" ;;
 		esac
 	done
+	if [[ "$agent_refusal" == "true" ]]; then
+		cmd_demo_agent_refusal "$force"
+		return 0
+	fi
 	cmd_init >/dev/null
 	require_base_folders
 	for id in "${demo_ticket_ids[@]}"; do
