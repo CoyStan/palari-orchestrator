@@ -55,6 +55,9 @@ source "$PALARI_LIB_DIR/agents_review_scope.bash"
 palari_require_module "$PALARI_LIB_DIR/ci_accept.bash"
 # shellcheck source=lib/palari/ci_accept.bash
 source "$PALARI_LIB_DIR/ci_accept.bash"
+palari_require_module "$PALARI_LIB_DIR/evidence_quality.bash"
+# shellcheck source=lib/palari/evidence_quality.bash
+source "$PALARI_LIB_DIR/evidence_quality.bash"
 palari_require_module "$PALARI_LIB_DIR/dashboard_snapshot.bash"
 # shellcheck source=lib/palari/dashboard_snapshot.bash
 source "$PALARI_LIB_DIR/dashboard_snapshot.bash"
@@ -99,6 +102,7 @@ commands:
   agent run ID --executor opencode  Run an executor from a Palari packet.
   memory ...                   Manage optional repo-native memory.
   skill create NAME --description TEXT  Scaffold feature-contract Agent Skills.
+  evidence score ID [--strict] Score ticket evidence completeness.
   ci ID [--base REF]           Run ticket gates and write evidence artifacts.
   ci --repo-only               Run non-merge-gate repository lint evidence.
   gate SUBCOMMAND [ARGS]       Forge-proof accept gate; run `palari gate help`.
@@ -108,9 +112,6 @@ commands:
                                Check local or PR-diff paths against ticket scope.
   scope-overlaps [ID]          Detect overlapping active ticket write scopes.
   github ci [--base REF]       Discover PR tickets and run merge-gate Palari CI.
-  github ruleset-command       Print the gh api command that activates required checks.
-  github install-ruleset       Install the GitHub ruleset with gh api.
-  mcp manifest                 Print optional MCP tool metadata.
   web [--host HOST] [--port PORT]  Run the optional local web dashboard.
   accept ID --by NAME          Human/authorized-reviewer acceptance gate.
 init options:
@@ -134,8 +135,6 @@ role options:
 github options:
   ci --base REF                 Diff changed ticket files against REF...HEAD.
   ci --repo-only                Explicit non-merge-gate repository check.
-  --repo OWNER/REPO             Repository for ruleset installation.
-  --file PATH                   Ruleset JSON path; default .github/palari-required-checks.ruleset.json.
 ci options:
   --base REF                    Diff ticket scope against REF...HEAD.
   --repo-only                   Explicitly skip ticket scope enforcement.
@@ -162,9 +161,6 @@ agent run options:
   --prompt TEXT                Optional executor instruction.
   --dry-run                    Prepare packet/evidence plan without invoking opencode.
   --no-gates                   Skip automatic scope-check and ci after executor run.
-sandbox create options:
-  --path PATH                  Optional sandbox repo path.
-  --force                      Recreate an existing sandbox path.
 skill create options:
   --description TEXT           Required Agent Skills frontmatter description.
   --dir DIR                    Optional output dir; default agent-skills.
@@ -250,6 +246,10 @@ memory)
 skill)
 	shift
 	cmd_skill "$@"
+	;;
+evidence)
+	shift
+	cmd_evidence "$@"
 	;;
 ci)
 	shift
