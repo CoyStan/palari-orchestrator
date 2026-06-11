@@ -46,6 +46,9 @@ source "$PALARI_LIB_DIR/tickets_workspace.bash"
 palari_require_module "$PALARI_LIB_DIR/demo.bash"
 # shellcheck source=lib/palari/demo.bash
 source "$PALARI_LIB_DIR/demo.bash"
+palari_require_module "$PALARI_LIB_DIR/prompt.bash"
+# shellcheck source=lib/palari/prompt.bash
+source "$PALARI_LIB_DIR/prompt.bash"
 palari_require_module "$PALARI_LIB_DIR/agents_review_scope.bash"
 # shellcheck source=lib/palari/agents_review_scope.bash
 source "$PALARI_LIB_DIR/agents_review_scope.bash"
@@ -81,6 +84,7 @@ commands:
   propose adopt ID --ticket T  Adopt a proposal into an executable ticket.
   lead [propose] ...           Alias for propose.
   demo [--force]               Create local sample tickets, reports, and evidence.
+  prompt next|ticket|long-run  Print handoff prompts for governed agent work.
   ticket create ID TITLE ...   Create a scoped ticket.
   ticket claim ID [BY]         Claim an open/reopened ticket.
   ticket audit                 Explain active ticket next actions.
@@ -123,7 +127,6 @@ adopt options:
 authority options:
   check ACTION                 ACTION is commit, push-branch, open-pr, merge-main, or accept.
   --user-explicit              Allow user-explicit actions such as solo-founder accept.
-
 role options:
   propose ROLE TITLE --by-role PARENT
   adopt ROLE --by ACTOR
@@ -136,40 +139,32 @@ github options:
 ci options:
   --base REF                    Diff ticket scope against REF...HEAD.
   --repo-only                   Explicitly skip ticket scope enforcement.
-
 propose create options:
   --intent TEXT                 Founder intent to seed the proposal body.
   --planner NAME                Planner identity; default human.
   --model NAME                  Planner model, e.g. deepseek/deepseek-v4-flash.
   --source TEXT                 Source note, thread, issue, or request id.
-
 propose adopt options:
   --ticket ID --title TEXT      Ticket id and optional ticket title override.
   plus ticket create options below.
-
 ticket create options:
   --stream NAME --risk R1 --priority P2 --allowed GLOB --forbidden GLOB
   --verify CHECK --review --human --contract --required-report NAME
   --target-branch main --by-role ROLE-ID --delegate-to-role ROLE-ID
-
 demo options:
   --force                      Replace existing DEM-0001/DEM-0002 demo fixtures.
-
 ticket claim options:
   --ttl SECONDS                Lease duration; default from claim_lease_seconds.
   --allow-overlap              Acknowledge overlapping allowed_paths.
-
 agent run options:
   --executor opencode          Executor adapter to run.
   --model PROVIDER/MODEL       Optional opencode model id.
   --prompt TEXT                Optional executor instruction.
   --dry-run                    Prepare packet/evidence plan without invoking opencode.
   --no-gates                   Skip automatic scope-check and ci after executor run.
-
 sandbox create options:
   --path PATH                  Optional sandbox repo path.
   --force                      Recreate an existing sandbox path.
-
 skill create options:
   --description TEXT           Required Agent Skills frontmatter description.
   --dir DIR                    Optional output dir; default agent-skills.
@@ -223,6 +218,10 @@ lead)
 demo)
 	shift
 	cmd_demo "$@"
+	;;
+prompt)
+	shift
+	cmd_prompt "$@"
 	;;
 ticket)
 	shift

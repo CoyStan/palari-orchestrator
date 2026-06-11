@@ -26,6 +26,7 @@ test -f lefthook.yml
 test -f lib/palari/core.bash
 test -f lib/palari/roles.bash
 test -f lib/palari/init_adopt.bash
+test -f lib/palari/prompt.bash
 test -f adapters/web/server.py
 test -f adapters/web/static/index.html
 test -f adapters/web/static/styles.css
@@ -78,6 +79,10 @@ grep -Fq '"tickets": []' "$TMP_ROOT/web-snapshot.out"
 ./bin/palari hygiene >"$TMP_ROOT/hygiene.out"
 grep -Fq "Palari hygiene" "$TMP_ROOT/hygiene.out"
 grep -Fq "git:" "$TMP_ROOT/hygiene.out"
+./bin/palari prompt long-run --goal "Build a polished local demo" >"$TMP_ROOT/prompt.out"
+grep -Fq "Long-running goal:" "$TMP_ROOT/prompt.out"
+grep -Fq "Product Manager" "$TMP_ROOT/prompt.out"
+grep -Fq "Stopping rules:" "$TMP_ROOT/prompt.out"
 
 ./bin/palari skill create sample-feature \
 	--description "Preserve the sample feature contract for golden tests." >"$TMP_ROOT/skill.out"
