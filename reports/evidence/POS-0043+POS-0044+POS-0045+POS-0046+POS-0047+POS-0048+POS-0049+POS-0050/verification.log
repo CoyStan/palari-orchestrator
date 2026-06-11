@@ -1,0 +1,333 @@
+# Palari CI Evidence
+
+- Ticket: POS-0043+POS-0044+POS-0045+POS-0046+POS-0047+POS-0048+POS-0049+POS-0050
+- Base ref: origin/main
+- Created: 2026-06-11T18:06:35Z
+
+## scope-check
+
+```text
+scope-check: ok for ticket set POS-0043,POS-0044,POS-0045,POS-0046,POS-0047,POS-0048,POS-0049,POS-0050 (84 changed path(s))
+```
+
+## lint POS-0043
+
+```text
+lint: tickets/open/POS-0043-machine-discoverable-skills-with-skill-list-and-lint.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+report-lint: ok for POS-0043
+lint: ok for POS-0043
+```
+
+## POS-0043 verification 1
+
+Command: `tests/run-skills.sh`
+
+```text
+Preparing worktree (new branch 'ticket/LAB-0102')
+Preparing worktree (new branch 'ticket/LAB-0103')
+Preparing worktree (new branch 'ticket/LAB-0105')
+skills: ok
+```
+
+## POS-0043 verification 2
+
+Command: `./bin/palari lint`
+
+```text
+lint: tickets/open/POS-0043-machine-discoverable-skills-with-skill-list-and-lint.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0044-honest-sandbox-terminology-and-isolation-docs.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0045-sandbox-lifecycle-commands-and-metadata.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0046-related-skills-in-ticket-frontmatter-and-packets.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0047-deterministic-mock-executor-for-demos-and-tests.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0048-codex-executor-adapter-and-codex-doctor.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0049-packet-skill-polish-from-review-findings.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0050-claude-plugin-packaging-scope.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+propose lint: ok (no proposals)
+role lint: ok
+report-lint: ok
+lint: ok
+```
+
+## POS-0043 verification 3
+
+Command: `shellcheck -x bin/palari lib/palari/adapters_snapshot.bash`
+
+```text
+
+```
+
+## lint POS-0044
+
+```text
+lint: tickets/open/POS-0044-honest-sandbox-terminology-and-isolation-docs.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+report-lint: ok for POS-0044
+lint: ok for POS-0044
+```
+
+## POS-0044 verification 1
+
+Command: `git diff --check`
+
+```text
+
+```
+
+## POS-0044 verification 2
+
+Command: `./bin/palari lint`
+
+```text
+lint: tickets/open/POS-0043-machine-discoverable-skills-with-skill-list-and-lint.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0044-honest-sandbox-terminology-and-isolation-docs.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0045-sandbox-lifecycle-commands-and-metadata.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0046-related-skills-in-ticket-frontmatter-and-packets.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0047-deterministic-mock-executor-for-demos-and-tests.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0048-codex-executor-adapter-and-codex-doctor.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0049-packet-skill-polish-from-review-findings.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0050-claude-plugin-packaging-scope.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+propose lint: ok (no proposals)
+role lint: ok
+report-lint: ok
+lint: ok
+```
+
+## lint POS-0045
+
+```text
+lint: tickets/open/POS-0045-sandbox-lifecycle-commands-and-metadata.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+report-lint: ok for POS-0045
+lint: ok for POS-0045
+```
+
+## POS-0045 verification 1
+
+Command: `tests/run-sandbox.sh`
+
+```text
+sandbox: ok
+```
+
+## POS-0045 verification 2
+
+Command: `./bin/palari lint`
+
+```text
+lint: tickets/open/POS-0043-machine-discoverable-skills-with-skill-list-and-lint.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0044-honest-sandbox-terminology-and-isolation-docs.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0045-sandbox-lifecycle-commands-and-metadata.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0046-related-skills-in-ticket-frontmatter-and-packets.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0047-deterministic-mock-executor-for-demos-and-tests.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0048-codex-executor-adapter-and-codex-doctor.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0049-packet-skill-polish-from-review-findings.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0050-claude-plugin-packaging-scope.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+propose lint: ok (no proposals)
+role lint: ok
+report-lint: ok
+lint: ok
+```
+
+## POS-0045 verification 3
+
+Command: `shellcheck -x bin/palari lib/palari/tickets_workspace.bash`
+
+```text
+
+```
+
+## lint POS-0046
+
+```text
+lint: tickets/open/POS-0046-related-skills-in-ticket-frontmatter-and-packets.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+report-lint: ok for POS-0046
+lint: ok for POS-0046
+```
+
+## POS-0046 verification 1
+
+Command: `tests/run-skills.sh`
+
+```text
+Preparing worktree (new branch 'ticket/LAB-0102')
+Preparing worktree (new branch 'ticket/LAB-0103')
+Preparing worktree (new branch 'ticket/LAB-0105')
+skills: ok
+```
+
+## POS-0046 verification 2
+
+Command: `./bin/palari lint`
+
+```text
+lint: tickets/open/POS-0043-machine-discoverable-skills-with-skill-list-and-lint.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0044-honest-sandbox-terminology-and-isolation-docs.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0045-sandbox-lifecycle-commands-and-metadata.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0046-related-skills-in-ticket-frontmatter-and-packets.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0047-deterministic-mock-executor-for-demos-and-tests.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0048-codex-executor-adapter-and-codex-doctor.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0049-packet-skill-polish-from-review-findings.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0050-claude-plugin-packaging-scope.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+propose lint: ok (no proposals)
+role lint: ok
+report-lint: ok
+lint: ok
+```
+
+## POS-0046 verification 3
+
+Command: `shellcheck -x bin/palari lib/palari/agents_review_scope.bash`
+
+```text
+
+```
+
+## lint POS-0047
+
+```text
+lint: tickets/open/POS-0047-deterministic-mock-executor-for-demos-and-tests.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+report-lint: ok for POS-0047
+lint: ok for POS-0047
+```
+
+## POS-0047 verification 1
+
+Command: `tests/run-agent-mock.sh`
+
+```text
+Preparing worktree (new branch 'ticket/LAB-0300')
+Preparing worktree (new branch 'ticket/LAB-0303')
+agent-mock: ok
+```
+
+## POS-0047 verification 2
+
+Command: `./bin/palari lint`
+
+```text
+lint: tickets/open/POS-0043-machine-discoverable-skills-with-skill-list-and-lint.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0044-honest-sandbox-terminology-and-isolation-docs.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0045-sandbox-lifecycle-commands-and-metadata.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0046-related-skills-in-ticket-frontmatter-and-packets.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0047-deterministic-mock-executor-for-demos-and-tests.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0048-codex-executor-adapter-and-codex-doctor.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0049-packet-skill-polish-from-review-findings.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0050-claude-plugin-packaging-scope.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+propose lint: ok (no proposals)
+role lint: ok
+report-lint: ok
+lint: ok
+```
+
+## POS-0047 verification 3
+
+Command: `shellcheck -x bin/palari lib/palari/agents_review_scope.bash`
+
+```text
+
+```
+
+## lint POS-0048
+
+```text
+lint: tickets/open/POS-0048-codex-executor-adapter-and-codex-doctor.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+report-lint: ok for POS-0048
+lint: ok for POS-0048
+```
+
+## POS-0048 verification 1
+
+Command: `tests/run-agent-codex.sh`
+
+```text
+Preparing worktree (new branch 'ticket/LAB-0400')
+codex CLI present; skipping missing-CLI check
+agent-codex: ok
+```
+
+## POS-0048 verification 2
+
+Command: `./bin/palari lint`
+
+```text
+lint: tickets/open/POS-0043-machine-discoverable-skills-with-skill-list-and-lint.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0044-honest-sandbox-terminology-and-isolation-docs.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0045-sandbox-lifecycle-commands-and-metadata.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0046-related-skills-in-ticket-frontmatter-and-packets.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0047-deterministic-mock-executor-for-demos-and-tests.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0048-codex-executor-adapter-and-codex-doctor.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0049-packet-skill-polish-from-review-findings.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0050-claude-plugin-packaging-scope.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+propose lint: ok (no proposals)
+role lint: ok
+report-lint: ok
+lint: ok
+```
+
+## POS-0048 verification 3
+
+Command: `shellcheck -x bin/palari lib/palari/agents_review_scope.bash adapters/codex/install.sh`
+
+```text
+
+```
+
+## lint POS-0049
+
+```text
+lint: tickets/open/POS-0049-packet-skill-polish-from-review-findings.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+report-lint: ok for POS-0049
+lint: ok for POS-0049
+```
+
+## POS-0049 verification 1
+
+Command: `tests/run-skills.sh`
+
+```text
+Preparing worktree (new branch 'ticket/LAB-0102')
+Preparing worktree (new branch 'ticket/LAB-0103')
+Preparing worktree (new branch 'ticket/LAB-0105')
+skills: ok
+```
+
+## POS-0049 verification 2
+
+Command: `tests/run-agent-mock.sh`
+
+```text
+Preparing worktree (new branch 'ticket/LAB-0300')
+Preparing worktree (new branch 'ticket/LAB-0303')
+agent-mock: ok
+```
+
+## lint POS-0050
+
+```text
+lint: tickets/open/POS-0050-claude-plugin-packaging-scope.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+report-lint: ok for POS-0050
+lint: ok for POS-0050
+```
+
+## POS-0050 verification 1
+
+Command: `tests/run-plugin-structure.sh`
+
+```text
+manifests ok
+plugin-structure: ok
+```
+
+## POS-0050 verification 2
+
+Command: `./bin/palari skill lint`
+
+```text
+skill-lint: ok (4 skill(s))
+```
+
+## POS-0050 verification 3
+
+Command: `shellcheck -x adapters/codex/install.sh tests/run-plugin-structure.sh`
+
+```text
+
+```
