@@ -39,6 +39,7 @@ jobs:
           bash -n tests/run-skills.sh
           bash -n tests/run-sandbox.sh
           bash -n tests/run-agent-mock.sh
+          bash -n tests/run-agent-codex.sh
 
       - name: CLI structure
         run: tests/run-cli-structure.sh
@@ -96,6 +97,9 @@ jobs:
 
       - name: Mock executor
         run: tests/run-agent-mock.sh
+
+      - name: Codex executor (dry-run)
+        run: tests/run-agent-codex.sh
 
       - name: Palari lint
         run: ./bin/palari lint

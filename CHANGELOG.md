@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Added Codex as a governed executor (POS-0048). `palari agent run TICKET-ID
+  --executor codex [--dry-run]` runs Codex through the shared lifecycle
+  (worktree, packet, evidence, scope-check, ci); the CLI contract -
+  `codex exec --cd --sandbox workspace-write --json --output-last-message`,
+  verified against codex-cli 0.138.0 - is isolated in one shim function. New
+  `palari codex doctor` reports readiness (AGENTS.md, CLI, prompts, executor
+  entry point) and `palari codex install` wraps the prompt installer.
+  Validated by `tests/run-agent-codex.sh` (dry-run based; no Codex CLI or
+  network required).
 - Added a deterministic mock executor (POS-0047). `palari agent run TICKET-ID
   --executor mock --scenario safe|forbidden-path|outside-scope` runs the full
   governed lifecycle (worktree, packet, evidence, scope-check, ci) with a

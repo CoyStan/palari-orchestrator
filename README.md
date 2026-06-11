@@ -588,6 +588,7 @@ ship as adapters:
 - Autonomous hygiene: `palari hygiene` separates generated cache/build artifacts from source changes, highlights stale claims, and shows ticket branches with unintegrated work.
 - Executor wrappers: `palari agent run TICKET-ID --executor opencode` invokes opencode from a Palari packet and records executor evidence.
 - Mock executor: `palari agent run TICKET-ID --executor mock --scenario safe|forbidden-path|outside-scope` proves the governance loop deterministically - no AI tool, network, or credentials. The forbidden-path scenario shows an executor touching `.env`, scope-check refusing it, evidence preserved, and ticket state not advancing.
+- Codex executor: `palari agent run TICKET-ID --executor codex [--dry-run]` runs Codex through the same governed lifecycle; `palari codex doctor` checks readiness and `palari codex install` adds the prompt pack. See [adapters/codex/](adapters/codex/).
 - Local sandboxes: `palari sandbox create TICKET-ID` creates a disposable repository copy for executor experiments. Not a security boundary; scope and evidence gates remain the control layer.
 - Evidence integrity: `palari ci` writes `reports/evidence/<ticket>/verification.log`, `junit.xml`, `palari.sarif`, and `manifest.json`; `accept` validates manifest status, current commit, and artifact hashes before closing a ticket.
 - Trusted merge evidence: the GitHub adapter uploads and attests `palari-evidence.tgz` on trusted repository runs. GitHub rulesets must be installed before this protects merges.

@@ -85,6 +85,60 @@ executor_opencode_run() {
 	return "$code"
 }
 
+# One function owns the Codex CLI contract. If the codex CLI changes its
+# command syntax, this shim and executor_codex_run are the only places to
+# update.
+codex_full_prompt() {
+	local packet_path="$1"
+	local prompt="$2"
+	printf 'Read the Palari mission packet at %s before any edit. %s' "$packet_path" "$prompt"
+}
+
+executor_codex_describe() {
+	local ticket_id="$1"
+	local worktree="$2"
+	local packet_path="$3"
+	local model="$4"
+	local prompt="$5"
+	printf 'executor: codex\n'
+	printf 'ticket: %s\n' "$ticket_id"
+	printf 'worktree: %s\n' "$worktree"
+	printf 'packet: %s\n' "$packet_path"
+	printf 'model: %s\n' "${model:-codex default}"
+	printf 'command: codex exec --cd %s --sandbox workspace-write%s --json --output-last-message %s %s\n' \
+		"$(shell_quote "$worktree")" \
+		"$([[ -n "$model" ]] && printf ' --model %s' "$(shell_quote "$model")")" \
+		"$(shell_quote "$worktree/$EVIDENCE_DIR/$ticket_id/executor/codex/last-message.txt")" \
+		"$(shell_quote "$(codex_full_prompt "$packet_path" "$prompt")")"
+	printf 'note: codex workspace-write sandbox confines writes to the worktree; Palari gates decide admissibility\n'
+}
+
+executor_codex_run() {
+	local ticket_id="$1"
+	local worktree="$2"
+	local packet_path="$3"
+	local model="$4"
+	local prompt="$5"
+	local evidence_dir="$6"
+	local stdout="$evidence_dir/run.jsonl"
+	local stderr="$evidence_dir/run.stderr"
+	local last_message="$evidence_dir/last-message.txt"
+	local full_prompt code
+	command -v codex >/dev/null 2>&1 || die "agent run --executor codex requires codex on PATH"
+	full_prompt="$(codex_full_prompt "$packet_path" "$prompt")"
+	set +e
+	if [[ -n "$model" ]]; then
+		codex exec --cd "$worktree" --sandbox workspace-write --model "$model" --json \
+			--output-last-message "$last_message" "$full_prompt" >"$stdout" 2>"$stderr"
+	else
+		codex exec --cd "$worktree" --sandbox workspace-write --json \
+			--output-last-message "$last_message" "$full_prompt" >"$stdout" 2>"$stderr"
+	fi
+	code=$?
+	set -e
+	return "$code"
+}
+
 executor_mock_describe() {
 	local ticket_id="$1"
 	local worktree="$2"
@@ -167,8 +221,8 @@ cmd_agent_run() {
 		esac
 	done
 	case "$executor" in
-	opencode | mock) ;;
-	*) die "agent run supports --executor opencode or --executor mock" ;;
+	opencode | codex | mock) ;;
+	*) die "agent run supports --executor opencode, codex, or mock" ;;
 	esac
 	if [[ "$scenario_set" == "true" && "$executor" != "mock" ]]; then
 		die "--scenario is only valid with --executor mock"
@@ -197,6 +251,7 @@ cmd_agent_run() {
 	command_file="$evidence_dir/command.txt"
 	case "$executor" in
 	opencode) executor_opencode_describe "$ticket_id" "$worktree" "$packet_path" "$model" "$prompt" >"$command_file" ;;
+	codex) executor_codex_describe "$ticket_id" "$worktree" "$packet_path" "$model" "$prompt" >"$command_file" ;;
 	mock) executor_mock_describe "$ticket_id" "$worktree" "$packet_path" "$scenario" >"$command_file" ;;
 	esac
 
@@ -212,6 +267,7 @@ cmd_agent_run() {
 
 	case "$executor" in
 	opencode) executor_opencode_run "$ticket_id" "$worktree" "$packet_path" "$model" "$prompt" "$evidence_dir" || executor_code=$? ;;
+	codex) executor_codex_run "$ticket_id" "$worktree" "$packet_path" "$model" "$prompt" "$evidence_dir" || executor_code=$? ;;
 	mock) executor_mock_run "$scenario" "$worktree" "$evidence_dir" || executor_code=$? ;;
 	esac
 	printf '%s\n' "$executor_code" >"$evidence_dir/run.exit"
@@ -237,7 +293,63 @@ cmd_agent() {
 	shift || true
 	case "$sub" in
 	run) cmd_agent_run "$@" ;;
-	*) die "unknown agent command: ${sub:-}; try \`palari agent run TICKET-ID --executor opencode|mock\`" ;;
+	*) die "unknown agent command: ${sub:-}; try \`palari agent run TICKET-ID --executor opencode|codex|mock\`" ;;
+	esac
+}
+
+codex_doctor_check() {
+	local level="$1"
+	local ok="$2"
+	local ok_msg="$3"
+	local fail_msg="$4"
+	if [[ "$ok" == "true" ]]; then
+		printf 'codex doctor: ok %s\n' "$ok_msg"
+		return 0
+	fi
+	printf 'codex doctor: %s %s\n' "$level" "$fail_msg"
+	[[ "$level" == "warning" ]]
+}
+
+cmd_codex_doctor() {
+	local errors=0 prompts_dir="${CODEX_PROMPTS_DIR:-$HOME/.codex/prompts}" prompt_count=0 p
+	codex_doctor_check error \
+		"$([[ -f "$ROOT/AGENTS.md" ]] && printf 'true')" \
+		"AGENTS.md present (Codex reads it natively)" \
+		"missing AGENTS.md; run palari adopt or palari init" || errors=$((errors + 1))
+	codex_doctor_check error \
+		"$([[ -x "$ROOT/bin/palari" ]] && printf 'true')" \
+		"bin/palari executable" \
+		"bin/palari missing or not executable" || errors=$((errors + 1))
+	codex_doctor_check error \
+		"$([[ -f "$CONFIG" ]] && printf 'true')" \
+		"palari.config.yaml present" \
+		"missing palari.config.yaml" || errors=$((errors + 1))
+	codex_doctor_check warning \
+		"$(command -v codex >/dev/null 2>&1 && printf 'true')" \
+		"codex CLI on PATH" \
+		"codex CLI not on PATH; agent run --executor codex --dry-run still works" || true
+	for p in palari-next palari-ticket palari-review palari-decide; do
+		[[ -s "$prompts_dir/$p.md" ]] && prompt_count=$((prompt_count + 1))
+	done
+	codex_doctor_check warning \
+		"$([[ "$prompt_count" == "4" ]] && printf 'true')" \
+		"codex prompts installed ($prompts_dir)" \
+		"codex prompts not installed; run palari codex install" || true
+	printf 'codex doctor: ok executor support: palari agent run TICKET-ID --executor codex [--dry-run]\n'
+	((errors == 0)) || {
+		printf 'codex doctor: failed with %s issue(s)\n' "$errors" >&2
+		exit 1
+	}
+	printf 'codex doctor: ok\n'
+}
+
+cmd_codex() {
+	local sub="${1:-}"
+	shift || true
+	case "$sub" in
+	install) "$ROOT/adapters/codex/install.sh" "$@" ;;
+	doctor) cmd_codex_doctor "$@" ;;
+	*) die "unknown codex command: ${sub:-}; try \`palari codex install\` or \`palari codex doctor\`" ;;
 	esac
 }
 
