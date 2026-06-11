@@ -19,9 +19,9 @@ allowed_paths:
 forbidden_paths:
   - .env
   - .env.*
-  - **/secrets/**
-  - **/*secret*
-  - **/*token*
+  - "**/secrets/**"
+  - "**/*secret*"
+  - "**/*token*"
   - infra/prod/**
   - prod/**
 requires_human_confirmation: true
@@ -33,7 +33,7 @@ verification:
   - ./bin/palari role lint
 target_branch: main
 branch: ticket/POS-0023
-worktree: /home/quetza/palari-orchestrator/../palari-orchestrator-worktrees/POS-0023
+worktree:
 created_by_role: ROLE-RESEARCH-LEAD
 delegated_to_role: ROLE-SAFETY-REVIEWER
 accepted_by: founder

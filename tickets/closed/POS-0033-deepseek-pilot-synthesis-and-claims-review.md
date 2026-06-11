@@ -20,9 +20,9 @@ allowed_paths:
 forbidden_paths:
   - .env
   - .env.*
-  - **/secrets/**
-  - **/*secret*
-  - **/*token*
+  - "**/secrets/**"
+  - "**/*secret*"
+  - "**/*token*"
   - infra/prod/**
   - prod/**
 requires_human_confirmation: false
@@ -34,7 +34,7 @@ verification:
   - grep -q 'does not prove' research/pilots/deepseek-full-pilot/results.md
 target_branch: main
 branch: ticket/POS-0033
-worktree: /home/quetza/palari-orchestrator/../palari-orchestrator-worktrees/POS-0033
+worktree:
 created_by_role: ROLE-RESEARCH-LEAD
 delegated_to_role: ROLE-RESEARCH-EVALUATOR
 accepted_by: founder

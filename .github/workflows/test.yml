@@ -21,6 +21,9 @@ jobs:
           bash -n bin/palari
           bash -n lib/palari/*.bash
           bash -n tests/run-cli-structure.sh
+          bash -n tests/run-goals.sh
+          bash -n tests/run-decisions.sh
+          bash -n tests/run-queue-dry-run.sh
           bash -n tests/run-golden.sh
           bash -n tests/run-adoption.sh
           bash -n tests/run-proposals.sh
@@ -35,6 +38,15 @@ jobs:
 
       - name: CLI structure
         run: tests/run-cli-structure.sh
+
+      - name: Goals
+        run: tests/run-goals.sh
+
+      - name: Decisions
+        run: tests/run-decisions.sh
+
+      - name: Queue dry-run
+        run: tests/run-queue-dry-run.sh
 
       - name: Adoption
         run: tests/run-adoption.sh

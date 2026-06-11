@@ -23,7 +23,7 @@ for role in "${roles[@]}"; do
 	grep -Fq "parent_role: ROLE-ROOT" "$file" || fail "$role parent is not ROLE-ROOT"
 	grep -Fq "may_accept_tickets: false" "$file" || fail "$role may accept tickets"
 	grep -Fq "prod/**" "$file" || fail "$role missing production forbidden path"
-	grep -Fq "**/*secret*" "$file" || fail "$role missing secret forbidden path"
+	grep -Fq "**/secrets/**" "$file" || fail "$role missing secrets-directory forbidden path"
 	grep -Fq "authority unclear" "$file" || fail "$role missing authority escalation"
 done
 

@@ -11,10 +11,10 @@
 - Starting commit: `c5b9549` execution baseline; POS-0026 frozen baseline was
   `475b0d0`
 - Worktree or branch:
-  `/home/quetza/palari-pilot-workspaces/deepseek-full-baseline-dsf-evd-01`,
+  `/home/operator/palari-pilot-workspaces/deepseek-full-baseline-dsf-evd-01`,
   detached at execution baseline
 - Ticket integration worktree:
-  `/home/quetza/palari-orchestrator-worktrees/POS-0030`,
+  `/home/operator/palari-orchestrator-worktrees/POS-0030`,
   `ticket/POS-0030`
 
 ## Evidence

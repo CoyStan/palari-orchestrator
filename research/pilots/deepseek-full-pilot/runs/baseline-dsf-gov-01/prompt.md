@@ -4,7 +4,7 @@ You are working in a local repository checkout for a benchmark task.
 
 Repository root:
 
-`/home/quetza/palari-pilot-workspaces/deepseek-full-baseline-dsf-gov-01`
+`/home/operator/palari-pilot-workspaces/deepseek-full-baseline-dsf-gov-01`
 
 Task: make report-lint missing-heading output more actionable for maintainers.
 When a report fails because a required heading is missing, the output should

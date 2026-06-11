@@ -13,12 +13,27 @@ Recommended default forbidden paths:
 ```text
 .env
 .env.*
+**/.env
+**/.env.*
 **/secrets/**
-**/*secret*
-**/*token*
+**/*.pem
+**/*.key
+**/*.keystore
+**/*.p12
+**/id_rsa*
+**/id_ed25519*
+**/credentials*
+**/.aws/**
+**/.ssh/**
 infra/prod/**
 prod/**
 ```
+
+Substring globs such as `**/*secret*` or `**/*token*` are intentionally not
+recommended: they block legitimate source files (for example
+`gate/forgegate/token.py`) while a renamed credentials file evades them.
+Path rules are a guardrail, not secret detection; pair them with a content
+scanner such as gitleaks in CI.
 
 Run:
 

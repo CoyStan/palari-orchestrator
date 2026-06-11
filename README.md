@@ -31,7 +31,7 @@ give an AI coworker a named job, approved sources, visible records, and a
 permission moment before anything important moves.
 
 ```text
-intent -> proposal -> ticket -> worktree -> packet -> scope-check -> ci evidence -> review -> accept
+goal -> proposal -> ticket -> worktree -> packet -> scope-check -> ci evidence -> review -> decision -> accept
 ```
 
 It is built for founders, operators, product people, and small technical teams
@@ -133,6 +133,53 @@ helps decide whether that work was allowed, reviewed, evidenced, and accepted.
 Ceremony scales with risk. Small R0/R1 tasks stay short. R2+ work gets stronger
 review and evidence gates. R3/R4 work requires human confirmation.
 
+## The Operating Loop: Goals In, Decisions Out
+
+Palari's larger purpose is letting a human direct a team of agents the way a
+CEO directs a team: define roles and goals, let the work self-organize inside
+visible boundaries, and receive decisions instead of status noise. Three
+repo-native primitives close that loop.
+
+**Goals** make intent machine-readable. A goal is a lintable artifact with an
+owner, success criteria, and a due date. Tickets and proposals declare which
+goal they serve (`serves_goal`), so "why is this the next ticket" is
+answerable from repo state alone.
+
+```bash
+./bin/palari goal create GOAL-0001 "Ship the operator console v1" \
+  --owner founder --success "Console renders the founder inbox" --due 2026-07-01
+./bin/palari ticket create POS-0042 "Wire inbox filters" --goal GOAL-0001 \
+  --allowed "adapters/web/**" --verify "node --check adapters/web/static/app.js"
+```
+
+**Decisions** are how agents bring judgment back. Instead of parking work as
+a vague `needs-human` ticket, an agent drafts a decision: one question, two
+or more options with tradeoffs, a recommendation, a respond-by date, and an
+explicit default. Only a human records the outcome, and recorded decisions
+flow into repo memory so future packets cite them.
+
+```bash
+./bin/palari decide create DEC-0001 "Pick console chart library" \
+  --ticket POS-0042 --option "Chart.js (small, familiar)" \
+  --option "D3 (flexible, heavier)" --recommend 1 --default 1 --respond-by 2026-06-20
+./bin/palari decide record DEC-0001 --choice 1 --by founder
+```
+
+**The queue runner** answers "what happens next" without doing anything.
+`palari run --dry-run` walks the queue in priority order, plans each safe
+step, and stops at human gates. Open decisions surface first. Supervised and
+autonomous modes do not exist yet; `palari run` without `--dry-run` fails
+closed by design.
+
+```bash
+./bin/palari run --dry-run --goal GOAL-0001
+./bin/palari run --dry-run --json
+```
+
+Defaults on decisions may never include accept, merge, push, deploy, spend,
+or credential actions. The full rules live in
+[contracts/goals-and-decisions.md](contracts/goals-and-decisions.md).
+
 ## Forge-Proof Acceptance (Signed Gate)
 
 Agents are untrusted workloads. Evidence files and `--by NAME` strings answer
@@ -174,6 +221,9 @@ and replacement inventory are documented in
 
 | Primitive | What it protects |
 | --- | --- |
+| Goals | Founder intent becomes a lintable artifact tickets trace to, so prioritization is auditable. |
+| Decisions | Agents bring structured options with a recommendation and a default; only humans record outcomes. |
+| Queue dry-run | A read-only plan of every safe next step up to the next human gate. |
 | Lead proposals | Messy founder intent becomes adoptable tickets without letting the planner implement. |
 | Scoped tickets | The agent knows where it may work and what must be verified. |
 | Worktree-first execution | Each ticket gets isolated from the main checkout. |
@@ -429,6 +479,12 @@ palari packet WEB-0002 specialist
 | `palari propose create ID TITLE` | Create a restricted lead/planner proposal before executable ticket work exists. |
 | `palari propose packet ID` | Print the restricted lead packet for a planner AI such as OpenClaude. |
 | `palari propose adopt ID --ticket TICKET-ID` | Convert a human-approved proposal into a real scoped ticket. |
+| `palari goal create ID TITLE --success TEXT` | Create a first-class founder goal with success criteria. |
+| `palari goal list / show / lint` | Inspect goals and the tickets serving them; check serves_goal links. |
+| `palari goal adopt / achieve / drop ID --by NAME` | Human goal lifecycle actions. |
+| `palari decide create ID TITLE --option A --option B` | Draft a structured decision with options, recommendation, and default. |
+| `palari decide record ID --choice N --by NAME` | Record the human outcome; archives it and mirrors it into repo memory. |
+| `palari run --dry-run [--goal ID] [--json]` | Read-only queue plan up to the next human gate; fails closed without --dry-run. |
 | `palari ticket create ID TITLE` | Create a scoped ticket with allowed paths, risk, checks, and review requirements. |
 | `palari ticket claim ID` | Mark a ticket as claimed before implementation work starts. |
 | `palari ticket audit` | Explain active ticket next actions. |

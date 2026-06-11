@@ -33,10 +33,10 @@ forbidden_paths:
   - .palari/**
   - .env
   - .env.*
-  - **/secrets/**
-  - **/*secret*
-  - **/*.key
-  - **/*.token.json
+  - "**/secrets/**"
+  - "**/*secret*"
+  - "**/*.key"
+  - "**/*.token.json"
   - infra/prod/**
   - prod/**
 requires_human_confirmation: false
@@ -50,7 +50,7 @@ verification:
   - git diff --check
 target_branch: main
 branch: codex/forgegate-side-version
-worktree: /home/quetza/palari-orchestrator-worktrees/forgegate-import
+worktree:
 accepted_by: founder
 accepted_at: 2026-06-11T06:42:52Z
 created: 2026-06-10

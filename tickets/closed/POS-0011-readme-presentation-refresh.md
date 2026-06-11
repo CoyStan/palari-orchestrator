@@ -18,9 +18,9 @@ allowed_paths:
 forbidden_paths:
   - .env
   - .env.*
-  - **/secrets/**
-  - **/*secret*
-  - **/*token*
+  - "**/secrets/**"
+  - "**/*secret*"
+  - "**/*token*"
   - infra/prod/**
   - prod/**
 requires_human_confirmation: false
@@ -34,7 +34,7 @@ verification:
   - grep -q 'assets/readme/palari-console-preview.png' README.md
 target_branch: main
 branch: ticket/POS-0011
-worktree: /home/quetza/palari-orchestrator/../palari-orchestrator-worktrees/POS-0011
+worktree:
 accepted_by: founder
 accepted_at: 2026-06-07T09:25:30Z
 created: 2026-06-06

@@ -2,6 +2,50 @@
 
 ## Unreleased
 
+- Added first-class goals (`palari goal create|list|show|adopt|achieve|drop|lint`)
+  under `goals/`. Tickets and proposals link to a goal with `serves_goal`
+  (`--goal GOAL-ID` at creation), making founder intent machine-readable and
+  prioritization traceable. `require_serves_goal` (off|warn|strict) controls
+  enforcement; goals never grant authority. See
+  `contracts/goals-and-decisions.md`.
+- Added structured decisions (`palari decide create|list|show|record|lint`)
+  under `decisions/`. Agents draft a question with two or more options,
+  tradeoffs, a recommendation, a respond-by date, and an explicit default;
+  only a human records the outcome, which is archived and mirrored into
+  `memory/decisions/`. Defaults may never include human-gated actions. Open
+  decisions appear in `palari snapshot --json` as `open_decisions`.
+- Implemented the queue runner dry-run from the POS-0040 spec:
+  `palari run --dry-run [--until blocked] [--goal GOAL-ID] [--max N] [--json]`
+  prints a read-only plan in spec priority order, surfaces open decisions and
+  human gates as stop items, and skips overlapping, over-broad, or
+  lease-unclear tickets with reasons. `palari run` without `--dry-run` fails
+  closed; no execution mode exists.
+- Replaced substring-glob forbidden path defaults (`**/*secret*`,
+  `**/*token*`) with precise patterns (key files, `.env` everywhere, secrets
+  directories, SSH/AWS material) in core defaults, `palari.config.yaml`, and
+  all role files. The old globs blocked legitimate source files such as
+  `gate/forgegate/token.py` while renamed credentials evaded them; pair path
+  rules with a content scanner such as gitleaks in CI.
+- Hardened YAML correctness end to end: ticket/role/goal/decision frontmatter
+  generation now quotes items a strict parser would reject, `palari lint`
+  flags unquoted indicator characters, `palari doctor` runs a strict
+  python3+PyYAML frontmatter audit when available, and all existing tickets
+  were repaired to parse as valid YAML.
+- Stopped persisting machine-absolute worktree paths into ticket frontmatter
+  at creation; the path is computed from `worktree_base` at runtime. Scrubbed
+  previously committed absolute home paths from the repository history
+  surfaces (tickets and research run logs).
+- Hardened evidence scoring: `junit.xml` only scores when it contains at
+  least one testcase with zero failures/errors, and reviewer notes under 200
+  bytes are treated as missing.
+- Documented the claim-lease atomicity boundary (git refs are a coordination
+  convention, not a cross-machine lock) in
+  `contracts/goals-and-decisions.md`.
+- Added `.gitattributes` export-ignore so release archives ship the portable
+  tool without this repository's own governance history and pilot run data.
+- Clarified the `skills/` (shipped) vs `agent-skills/` (adopter-generated)
+  split and created the configured `agent-skills/` directory.
+
 - Added the forge-proof accept gate: the forgegate kernel is vendored at
   `gate/` with its adversarial test suite, and `palari accept` requires a
   cryptographic verdict when `gate.enabled` is true. Signed Ed25519

@@ -14,9 +14,13 @@ The command scores 100 possible points:
 
 - 20 points for required CI artifacts:
   `verification.log`, `junit.xml`, `palari.sarif`, and `manifest.json`.
+  `junit.xml` only counts when it contains at least one `<testcase>` and
+  reports zero failures and errors; an empty or failing report scores
+  nothing, so an executor cannot satisfy the gate with a stub file.
 - 20 points for a valid Palari CI manifest with matching hashes.
 - 15 points for a technical report.
-- 15 points for a fresh reviewer note when review is required.
+- 15 points for a fresh reviewer note when review is required. Notes under
+  200 bytes are treated as missing; a one-line "looks good" is not a review.
 - 10 points for a human/founder report when the ticket requires human
   confirmation.
 - 10 points for a lint pass marker in `verification.log`.
