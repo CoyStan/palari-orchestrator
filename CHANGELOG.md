@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Tickets can declare governing skills and packets carry them (POS-0046).
+  `palari ticket create --skill NAME` writes `related_skills` frontmatter
+  (creation fails on unknown names); `palari packet` injects a Relevant
+  Skills section with each skill's description and a capped excerpt;
+  `palari lint` warns on dangling references. Also tightened the skill-lint
+  authority heuristic with word boundaries so benign wording (pushback,
+  acceptance, merged) no longer trips it. Skills stay advisory: packets carry
+  them, tickets scope, gates enforce.
 - Made the local sandbox a first-class primitive (POS-0045). `palari sandbox
   create` now writes machine-readable metadata to `.palari/sandbox.json`
   (ticket, mode, source repo/commit, target branch, created_at), and new

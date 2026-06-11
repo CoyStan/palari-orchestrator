@@ -168,7 +168,7 @@ propose adopt options:
   plus ticket create options below.
 ticket create options:
   --stream NAME --risk R1 --priority P2 --allowed GLOB --forbidden GLOB --goal GOAL-ID
-  --verify CHECK --review --human --contract --required-report NAME
+  --verify CHECK --review --human --contract --required-report NAME --skill NAME
   --target-branch main --by-role ROLE-ID --delegate-to-role ROLE-ID
 demo options:
   --force                      Replace existing DEM-0001/DEM-0002 demo fixtures.

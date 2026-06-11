@@ -565,6 +565,8 @@ palari packet WEB-0002 specialist
 | Command | Purpose |
 | --- | --- |
 | `palari skill create NAME` | Scaffold an optional feature-contract skill adapter. |
+| `palari skill list` | List shipped, adopter, and plugin skills with descriptions. |
+| `palari skill lint` | Validate skill frontmatter; refuse authority-claiming wording. |
 
 </details>
 

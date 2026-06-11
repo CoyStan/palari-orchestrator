@@ -122,6 +122,78 @@ run_same_name_across_roots_passes() {
 	grep -Fq "skill-lint: ok" "$TMP_ROOT/lint-cross-root.out"
 }
 
+run_benign_wording_passes() {
+	mkdir -p agent-skills/benign
+	cat >agent-skills/benign/SKILL.md <<'EOF'
+---
+name: benign
+description: A skill with benign wording near risky words.
+---
+
+# Benign Skill
+
+This skill may encourage pushback during acceptance testing. The skill can
+explain merged history and previously accepted conventions.
+EOF
+	./bin/palari skill lint >"$TMP_ROOT/lint-benign.out"
+	grep -Fq "skill-lint: ok" "$TMP_ROOT/lint-benign.out"
+	rm -rf agent-skills/benign
+}
+
+run_ticket_create_rejects_unknown_skill() {
+	if ./bin/palari ticket create LAB-0101 "Unknown skill ref" \
+		--allowed "docs/**" --verify "noop" \
+		--skill no-such-skill >"$TMP_ROOT/create-unknown.out" 2>"$TMP_ROOT/create-unknown.err"; then
+		echo "ticket create should reject an unknown --skill" >&2
+		exit 1
+	fi
+	grep -Fq "related skill not found: no-such-skill" "$TMP_ROOT/create-unknown.err"
+}
+
+run_packet_includes_related_skills() {
+	./bin/palari ticket create LAB-0102 "Packet skill injection" \
+		--allowed "docs/**" \
+		--allowed "tickets/**" \
+		--allowed "reports/**" \
+		--verify "packet skill check" \
+		--skill palari-adoption >/dev/null
+	grep -Fq "related_skills:" "$(find tickets/open -name 'LAB-0102-*.md')"
+	git add .
+	git commit -m "packet skill baseline" >/dev/null
+	./bin/palari worktree LAB-0102 >/dev/null
+	./bin/palari packet LAB-0102 specialist >"$TMP_ROOT/skill-packet.out"
+	grep -Fq "Relevant Skills:" "$TMP_ROOT/skill-packet.out"
+	grep -Fq "palari-adoption (skills/adoption/SKILL.md)" "$TMP_ROOT/skill-packet.out"
+	grep -Fq "(excerpt; read the full skill before editing)" "$TMP_ROOT/skill-packet.out"
+	grep -Fq "Skills guide execution; the ticket controls authority and scope." "$TMP_ROOT/skill-packet.out"
+}
+
+run_packet_without_skills_says_none() {
+	grep -Fq "Relevant Skills:" "$TMP_ROOT/skill-packet.out" || exit 1
+	./bin/palari ticket create LAB-0103 "No skills declared" \
+		--allowed "docs/**" \
+		--allowed "tickets/**" \
+		--verify "noop" >/dev/null
+	git add .
+	git commit -m "no-skill baseline" >/dev/null
+	./bin/palari worktree LAB-0103 >/dev/null
+	./bin/palari packet LAB-0103 specialist >"$TMP_ROOT/no-skill-packet.out"
+	grep -Fq "none declared" "$TMP_ROOT/no-skill-packet.out"
+}
+
+run_lint_warns_on_missing_related_skill() {
+	./bin/palari skill create doomed --description "Will be removed" >/dev/null
+	./bin/palari ticket create LAB-0104 "Dangling skill ref" \
+		--allowed "docs/**" \
+		--allowed "tickets/**" \
+		--verify "noop" \
+		--skill doomed >/dev/null
+	rm -rf agent-skills/doomed
+	./bin/palari lint LAB-0104 >"$TMP_ROOT/lint-dangling.out" 2>"$TMP_ROOT/lint-dangling.err"
+	grep -Fq "warning: related skill not found: doomed" "$TMP_ROOT/lint-dangling.err"
+	grep -Fq "lint: ok for LAB-0104" "$TMP_ROOT/lint-dangling.out"
+}
+
 run_shipped_skills_are_discoverable
 run_clean_repo_lints_ok
 run_generated_skill_lints_ok
@@ -130,5 +202,10 @@ run_authority_claim_fails
 run_negated_authority_wording_passes
 run_duplicate_name_in_root_fails
 run_same_name_across_roots_passes
+run_benign_wording_passes
+run_ticket_create_rejects_unknown_skill
+run_packet_includes_related_skills
+run_packet_without_skills_says_none
+run_lint_warns_on_missing_related_skill
 
 printf 'skills: ok\n'

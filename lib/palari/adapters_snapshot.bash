@@ -83,6 +83,9 @@ all_skill_files() {
 	done < <(skill_roots | awk '!seen[$0]++')
 }
 
+# Resolution order is the skill_roots order (skills, agent-skills,
+# plugin/skills): a shipped skill wins over an adopter or plugin skill with
+# the same name, deterministically.
 find_skill_file() {
 	local name="$1"
 	local file
@@ -101,7 +104,7 @@ find_skill_file() {
 # never claim ("only a human accepts") without tripping the linter.
 skill_authority_claim_lines() {
 	local file="$1"
-	grep -inE '(this skill|the skill|this agent|the agent|skills) (may|can|is allowed to|is permitted to|grants?|allows?)[^.]*(accept|merge|push)|overrid(e|es|ing)[^.]*AGENTS\.md' "$file" 2>/dev/null |
+	grep -inE '(this skill|the skill|this agent|the agent|skills) (may|can|is allowed to|is permitted to|is authorized to|grants?|allows?)[^.]*\b(accept|accepts|merge|merges|push|pushes)\b|overrid(e|es|ing)[^.]*AGENTS\.md' "$file" 2>/dev/null |
 		grep -ivE '\b(not|never|cannot|only)\b' || true
 }
 

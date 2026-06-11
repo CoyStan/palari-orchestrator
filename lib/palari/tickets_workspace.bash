@@ -15,6 +15,7 @@ cmd_ticket_create() {
 	local -a forbidden=()
 	local -a verification=()
 	local -a required_reports=()
+	local -a related_skills=()
 	local arg
 	while (($# > 0)); do
 		arg="$1"
@@ -75,6 +76,10 @@ cmd_ticket_create() {
 			serves_goal="$2"
 			shift 2
 			;;
+		--skill)
+			related_skills+=("$2")
+			shift 2
+			;;
 		*) die "unknown ticket create option: $arg" ;;
 		esac
 	done
@@ -96,6 +101,11 @@ cmd_ticket_create() {
 	fi
 	if [[ -n "$delegate_to_role" && -z "$by_role" ]]; then
 		die "--delegate-to-role requires --by-role so authority can be checked"
+	fi
+	if ((${#related_skills[@]} > 0)); then
+		for arg in "${related_skills[@]}"; do
+			find_skill_file "$arg" >/dev/null || die "related skill not found: $arg (see palari skill list)"
+		done
 	fi
 	case "$risk" in
 	R2)
@@ -194,6 +204,9 @@ cmd_ticket_create() {
 			write_yaml_list required_reports "${required_reports[@]}"
 		fi
 		write_yaml_list verification "${verification[@]}"
+		if ((${#related_skills[@]} > 0)); then
+			write_yaml_list related_skills "${related_skills[@]}"
+		fi
 		printf 'target_branch: %s\n' "$target_branch"
 		printf 'branch: %s\n' "$branch"
 		printf 'worktree: %s\n' "$worktree"

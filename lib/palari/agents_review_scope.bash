@@ -280,8 +280,45 @@ cmd_packet() {
 	printf '  - acceptance criteria, product direction, or authority are unclear\n'
 	printf '  - actor would need to accept its own substantive work\n\n'
 	print_packet_memory "$ticket_id" "$role"
+	print_packet_skills "$file"
 	printf 'Closeout:\n'
 	printf '  - result state\n  - changed paths\n  - verification passed/failed/not run\n  - blockers or scope conflicts\n  - risks/follow-ups\n  - next action for orchestrator/human\n'
+}
+
+print_skill_excerpt() {
+	local file="$1"
+	local limit="${2:-10}"
+	awk -v limit="$limit" '
+    NR == 1 && $0 == "---" { in_fm = 1; next }
+    in_fm && $0 == "---" { in_fm = 0; next }
+    in_fm { next }
+    NF {
+      print "      " $0
+      count += 1
+      if (count >= limit) exit
+    }
+  ' "$file"
+}
+
+print_packet_skills() {
+	local ticket_file="$1"
+	local name skill_file desc count=0
+	printf 'Relevant Skills:\n'
+	while IFS= read -r name; do
+		[[ -n "$name" ]] || continue
+		if skill_file="$(find_skill_file "$name")"; then
+			desc="$(frontmatter_value "$skill_file" description)"
+			printf '  - %s (%s)\n' "$name" "${skill_file#"$ROOT"/}"
+			[[ -z "$desc" ]] || printf '    %s\n' "$desc"
+			print_skill_excerpt "$skill_file" 10
+			printf '      (excerpt; read the full skill before editing)\n'
+			count=$((count + 1))
+		else
+			printf '  - %s (missing; run palari skill list)\n' "$name"
+		fi
+	done < <(frontmatter_list_items "$ticket_file" related_skills)
+	((count > 0)) || printf '  - none declared\n'
+	printf '  Skills guide execution; the ticket controls authority and scope.\n\n'
 }
 
 print_packet_memory() {
@@ -380,6 +417,14 @@ lint_one_ticket() {
 		printf 'lint: %s: serves_goal references unknown goal: %s\n' "${file#"$ROOT"/}" "$value" >&2
 		errors=$((errors + 1))
 	fi
+	# Related skills are advisory packet inputs, so a dangling reference is a
+	# warning, not an error: the ticket still scopes and gates the work.
+	while IFS= read -r value; do
+		[[ -n "$value" ]] || continue
+		if ! find_skill_file "$value" >/dev/null 2>&1; then
+			printf 'lint: %s: warning: related skill not found: %s (run palari skill list)\n' "${file#"$ROOT"/}" "$value" >&2
+		fi
+	done < <(frontmatter_list_items "$file" related_skills)
 	return "$errors"
 }
 
