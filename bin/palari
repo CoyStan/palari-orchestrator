@@ -3,7 +3,10 @@ set -euo pipefail
 
 ROOT="${PALARI_ROOT:-}"
 if [[ -z "$ROOT" ]]; then
-	if git_root="$(git rev-parse --show-toplevel 2>/dev/null)"; then
+	SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+	if [[ -f "$SCRIPT_ROOT/lib/palari/core.bash" ]]; then
+		ROOT="$SCRIPT_ROOT"
+	elif git_root="$(git rev-parse --show-toplevel 2>/dev/null)" && [[ -f "$git_root/lib/palari/core.bash" ]]; then
 		ROOT="$git_root"
 	else
 		ROOT="$(pwd)"

@@ -1,8 +1,8 @@
 # Palari for Codex (and other AGENTS.md-aware agents)
 
-Codex has no plugin marketplace; its native contract is `AGENTS.md`, which
-the Palari Orchestrator already provides. That means Codex support is mostly
-free:
+This adapter targets Codex's `AGENTS.md` and prompt-file workflow. Palari's
+repository contract remains the source of truth, and `palari codex doctor`
+should be run before real executor use.
 
 1. Adopt Palari into the target repository:
 
@@ -42,12 +42,12 @@ palari agent run TICKET-ID --executor codex --dry-run   # plan + command.txt onl
 palari agent run TICKET-ID --executor codex             # real run, gates after
 ```
 
-The wrapper invokes `codex exec --cd <worktree> --sandbox workspace-write
---json --output-last-message <evidence>/last-message.txt` with a prompt that
-points Codex at the mission packet (verified against codex-cli 0.138.0). The
-Codex CLI contract lives in a single shim function
+The wrapper currently targets `codex exec --cd <worktree> --sandbox
+workspace-write --json --output-last-message
+<evidence>/last-message.txt` with a prompt that points Codex at the mission
+packet. The Codex CLI contract lives in a single shim function
 (`executor_codex_run` in `lib/palari/agents_review_scope.bash`); if the CLI
-changes, only that shim changes. Evidence lands under
+changes, run `palari codex doctor` and update only that shim. Evidence lands under
 `reports/evidence/TICKET-ID/executor/codex/` (run.jsonl, run.stderr,
 run.exit, last-message.txt, command.txt, scope-check.*, ci.*).
 

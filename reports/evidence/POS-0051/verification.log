@@ -1,0 +1,43 @@
+# Palari CI Evidence
+
+- Ticket: POS-0051
+- Base ref: local working tree
+- Created: 2026-06-11T21:37:03Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0051 (10 changed path(s))
+```
+
+## lint
+
+```text
+lint: tickets/open/POS-0051-fix-external-palari-root-invocation.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+report-lint: ok for POS-0051
+lint: ok for POS-0051
+```
+
+## verification 1
+
+Command: `tests/run-adoption.sh`
+
+```text
+adoption: ok
+```
+
+## verification 2
+
+Command: `tests/run-cli-structure.sh`
+
+```text
+cli-structure: ok
+```
+
+## verification 3
+
+Command: `shellcheck -x bin/palari scripts/palari tests/run-adoption.sh tests/run-cli-structure.sh`
+
+```text
+
+```
