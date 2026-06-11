@@ -1,7 +1,7 @@
 ---
 id: POS-0047
 title: Deterministic mock executor for demos and tests
-status: in-review
+status: accepted
 risk: R2
 priority: P0
 stream: governance
@@ -9,8 +9,8 @@ serves_goal:
 claimed_by: claude
 claimed_at: 2026-06-11T16:33:24Z
 claim_ref: refs/palari/claims/POS-0047
-claim_heartbeat_at: 2026-06-11T16:33:24Z
-claim_expires_at: 2026-06-11T16:38:24Z
+claim_heartbeat_at: 2026-06-11T18:21:18Z
+claim_expires_at: 2026-06-11T18:26:18Z
 allowed_paths:
   - bin/palari
   - lib/palari/agents_review_scope.bash
@@ -19,6 +19,7 @@ allowed_paths:
   - CHANGELOG.md
   - README.md
   - tickets/open/POS-0047*
+  - tickets/closed/POS-0047*
   - reports/**
 forbidden_paths:
   - .env
@@ -48,8 +49,8 @@ verification:
 target_branch: main
 branch: ticket/POS-0047
 worktree: 
-accepted_by:
-accepted_at:
+accepted_by: quetza
+accepted_at: 2026-06-11T18:21:20Z
 created: 2026-06-11
 updated: 2026-06-11
 ---

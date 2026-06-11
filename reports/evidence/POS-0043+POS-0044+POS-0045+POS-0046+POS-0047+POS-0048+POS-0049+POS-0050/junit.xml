@@ -1,34 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="palari" tests="31" failures="0" skipped="0">
+<testsuite name="palari" tests="17" failures="0" skipped="0">
     <testcase classname="palari" name="scope-check"/>
     <testcase classname="palari" name="lint POS-0043"/>
-    <testcase classname="palari" name="POS-0043 verification 1"/>
-    <testcase classname="palari" name="POS-0043 verification 2"/>
-    <testcase classname="palari" name="POS-0043 verification 3"/>
+    <testcase classname="palari" name="stored evidence POS-0043"/>
     <testcase classname="palari" name="lint POS-0044"/>
-    <testcase classname="palari" name="POS-0044 verification 1"/>
-    <testcase classname="palari" name="POS-0044 verification 2"/>
+    <testcase classname="palari" name="stored evidence POS-0044"/>
     <testcase classname="palari" name="lint POS-0045"/>
-    <testcase classname="palari" name="POS-0045 verification 1"/>
-    <testcase classname="palari" name="POS-0045 verification 2"/>
-    <testcase classname="palari" name="POS-0045 verification 3"/>
+    <testcase classname="palari" name="stored evidence POS-0045"/>
     <testcase classname="palari" name="lint POS-0046"/>
-    <testcase classname="palari" name="POS-0046 verification 1"/>
-    <testcase classname="palari" name="POS-0046 verification 2"/>
-    <testcase classname="palari" name="POS-0046 verification 3"/>
+    <testcase classname="palari" name="stored evidence POS-0046"/>
     <testcase classname="palari" name="lint POS-0047"/>
-    <testcase classname="palari" name="POS-0047 verification 1"/>
-    <testcase classname="palari" name="POS-0047 verification 2"/>
-    <testcase classname="palari" name="POS-0047 verification 3"/>
+    <testcase classname="palari" name="stored evidence POS-0047"/>
     <testcase classname="palari" name="lint POS-0048"/>
-    <testcase classname="palari" name="POS-0048 verification 1"/>
-    <testcase classname="palari" name="POS-0048 verification 2"/>
-    <testcase classname="palari" name="POS-0048 verification 3"/>
+    <testcase classname="palari" name="stored evidence POS-0048"/>
     <testcase classname="palari" name="lint POS-0049"/>
-    <testcase classname="palari" name="POS-0049 verification 1"/>
-    <testcase classname="palari" name="POS-0049 verification 2"/>
+    <testcase classname="palari" name="stored evidence POS-0049"/>
     <testcase classname="palari" name="lint POS-0050"/>
-    <testcase classname="palari" name="POS-0050 verification 1"/>
-    <testcase classname="palari" name="POS-0050 verification 2"/>
-    <testcase classname="palari" name="POS-0050 verification 3"/>
+    <testcase classname="palari" name="stored evidence POS-0050"/>
 </testsuite>

@@ -1,7 +1,7 @@
 ---
 id: POS-0045
 title: Sandbox lifecycle commands and metadata
-status: in-review
+status: accepted
 risk: R2
 priority: P1
 stream: governance
@@ -9,8 +9,8 @@ serves_goal:
 claimed_by: claude
 claimed_at: 2026-06-11T16:22:09Z
 claim_ref: refs/palari/claims/POS-0045
-claim_heartbeat_at: 2026-06-11T16:22:09Z
-claim_expires_at: 2026-06-11T16:27:09Z
+claim_heartbeat_at: 2026-06-11T18:21:15Z
+claim_expires_at: 2026-06-11T18:26:15Z
 allowed_paths:
   - bin/palari
   - lib/palari/tickets_workspace.bash
@@ -19,6 +19,7 @@ allowed_paths:
   - CHANGELOG.md
   - README.md
   - tickets/open/POS-0045*
+  - tickets/closed/POS-0045*
   - reports/**
 forbidden_paths:
   - .env
@@ -48,8 +49,8 @@ verification:
 target_branch: main
 branch: ticket/POS-0045
 worktree: 
-accepted_by:
-accepted_at:
+accepted_by: quetza
+accepted_at: 2026-06-11T18:21:16Z
 created: 2026-06-11
 updated: 2026-06-11
 ---

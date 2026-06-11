@@ -1,7 +1,7 @@
 ---
 id: POS-0048
 title: Codex executor adapter and codex doctor
-status: in-review
+status: accepted
 risk: R2
 priority: P1
 stream: governance
@@ -9,8 +9,8 @@ serves_goal:
 claimed_by: claude
 claimed_at: 2026-06-11T16:40:45Z
 claim_ref: refs/palari/claims/POS-0048
-claim_heartbeat_at: 2026-06-11T16:40:45Z
-claim_expires_at: 2026-06-11T16:45:45Z
+claim_heartbeat_at: 2026-06-11T18:21:20Z
+claim_expires_at: 2026-06-11T18:26:20Z
 allowed_paths:
   - adapters/codex/**
   - bin/palari
@@ -20,6 +20,7 @@ allowed_paths:
   - CHANGELOG.md
   - README.md
   - tickets/open/POS-0048*
+  - tickets/closed/POS-0048*
   - reports/**
 forbidden_paths:
   - .env
@@ -49,8 +50,8 @@ verification:
 target_branch: main
 branch: ticket/POS-0048
 worktree: 
-accepted_by:
-accepted_at:
+accepted_by: quetza
+accepted_at: 2026-06-11T18:21:21Z
 created: 2026-06-11
 updated: 2026-06-11
 ---

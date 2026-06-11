@@ -1,7 +1,7 @@
 ---
 id: POS-0046
 title: Related skills in ticket frontmatter and packets
-status: in-review
+status: accepted
 risk: R2
 priority: P1
 stream: governance
@@ -9,8 +9,8 @@ serves_goal:
 claimed_by: claude
 claimed_at: 2026-06-11T16:27:09Z
 claim_ref: refs/palari/claims/POS-0046
-claim_heartbeat_at: 2026-06-11T16:27:09Z
-claim_expires_at: 2026-06-11T16:32:09Z
+claim_heartbeat_at: 2026-06-11T18:21:16Z
+claim_expires_at: 2026-06-11T18:26:16Z
 allowed_paths:
   - bin/palari
   - lib/palari/agents_review_scope.bash
@@ -23,6 +23,7 @@ allowed_paths:
   - README.md
   - AGENTS.md
   - tickets/open/POS-0046*
+  - tickets/closed/POS-0046*
   - reports/**
 forbidden_paths:
   - .env
@@ -52,8 +53,8 @@ verification:
 target_branch: main
 branch: ticket/POS-0046
 worktree: 
-accepted_by:
-accepted_at:
+accepted_by: quetza
+accepted_at: 2026-06-11T18:21:18Z
 created: 2026-06-11
 updated: 2026-06-11
 ---

@@ -2,12 +2,12 @@
 
 - Ticket: POS-0046
 - Base ref: local working tree
-- Created: 2026-06-11T16:31:40Z
+- Created: 2026-06-11T18:18:07Z
 
 ## scope-check
 
 ```text
-scope-check: ok for POS-0046 (15 changed path(s))
+scope-check: ok for POS-0046 (9 changed path(s))
 ```
 
 ## lint
@@ -25,6 +25,7 @@ Command: `tests/run-skills.sh`
 ```text
 Preparing worktree (new branch 'ticket/LAB-0102')
 Preparing worktree (new branch 'ticket/LAB-0103')
+Preparing worktree (new branch 'ticket/LAB-0105')
 skills: ok
 ```
 
@@ -39,6 +40,7 @@ lint: tickets/open/POS-0045-sandbox-lifecycle-commands-and-metadata.md: warning:
 lint: tickets/open/POS-0046-related-skills-in-ticket-frontmatter-and-packets.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
 lint: tickets/open/POS-0047-deterministic-mock-executor-for-demos-and-tests.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
 lint: tickets/open/POS-0048-codex-executor-adapter-and-codex-doctor.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0049-packet-skill-polish-from-review-findings.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
 propose lint: ok (no proposals)
 role lint: ok
 report-lint: ok

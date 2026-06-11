@@ -1,7 +1,7 @@
 ---
 id: POS-0043
 title: Machine-discoverable skills with skill list and lint
-status: in-review
+status: accepted
 risk: R2
 priority: P1
 stream: governance
@@ -9,8 +9,8 @@ serves_goal:
 claimed_by: claude
 claimed_at: 2026-06-11T13:42:06Z
 claim_ref: refs/palari/claims/POS-0043
-claim_heartbeat_at: 2026-06-11T13:42:06Z
-claim_expires_at: 2026-06-11T13:47:06Z
+claim_heartbeat_at: 2026-06-11T18:21:12Z
+claim_expires_at: 2026-06-11T18:26:12Z
 allowed_paths:
   - skills/**
   - plugin/skills/**
@@ -22,6 +22,7 @@ allowed_paths:
   - CHANGELOG.md
   - README.md
   - tickets/open/POS-0043*
+  - tickets/closed/POS-0043*
   - reports/**
 forbidden_paths:
   - .env
@@ -51,8 +52,8 @@ verification:
 target_branch: main
 branch: ticket/POS-0043
 worktree: 
-accepted_by:
-accepted_at:
+accepted_by: quetza
+accepted_at: 2026-06-11T18:21:13Z
 created: 2026-06-11
 updated: 2026-06-11
 ---

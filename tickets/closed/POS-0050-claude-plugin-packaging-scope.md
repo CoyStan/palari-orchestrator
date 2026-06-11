@@ -20,6 +20,7 @@ allowed_paths:
   - CHANGELOG.md
   - README.md
   - tickets/open/POS-0050*
+  - tickets/closed/POS-0050*
   - reports/**
 forbidden_paths:
   - .env

@@ -1,7 +1,7 @@
 ---
 id: POS-0044
 title: Honest sandbox terminology and isolation docs
-status: in-review
+status: accepted
 risk: R1
 priority: P2
 stream: docs
@@ -9,8 +9,8 @@ serves_goal:
 claimed_by: claude
 claimed_at: 2026-06-11T14:43:44Z
 claim_ref: refs/palari/claims/POS-0044
-claim_heartbeat_at: 2026-06-11T14:43:44Z
-claim_expires_at: 2026-06-11T14:48:44Z
+claim_heartbeat_at: 2026-06-11T18:21:13Z
+claim_expires_at: 2026-06-11T18:26:13Z
 allowed_paths:
   - README.md
   - docs/**
@@ -19,6 +19,7 @@ allowed_paths:
   - contracts/**
   - CHANGELOG.md
   - tickets/open/POS-0044*
+  - tickets/closed/POS-0044*
   - reports/**
 forbidden_paths:
   - .env
@@ -47,8 +48,8 @@ verification:
 target_branch: main
 branch: ticket/POS-0044
 worktree: 
-accepted_by:
-accepted_at:
+accepted_by: quetza
+accepted_at: 2026-06-11T18:21:15Z
 created: 2026-06-11
 updated: 2026-06-11
 ---

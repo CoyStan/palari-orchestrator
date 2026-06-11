@@ -2,7 +2,7 @@
 
 - Ticket: POS-0047
 - Base ref: local working tree
-- Created: 2026-06-11T16:38:09Z
+- Created: 2026-06-11T18:19:01Z
 
 ## scope-check
 
@@ -39,6 +39,7 @@ lint: tickets/open/POS-0045-sandbox-lifecycle-commands-and-metadata.md: warning:
 lint: tickets/open/POS-0046-related-skills-in-ticket-frontmatter-and-packets.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
 lint: tickets/open/POS-0047-deterministic-mock-executor-for-demos-and-tests.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
 lint: tickets/open/POS-0048-codex-executor-adapter-and-codex-doctor.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0049-packet-skill-polish-from-review-findings.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
 propose lint: ok (no proposals)
 role lint: ok
 report-lint: ok
