@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Made the local sandbox a first-class primitive (POS-0045). `palari sandbox
+  create` now writes machine-readable metadata to `.palari/sandbox.json`
+  (ticket, mode, source repo/commit, target branch, created_at), and new
+  lifecycle commands manage sandboxes: `sandbox list`, `sandbox inspect`
+  (metadata, dirty state, changed paths), and `sandbox destroy` (refuses any
+  path without the `.palari-sandbox` marker). Validated by
+  `tests/run-sandbox.sh`.
 - Documented the isolation model honestly (POS-0044). Docs now distinguish
   worktrees (ticket isolation), local sandboxes (disposable repo copies), and
   hardened sandboxes (container/VM/remote, not yet shipped), and state

@@ -1,0 +1,52 @@
+# Palari CI Evidence
+
+- Ticket: POS-0045
+- Base ref: local working tree
+- Created: 2026-06-11T16:25:36Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0045 (11 changed path(s))
+```
+
+## lint
+
+```text
+lint: tickets/open/POS-0045-sandbox-lifecycle-commands-and-metadata.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+report-lint: ok for POS-0045
+lint: ok for POS-0045
+```
+
+## verification 1
+
+Command: `tests/run-sandbox.sh`
+
+```text
+sandbox: ok
+```
+
+## verification 2
+
+Command: `./bin/palari lint`
+
+```text
+lint: tickets/open/POS-0043-machine-discoverable-skills-with-skill-list-and-lint.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0044-honest-sandbox-terminology-and-isolation-docs.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0045-sandbox-lifecycle-commands-and-metadata.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0046-related-skills-in-ticket-frontmatter-and-packets.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0047-deterministic-mock-executor-for-demos-and-tests.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0048-codex-executor-adapter-and-codex-doctor.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+propose lint: ok (no proposals)
+role lint: ok
+report-lint: ok
+lint: ok
+```
+
+## verification 3
+
+Command: `shellcheck -x bin/palari lib/palari/tickets_workspace.bash`
+
+```text
+
+```

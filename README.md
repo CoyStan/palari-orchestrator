@@ -530,6 +530,9 @@ palari packet WEB-0002 specialist
 | `palari worktree ID` | Create or locate the ticket-specific git worktree. |
 | `palari packet ID ROLE` | Generate the mission packet for a specialist, reviewer, acceptor/human, or custom review profile. |
 | `palari sandbox create ID` | Create a disposable local repository copy for executor experiments. |
+| `palari sandbox list` | List local sandboxes under the worktree base with dirty state. |
+| `palari sandbox inspect ID` | Show sandbox metadata (`.palari/sandbox.json`), source commit, and changed paths. |
+| `palari sandbox destroy ID` | Remove a Palari sandbox; refuses paths without the sandbox marker. |
 | `palari agent run ID --executor opencode` | Run opencode from a Palari packet and record executor evidence without accepting work. |
 | `palari memory ...` | Manage optional repo-native memory and generated search indexes. |
 | `palari ci ID --base REF` | Run scope/lint/report gates and write evidence artifacts. Fails closed without a ticket. |

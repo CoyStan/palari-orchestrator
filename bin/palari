@@ -114,6 +114,9 @@ commands:
   worktree ID                  Prepare and verify ticket branch/worktree.
   packet ID ROLE               Print specialist/reviewer/acceptor or custom-profile packet.
   sandbox create ID            Create a disposable local repo sandbox.
+  sandbox list                 List local sandboxes under the worktree base.
+  sandbox inspect ID|--path P  Show sandbox metadata, dirty state, changed paths.
+  sandbox destroy ID|--path P  Remove a Palari sandbox; refuses other paths.
   agent run ID --executor opencode  Run an executor from a Palari packet.
   memory ...                   Manage optional repo-native memory.
   skill create NAME --description TEXT  Scaffold feature-contract Agent Skills.

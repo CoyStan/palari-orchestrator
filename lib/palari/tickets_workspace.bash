@@ -439,6 +439,135 @@ sandbox_default_path() {
 	printf '%s/sandboxes/%s/repo\n' "$WORKTREE_BASE_ABS" "$ticket_id"
 }
 
+sandbox_base_dir() {
+	printf '%s/sandboxes\n' "$WORKTREE_BASE_ABS"
+}
+
+sandbox_metadata_write() {
+	local target="$1"
+	local ticket_id="$2"
+	local target_branch="$3"
+	local source_commit="$4"
+	mkdir -p "$target/.palari"
+	{
+		printf '{\n'
+		printf '  "ticket": %s,\n' "$(json_string "$ticket_id")"
+		printf '  "mode": "local",\n'
+		printf '  "source_repo": %s,\n' "$(json_string "$ROOT")"
+		printf '  "source_commit": %s,\n' "$(json_string "$source_commit")"
+		printf '  "target_branch": %s,\n' "$(json_string "$target_branch")"
+		printf '  "created_at": %s,\n' "$(json_string "$(now_utc)")"
+		printf '  "created_by": "palari"\n'
+		printf '}\n'
+	} >"$target/.palari/sandbox.json"
+}
+
+sandbox_metadata_value() {
+	local target="$1"
+	local key="$2"
+	[[ -f "$target/.palari/sandbox.json" ]] || return 0
+	sed -n 's/^[[:space:]]*"'"$key"'":[[:space:]]*"\(.*\)"[,]\{0,1\}$/\1/p' \
+		"$target/.palari/sandbox.json" | head -n 1
+}
+
+resolve_sandbox_target() {
+	local ticket="$1"
+	local path="$2"
+	local file ticket_id
+	if [[ -n "$path" ]]; then
+		abs_path "$path"
+		return 0
+	fi
+	file="$(find_ticket_file "$ticket")" || die "ticket not found: $ticket"
+	ticket_id="$(frontmatter_value "$file" id)"
+	[[ -n "$ticket_id" ]] || ticket_id="$ticket"
+	sandbox_default_path "$ticket_id"
+}
+
+require_sandbox_marker() {
+	local target="$1"
+	[[ -d "$target" ]] || die "sandbox not found: $target"
+	[[ -f "$target/.palari-sandbox" ]] || die "not a Palari sandbox (missing .palari-sandbox): $target"
+}
+
+cmd_sandbox_list() {
+	local base dir repo ticket changed count=0
+	base="$(sandbox_base_dir)"
+	if [[ -d "$base" ]]; then
+		for dir in "$base"/*/; do
+			[[ -d "$dir" ]] || continue
+			repo="${dir%/}/repo"
+			[[ -f "$repo/.palari-sandbox" ]] || continue
+			ticket="$(head -n 1 "$repo/.palari-sandbox")"
+			changed="$(git_changed_count_at "$repo")"
+			printf '%s\t%s\t%s changed path(s)\n' "$ticket" "$repo" "$changed"
+			count=$((count + 1))
+		done
+	fi
+	printf 'sandbox list: %s sandbox(es)\n' "$count"
+}
+
+cmd_sandbox_inspect() {
+	local ticket="" path="" arg
+	while (($# > 0)); do
+		arg="$1"
+		case "$arg" in
+		--path)
+			path="$2"
+			shift 2
+			;;
+		--*) die "unknown sandbox inspect option: $arg" ;;
+		*)
+			ticket="$arg"
+			shift
+			;;
+		esac
+	done
+	[[ -n "$ticket" || -n "$path" ]] || die "sandbox inspect requires ticket ID or --path"
+	local target marker_ticket changed value
+	target="$(resolve_sandbox_target "$ticket" "$path")"
+	require_sandbox_marker "$target"
+	marker_ticket="$(head -n 1 "$target/.palari-sandbox")"
+	changed="$(git_changed_count_at "$target")"
+	printf 'sandbox inspect: %s\n' "$marker_ticket"
+	printf 'Sandbox repo: %s\n' "$target"
+	for value in mode source_repo source_commit target_branch created_at; do
+		printf '%s: %s\n' "$value" "$(sandbox_metadata_value "$target" "$value")" |
+			sed 's/: $/: unknown (created before sandbox.json)/'
+	done
+	printf 'Changed paths: %s\n' "$changed"
+	if ((changed > 0)); then
+		git -C "$target" status --short | sed 's/^/  /'
+	fi
+}
+
+cmd_sandbox_destroy() {
+	local ticket="" path="" arg
+	while (($# > 0)); do
+		arg="$1"
+		case "$arg" in
+		--path)
+			path="$2"
+			shift 2
+			;;
+		--*) die "unknown sandbox destroy option: $arg" ;;
+		*)
+			ticket="$arg"
+			shift
+			;;
+		esac
+	done
+	[[ -n "$ticket" || -n "$path" ]] || die "sandbox destroy requires ticket ID or --path"
+	local target parent
+	target="$(resolve_sandbox_target "$ticket" "$path")"
+	[[ -e "$target" ]] || die "sandbox not found: $target"
+	[[ -f "$target/.palari-sandbox" ]] || die "refusing to remove non-Palari sandbox path: $target"
+	rm -rf "$target"
+	parent="$(dirname "$target")"
+	rmdir "$parent" 2>/dev/null || true
+	printf 'sandbox destroy: removed %s\n' "$target"
+}
+
 ensure_palari_gitignore() {
 	local repo="$1"
 	local ignore="$repo/.gitignore"
@@ -500,6 +629,8 @@ cmd_sandbox_create() {
 	git -C "$target" add .
 	git -C "$target" commit -m "sandbox baseline for $ticket_id" >/dev/null
 	"$target/bin/palari" init >/dev/null
+	sandbox_metadata_write "$target" "$ticket_id" "$target_branch" \
+		"$(git -C "$ROOT" rev-parse HEAD)"
 
 	printf 'sandbox create: ok\n'
 	printf 'Ticket: %s\n' "$ticket_id"
@@ -513,6 +644,9 @@ cmd_sandbox() {
 	shift || true
 	case "$sub" in
 	create) cmd_sandbox_create "$@" ;;
-	*) die "unknown sandbox command: ${sub:-}; try \`palari sandbox create TICKET-ID\`" ;;
+	list) cmd_sandbox_list "$@" ;;
+	inspect) cmd_sandbox_inspect "$@" ;;
+	destroy) cmd_sandbox_destroy "$@" ;;
+	*) die "unknown sandbox command: ${sub:-}; try \`palari sandbox create|list|inspect|destroy\`" ;;
 	esac
 }
