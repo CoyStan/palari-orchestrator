@@ -501,6 +501,99 @@ body[data-health="blocked"] .state-dot {
   text-overflow: ellipsis;
 }
 
+.founder-inbox {
+  display: grid;
+  gap: 12px;
+}
+
+.inbox-list {
+  display: grid;
+  gap: 8px;
+}
+
+.inbox-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.inbox-summary span {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 8px;
+  color: var(--muted);
+  font-size: 11px;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+
+.inbox-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--pane);
+  padding: 10px 12px;
+  min-width: 0;
+}
+
+.inbox-item.human-gate,
+.inbox-item.blocked {
+  border-left-color: var(--red);
+}
+
+.inbox-item.evidence-needed,
+.inbox-item.review-needed,
+.inbox-item.watch {
+  border-left-color: var(--amber);
+}
+
+.inbox-item.can-continue {
+  border-left-color: var(--green);
+}
+
+.inbox-main {
+  min-width: 0;
+}
+
+.inbox-category {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+
+.inbox-ticket {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+}
+
+.inbox-ticket:hover {
+  color: var(--seal);
+}
+
+.inbox-item p,
+.inbox-more {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.inbox-item .command-inline {
+  grid-column: 1 / -1;
+}
+
 /* --- Workbench ------------------------------------------------------------- */
 
 .workbench {
