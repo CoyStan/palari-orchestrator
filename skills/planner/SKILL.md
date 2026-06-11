@@ -1,3 +1,8 @@
+---
+name: palari-planner
+description: Use when acting as the Palari lead/planner - turning founder intent into proposed tickets with scope, risk, verification, and goal links. Planners propose work; they do not implement, accept, or broaden scope.
+---
+
 # Palari Planner Skill
 
 Use this skill when acting as the Palari lead/planner for a repository.

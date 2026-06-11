@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Made skills machine-discoverable (POS-0043). Shipped skills under `skills/`
+  now carry YAML frontmatter (`name`, `description`), and two new commands
+  inspect them: `palari skill list` enumerates shipped, adopter, and plugin
+  skills; `palari skill lint` validates frontmatter, per-root name uniqueness,
+  and refuses skills whose wording claims authority a skill may never hold
+  (accept, merge, push, or overriding `AGENTS.md`). Skills guide behavior;
+  tickets and gates enforce authority. Validated by `tests/run-skills.sh`.
 - Packaged Palari as a Claude Code plugin with a self-hosted marketplace:
   `.claude-plugin/marketplace.json` at the repo root and the plugin under
   `plugin/` (operating skill, six `/palari-orchestrator:*` slash commands,

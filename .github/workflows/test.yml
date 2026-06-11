@@ -36,6 +36,7 @@ jobs:
           bash -n tests/run-gate-kernel.sh
           bash -n tests/run-gate.sh
           bash -n tests/run-plugin-structure.sh
+          bash -n tests/run-skills.sh
 
       - name: CLI structure
         run: tests/run-cli-structure.sh
@@ -84,6 +85,9 @@ jobs:
 
       - name: Plugin structure
         run: tests/run-plugin-structure.sh
+
+      - name: Skills
+        run: tests/run-skills.sh
 
       - name: Palari lint
         run: ./bin/palari lint

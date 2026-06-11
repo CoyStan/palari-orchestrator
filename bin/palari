@@ -117,6 +117,8 @@ commands:
   agent run ID --executor opencode  Run an executor from a Palari packet.
   memory ...                   Manage optional repo-native memory.
   skill create NAME --description TEXT  Scaffold feature-contract Agent Skills.
+  skill list                   List shipped, adopter, and plugin skills.
+  skill lint                   Validate skill frontmatter and authority claims.
   evidence score ID [--strict] Score ticket evidence completeness.
   ci ID [--base REF]           Run ticket gates and write evidence artifacts.
   ci --repo-only               Run non-merge-gate repository lint evidence.
