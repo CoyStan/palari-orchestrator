@@ -352,6 +352,34 @@ lint_one_ticket() {
 		printf 'lint: %s: verification must contain at least one item\n' "${file#"$ROOT"/}" >&2
 		errors=$((errors + 1))
 	fi
+	# Frontmatter must stay valid YAML for external tooling, not only for
+	# Palari's own parser. Unquoted globs such as `- **/secrets/**` are
+	# rejected by strict parsers and have shipped broken before.
+	local yaml_issue
+	while IFS= read -r yaml_issue; do
+		[[ -n "$yaml_issue" ]] || continue
+		printf 'lint: %s: %s\n' "${file#"$ROOT"/}" "$yaml_issue" >&2
+		errors=$((errors + 1))
+	done < <(frontmatter_yaml_issues "$file")
+	# Goal traceability: warn (or fail in strict mode) when active work does
+	# not declare which goal it serves.
+	value="$(frontmatter_value "$file" serves_goal)"
+	local ticket_status
+	ticket_status="$(frontmatter_value "$file" status)"
+	if [[ -z "$value" && "$ticket_status" != "accepted" ]]; then
+		case "$REQUIRE_SERVES_GOAL" in
+		strict)
+			printf 'lint: %s: serves_goal is required (require_serves_goal: strict)\n' "${file#"$ROOT"/}" >&2
+			errors=$((errors + 1))
+			;;
+		warn)
+			printf 'lint: %s: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it\n' "${file#"$ROOT"/}" >&2
+			;;
+		esac
+	elif [[ -n "$value" ]] && ! find_goal_file "$value" >/dev/null 2>&1; then
+		printf 'lint: %s: serves_goal references unknown goal: %s\n' "${file#"$ROOT"/}" "$value" >&2
+		errors=$((errors + 1))
+	fi
 	return "$errors"
 }
 

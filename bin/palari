@@ -40,6 +40,12 @@ source "$PALARI_LIB_DIR/hygiene.bash"
 palari_require_module "$PALARI_LIB_DIR/proposals.bash"
 # shellcheck source=lib/palari/proposals.bash
 source "$PALARI_LIB_DIR/proposals.bash"
+palari_require_module "$PALARI_LIB_DIR/goals.bash"
+# shellcheck source=lib/palari/goals.bash
+source "$PALARI_LIB_DIR/goals.bash"
+palari_require_module "$PALARI_LIB_DIR/decisions.bash"
+# shellcheck source=lib/palari/decisions.bash
+source "$PALARI_LIB_DIR/decisions.bash"
 palari_require_module "$PALARI_LIB_DIR/tickets_workspace.bash"
 # shellcheck source=lib/palari/tickets_workspace.bash
 source "$PALARI_LIB_DIR/tickets_workspace.bash"
@@ -67,6 +73,9 @@ source "$PALARI_LIB_DIR/adapters_snapshot.bash"
 palari_require_module "$PALARI_LIB_DIR/gate.bash"
 # shellcheck source=lib/palari/gate.bash
 source "$PALARI_LIB_DIR/gate.bash"
+palari_require_module "$PALARI_LIB_DIR/run.bash"
+# shellcheck source=lib/palari/run.bash
+source "$PALARI_LIB_DIR/run.bash"
 unset -f palari_require_module
 
 usage() {
@@ -85,6 +94,12 @@ commands:
   propose create ID TITLE ...  Create a lead/planner proposal.
   propose list|show|packet     Inspect proposed work before adoption.
   propose adopt ID --ticket T  Adopt a proposal into an executable ticket.
+  goal create|list|show|lint   Manage first-class founder goals.
+  goal adopt|achieve|drop      Human goal lifecycle actions.
+  decide create|list|show|lint Draft and inspect structured founder decisions.
+  decide record ID --choice N --by NAME  Record a human decision outcome.
+  run --dry-run [--until blocked] [--goal G] [--json]
+                               Read-only queue plan up to the next human gate.
   lead [propose] ...           Alias for propose.
   demo [--force]               Create local sample tickets, reports, and evidence.
   prompt next|ticket|long-run  Print handoff prompts for governed agent work.
@@ -147,7 +162,7 @@ propose adopt options:
   --ticket ID --title TEXT      Ticket id and optional ticket title override.
   plus ticket create options below.
 ticket create options:
-  --stream NAME --risk R1 --priority P2 --allowed GLOB --forbidden GLOB
+  --stream NAME --risk R1 --priority P2 --allowed GLOB --forbidden GLOB --goal GOAL-ID
   --verify CHECK --review --human --contract --required-report NAME
   --target-branch main --by-role ROLE-ID --delegate-to-role ROLE-ID
 demo options:
@@ -203,6 +218,18 @@ role)
 propose | proposal)
 	shift
 	cmd_propose "$@"
+	;;
+goal)
+	shift
+	cmd_goal "$@"
+	;;
+decide | decision)
+	shift
+	cmd_decide "$@"
+	;;
+run)
+	shift
+	cmd_run "$@"
 	;;
 lead)
 	shift

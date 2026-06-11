@@ -3,7 +3,7 @@
 ## Files Changed
 
 Imported the ForgeGate side version from
-`/home/quetza/projects/palari-orchestrator-forgegate.zip`.
+`/home/operator/projects/palari-orchestrator-forgegate.zip`.
 
 - Added the optional `palari gate` command family and shell adapter wiring.
 - Added the vendored ForgeGate Python kernel, layouts, docs, integration notes,

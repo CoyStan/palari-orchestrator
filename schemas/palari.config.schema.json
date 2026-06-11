@@ -249,6 +249,35 @@
           "description": "Key identity that signs the test step."
         }
       }
+    },
+    "goals_active_dir": {
+      "type": "string",
+      "description": "Directory for active goal artifacts."
+    },
+    "goals_proposed_dir": {
+      "type": "string",
+      "description": "Directory for proposed goal artifacts."
+    },
+    "goals_closed_dir": {
+      "type": "string",
+      "description": "Directory for closed (achieved or dropped) goals."
+    },
+    "require_serves_goal": {
+      "type": "string",
+      "description": "off | warn | strict. Whether tickets must link an active goal via serves_goal.",
+      "enum": [
+        "off",
+        "warn",
+        "strict"
+      ]
+    },
+    "decisions_open_dir": {
+      "type": "string",
+      "description": "Directory for open decision artifacts awaiting a human."
+    },
+    "decisions_decided_dir": {
+      "type": "string",
+      "description": "Directory for recorded decisions."
     }
   }
 }

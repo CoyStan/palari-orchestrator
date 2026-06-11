@@ -1,0 +1,17 @@
+# Release archives (git archive, GitHub "Download ZIP" of tags) ship the
+# portable tool, not this repository's own governance history. The full
+# record stays in git for auditability; adopters evaluating or vendoring the
+# tool get a clean tree.
+tickets/closed/** export-ignore
+reports/POS-* export-ignore
+reports/human/POS-* export-ignore
+reports/evidence/POS-* export-ignore
+research/pilots/*/runs/** export-ignore
+docs/audits/** export-ignore
+assets/readme/*.png export-ignore
+
+# Normalize shell and config line endings.
+*.bash text eol=lf
+bin/palari text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf

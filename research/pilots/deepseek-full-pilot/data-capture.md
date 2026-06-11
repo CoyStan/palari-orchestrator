@@ -142,10 +142,10 @@ Next action:
 - Starting commit: `1236a08` execution baseline; frozen manifest starting
   commit is `475b0d0`
 - Worktree or branch:
-  `/home/quetza/palari-pilot-workspaces/deepseek-full-palari-dsf-doc-01`
+  `/home/operator/palari-pilot-workspaces/deepseek-full-palari-dsf-doc-01`
   detached at execution baseline
 - Palari ticket worktree:
-  `/home/quetza/palari-orchestrator-worktrees/POS-0029-run`
+  `/home/operator/palari-orchestrator-worktrees/POS-0029-run`
 - Prompt path: `runs/palari-dsf-doc-01/prompt.md`
 - Command path: `runs/palari-dsf-doc-01/command.txt`
 - Start timestamp: `2026-06-09T16:09:56Z`
@@ -199,7 +199,7 @@ Next action:
 - Model: DeepSeek `deepseek/deepseek-v4-flash` through opencode
 - Starting commit: `1236a08` execution baseline; frozen manifest starting
   commit is `475b0d0`
-- Worktree or branch: `/home/quetza/palari-orchestrator-worktrees/POS-0028-run`
+- Worktree or branch: `/home/operator/palari-orchestrator-worktrees/POS-0028-run`
   on `ticket/POS-0028-run`
 - Prompt path: `runs/baseline-dsf-doc-02/prompt.md`
 - Command path: `runs/baseline-dsf-doc-02/command.txt`
@@ -249,7 +249,7 @@ Next action:
 - Starting commit: `1236a08` execution baseline; frozen manifest starting
   commit is `475b0d0`
 - Worktree or branch:
-  `/home/quetza/palari-pilot-workspaces/deepseek-full-baseline-dsf-cli-01`
+  `/home/operator/palari-pilot-workspaces/deepseek-full-baseline-dsf-cli-01`
   detached at the execution baseline
 - Prompt path: `runs/baseline-dsf-cli-01/prompt.md`
 - Command path: `runs/baseline-dsf-cli-01/command.txt`
@@ -301,10 +301,10 @@ Next action:
 - Starting commit: `1236a08` execution baseline; frozen manifest starting
   commit is `475b0d0`
 - Worktree or branch:
-  `/home/quetza/palari-pilot-workspaces/deepseek-full-palari-dsf-cli-02`
+  `/home/operator/palari-pilot-workspaces/deepseek-full-palari-dsf-cli-02`
   detached at execution baseline
 - Palari ticket worktree:
-  `/home/quetza/palari-orchestrator-worktrees/POS-0029-run`
+  `/home/operator/palari-orchestrator-worktrees/POS-0029-run`
 - Prompt path: `runs/palari-dsf-cli-02/prompt.md`
 - Command path: `runs/palari-dsf-cli-02/command.txt`
 - Start timestamp: `2026-06-09T16:07:17Z`
@@ -355,10 +355,10 @@ Next action:
 - Starting commit: `1236a08` execution baseline; frozen manifest starting
   commit is `475b0d0`
 - Worktree or branch:
-  `/home/quetza/palari-pilot-workspaces/deepseek-full-palari-dsf-web-01`
+  `/home/operator/palari-pilot-workspaces/deepseek-full-palari-dsf-web-01`
   detached at execution baseline
 - Palari ticket worktree:
-  `/home/quetza/palari-orchestrator-worktrees/POS-0029-run`
+  `/home/operator/palari-orchestrator-worktrees/POS-0029-run`
 - Prompt path: `runs/palari-dsf-web-01/prompt.md`
 - Command path: `runs/palari-dsf-web-01/command.txt`
 - Start timestamp: `2026-06-09T16:09:57Z`
@@ -414,9 +414,9 @@ Next action:
 - Starting commit: `1236a08` execution baseline; frozen manifest starting
   commit is `475b0d0`
 - Worktree or branch:
-  `/home/quetza/palari-pilot-workspaces/deepseek-full-baseline-dsf-web-02`
+  `/home/operator/palari-pilot-workspaces/deepseek-full-baseline-dsf-web-02`
   detached at the execution baseline; resulting patch applied into
-  `/home/quetza/palari-orchestrator-worktrees/POS-0028-run`
+  `/home/operator/palari-orchestrator-worktrees/POS-0028-run`
 - Prompt path: `runs/baseline-dsf-web-02/prompt.md`
 - Command path: `runs/baseline-dsf-web-02/command.txt`
 - Start timestamp: `2026-06-09T15:24:15Z`
@@ -476,9 +476,9 @@ Next action:
 - Starting commit: `76c47d1` execution baseline from `origin/main`; frozen
   manifest starting commit is `475b0d0`
 - Worktree or branch:
-  `/home/quetza/palari-pilot-workspaces/deepseek-full-palari-dsf-tst-01`
+  `/home/operator/palari-pilot-workspaces/deepseek-full-palari-dsf-tst-01`
   detached at execution baseline; resulting patch applied into
-  `/home/quetza/palari-orchestrator-worktrees/POS-0031`
+  `/home/operator/palari-orchestrator-worktrees/POS-0031`
 - Prompt path: `runs/palari-dsf-tst-01/prompt.md`
 - Command path: `runs/palari-dsf-tst-01/command.txt`
 - Start timestamp: `2026-06-10T02:01:05Z`
@@ -535,9 +535,9 @@ Next action:
 - Starting commit: `c5b9549` execution baseline; frozen manifest starting
   commit is `475b0d0`
 - Worktree or branch:
-  `/home/quetza/palari-pilot-workspaces/deepseek-full-baseline-dsf-tst-02`
+  `/home/operator/palari-pilot-workspaces/deepseek-full-baseline-dsf-tst-02`
   detached at execution baseline; resulting patch applied into
-  `/home/quetza/palari-orchestrator-worktrees/POS-0030`
+  `/home/operator/palari-orchestrator-worktrees/POS-0030`
 - Prompt path: `runs/baseline-dsf-tst-02/prompt.md`
 - Command path: `runs/baseline-dsf-tst-02/command.txt`
 - Start timestamp: `2026-06-09T17:04:22Z`
@@ -595,9 +595,9 @@ Next action:
 - Starting commit: `c5b9549` execution baseline; frozen manifest starting
   commit is `475b0d0`
 - Worktree or branch:
-  `/home/quetza/palari-pilot-workspaces/deepseek-full-baseline-dsf-gov-01`
+  `/home/operator/palari-pilot-workspaces/deepseek-full-baseline-dsf-gov-01`
   detached at execution baseline; resulting patch applied into
-  `/home/quetza/palari-orchestrator-worktrees/POS-0030`
+  `/home/operator/palari-orchestrator-worktrees/POS-0030`
 - Prompt path: `runs/baseline-dsf-gov-01/prompt.md`
 - Command path: `runs/baseline-dsf-gov-01/command.txt`
 - Start timestamp: `2026-06-09T17:09:05Z`
@@ -658,9 +658,9 @@ Next action:
 - Starting commit: `76c47d1` execution baseline from `origin/main`; frozen
   manifest starting commit is `475b0d0`
 - Worktree or branch:
-  `/home/quetza/palari-pilot-workspaces/deepseek-full-palari-dsf-gov-02`
+  `/home/operator/palari-pilot-workspaces/deepseek-full-palari-dsf-gov-02`
   detached at execution baseline; resulting patch applied into
-  `/home/quetza/palari-orchestrator-worktrees/POS-0031`
+  `/home/operator/palari-orchestrator-worktrees/POS-0031`
 - Prompt path: `runs/palari-dsf-gov-02/prompt.md`
 - Command path: `runs/palari-dsf-gov-02/command.txt`
 - Start timestamp: `2026-06-10T02:06:26Z`
@@ -734,9 +734,9 @@ Next action:
 - Starting commit: `c5b9549` execution baseline; frozen manifest starting
   commit is `475b0d0`
 - Worktree or branch:
-  `/home/quetza/palari-pilot-workspaces/deepseek-full-baseline-dsf-evd-01`
+  `/home/operator/palari-pilot-workspaces/deepseek-full-baseline-dsf-evd-01`
   detached at execution baseline; resulting patch applied into
-  `/home/quetza/palari-orchestrator-worktrees/POS-0030`
+  `/home/operator/palari-orchestrator-worktrees/POS-0030`
 - Prompt path: `runs/baseline-dsf-evd-01/prompt.md`
 - Command path: `runs/baseline-dsf-evd-01/command.txt`
 - Start timestamp: `2026-06-09T17:12:25Z`
@@ -796,9 +796,9 @@ Next action:
 - Starting commit: `76c47d1` execution baseline from `origin/main`; frozen
   manifest starting commit is `475b0d0`
 - Worktree or branch:
-  `/home/quetza/palari-pilot-workspaces/deepseek-full-palari-dsf-evd-02`
+  `/home/operator/palari-pilot-workspaces/deepseek-full-palari-dsf-evd-02`
   detached at execution baseline; resulting patch applied into
-  `/home/quetza/palari-orchestrator-worktrees/POS-0031`
+  `/home/operator/palari-orchestrator-worktrees/POS-0031`
 - Prompt path: `runs/palari-dsf-evd-02/prompt.md`
 - Command path: `runs/palari-dsf-evd-02/command.txt`
 - Start timestamp: `2026-06-10T02:11:05Z`

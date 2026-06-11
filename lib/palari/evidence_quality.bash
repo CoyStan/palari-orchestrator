@@ -78,11 +78,24 @@ cmd_evidence_score() {
 	printf 'checks:\n'
 
 	for name in verification.log junit.xml palari.sarif manifest.json; do
-		if [[ -s "$evidence_dir/$name" ]]; then
-			evidence_score_add 5 ok "$EVIDENCE_DIR/$ticket_id/$name"
-		else
+		if [[ ! -s "$evidence_dir/$name" ]]; then
 			evidence_score_add 5 missing "$EVIDENCE_DIR/$ticket_id/$name"
+			continue
 		fi
+		if [[ "$name" == "junit.xml" ]]; then
+			# Presence is not proof: the junit file must contain at least one
+			# testcase and report no failures or errors, otherwise an executor
+			# could satisfy the gate with an empty or failing report.
+			if ! grep -Fq '<testcase' "$evidence_dir/$name"; then
+				evidence_score_add 5 missing "$EVIDENCE_DIR/$ticket_id/$name" "junit.xml exists but contains no <testcase> entries"
+				continue
+			fi
+			if grep -Eq 'failures="[1-9][0-9]*"|errors="[1-9][0-9]*"' "$evidence_dir/$name"; then
+				evidence_score_add 5 missing "$EVIDENCE_DIR/$ticket_id/$name" "junit.xml reports failures or errors"
+				continue
+			fi
+		fi
+		evidence_score_add 5 ok "$EVIDENCE_DIR/$ticket_id/$name"
 	done
 
 	if manifest_detail="$(ci_existing_evidence_valid "$ticket_id" 2>&1)"; then
@@ -100,10 +113,12 @@ cmd_evidence_score() {
 
 	reviewer="$(find_report_file "$REPORTS_DIR" "$ticket_id" '(^# .*Reviewer Note$|^## Review Result$|^## Required Changes$)' || true)"
 	if [[ "$requires_review" == "true" || "$risk" =~ ^R[234]$ ]]; then
-		if [[ -n "$reviewer" ]]; then
-			evidence_score_add 15 ok "fresh reviewer note"
-		else
+		if [[ -z "$reviewer" ]]; then
 			evidence_score_add 15 missing "fresh reviewer note" "required for review-gated or R2+ work"
+		elif [[ "$(wc -c <"$reviewer" | tr -d ' ')" -lt 200 ]]; then
+			evidence_score_add 15 missing "fresh reviewer note" "reviewer note is too thin to be a real review (< 200 bytes)"
+		else
+			evidence_score_add 15 ok "fresh reviewer note"
 		fi
 	else
 		evidence_score_add 15 ok "fresh reviewer note not required"

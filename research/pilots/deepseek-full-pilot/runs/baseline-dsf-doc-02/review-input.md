@@ -10,7 +10,7 @@
 - Starting commit: `1236a08` execution baseline; POS-0026 frozen baseline was
   `475b0d0`
 - Worktree or branch:
-  `/home/quetza/palari-orchestrator-worktrees/POS-0028-run`,
+  `/home/operator/palari-orchestrator-worktrees/POS-0028-run`,
   `ticket/POS-0028-run`
 
 ## Evidence

@@ -25,9 +25,9 @@ allowed_paths:
 forbidden_paths:
   - .env
   - .env.*
-  - **/secrets/**
-  - **/*secret*
-  - **/*token*
+  - "**/secrets/**"
+  - "**/*secret*"
+  - "**/*token*"
   - infra/prod/**
   - prod/**
 requires_human_confirmation: false
@@ -40,7 +40,7 @@ verification:
   - python3 -m py_compile adapters/memory/memory.py adapters/web/server.py
 target_branch: main
 branch: ticket/POS-0010
-worktree: /home/quetza/palari-orchestrator/../palari-orchestrator-worktrees/POS-0010
+worktree:
 accepted_by: founder
 accepted_at: 2026-06-07T09:25:29Z
 created: 2026-06-06

@@ -2,7 +2,7 @@
 
 You are working in this repository root:
 
-`/home/quetza/palari-pilot-workspaces/deepseek-full-palari-dsf-gov-02`
+`/home/operator/palari-pilot-workspaces/deepseek-full-palari-dsf-gov-02`
 
 All relative paths in this prompt are relative to that repository root, not to
 the folder containing this prompt file.

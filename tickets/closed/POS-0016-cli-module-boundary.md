@@ -32,7 +32,7 @@ verification:
   - shfmt -d bin/palari scripts/palari lib/palari/*.bash tests/run-cli-structure.sh
 target_branch: main
 branch: ticket/POS-0016
-worktree: /home/quetza/palari-orchestrator/../palari-orchestrator-worktrees/POS-0016
+worktree:
 accepted_by: founder
 accepted_at: 2026-06-07T09:25:33Z
 created: 2026-06-07

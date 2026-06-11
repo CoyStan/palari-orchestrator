@@ -18,9 +18,9 @@ allowed_paths:
 forbidden_paths:
   - .env
   - .env.*
-  - **/secrets/**
-  - **/*secret*
-  - **/*token*
+  - "**/secrets/**"
+  - "**/*secret*"
+  - "**/*token*"
   - infra/prod/**
   - prod/**
 requires_human_confirmation: false
@@ -31,7 +31,7 @@ verification:
   - grep -q 'Performance metrics' research/agent-governance-study-protocol.md
 target_branch: main
 branch: ticket/POS-0019
-worktree: /home/quetza/palari-orchestrator/../palari-orchestrator-worktrees/POS-0019
+worktree:
 created_by_role: ROLE-RESEARCH-LEAD
 delegated_to_role: ROLE-RESEARCH-EVALUATOR
 accepted_by: founder

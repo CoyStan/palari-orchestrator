@@ -4,7 +4,7 @@ You are working in a local repository checkout for a benchmark task.
 
 Repository root:
 
-`/home/quetza/palari-pilot-workspaces/deepseek-full-baseline-dsf-evd-01`
+`/home/operator/palari-pilot-workspaces/deepseek-full-baseline-dsf-evd-01`
 
 Task: separate local evidence from trusted remote CI in the evidence matrix so
 readers understand how local review artifacts and externally trusted CI signals

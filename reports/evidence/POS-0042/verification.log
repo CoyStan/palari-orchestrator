@@ -1,0 +1,114 @@
+# Palari CI Evidence
+
+- Ticket: POS-0042
+- Base ref: origin/main
+- Created: 2026-06-11T08:43:25Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0042 (164 changed path(s))
+```
+
+## lint
+
+```text
+lint: tickets/open/POS-0042-company-ready-palari-import.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+report-lint: ok for POS-0042
+lint: ok for POS-0042
+```
+
+## verification 1
+
+Command: `git diff --check`
+
+```text
+
+```
+
+## verification 2
+
+Command: `./bin/palari lint`
+
+```text
+lint: tickets/open/POS-0042-company-ready-palari-import.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+propose lint: ok (no proposals)
+role lint: ok
+report-lint: ok
+lint: ok
+```
+
+## verification 3
+
+Command: `tests/run-github-ci.sh`
+
+```text
+Switched to a new branch 'feature/env-ticket'
+Switched to a new branch 'feature/branch-ticket'
+Switched to a new branch 'feature/changed-open'
+Switched to a new branch 'feature/changed-closed'
+ci: evidence manifest missing or empty for LAB-0304: reports/evidence/LAB-0304/manifest.json
+Switched to a new branch 'feature/multi-ticket'
+Switched to a new branch 'feature/many-changed-closed'
+ci: evidence manifest missing or empty for LAB-0401: reports/evidence/LAB-0401/manifest.json
+ci: evidence manifest missing or empty for LAB-0402: reports/evidence/LAB-0402/manifest.json
+ci: evidence manifest missing or empty for LAB-0403: reports/evidence/LAB-0403/manifest.json
+ci: evidence manifest missing or empty for LAB-0404: reports/evidence/LAB-0404/manifest.json
+ci: evidence manifest missing or empty for LAB-0405: reports/evidence/LAB-0405/manifest.json
+ci: evidence manifest missing or empty for LAB-0406: reports/evidence/LAB-0406/manifest.json
+ci: evidence manifest missing or empty for LAB-0407: reports/evidence/LAB-0407/manifest.json
+ci: evidence manifest missing or empty for LAB-0408: reports/evidence/LAB-0408/manifest.json
+ci: evidence manifest missing or empty for LAB-0409: reports/evidence/LAB-0409/manifest.json
+ci: evidence manifest missing or empty for LAB-0410: reports/evidence/LAB-0410/manifest.json
+ci: evidence manifest missing or empty for LAB-0411: reports/evidence/LAB-0411/manifest.json
+ci: evidence manifest missing or empty for LAB-0412: reports/evidence/LAB-0412/manifest.json
+ci: evidence manifest missing or empty for LAB-0413: reports/evidence/LAB-0413/manifest.json
+ci: evidence manifest missing or empty for LAB-0414: reports/evidence/LAB-0414/manifest.json
+ci: evidence manifest missing or empty for LAB-0415: reports/evidence/LAB-0415/manifest.json
+ci: evidence manifest missing or empty for LAB-0416: reports/evidence/LAB-0416/manifest.json
+ci: evidence manifest missing or empty for LAB-0417: reports/evidence/LAB-0417/manifest.json
+ci: evidence manifest missing or empty for LAB-0418: reports/evidence/LAB-0418/manifest.json
+ci: evidence manifest missing or empty for LAB-0419: reports/evidence/LAB-0419/manifest.json
+ci: evidence manifest missing or empty for LAB-0420: reports/evidence/LAB-0420/manifest.json
+ci: evidence manifest missing or empty for LAB-0421: reports/evidence/LAB-0421/manifest.json
+ci: evidence manifest missing or empty for LAB-0422: reports/evidence/LAB-0422/manifest.json
+ci: evidence manifest missing or empty for LAB-0423: reports/evidence/LAB-0423/manifest.json
+ci: evidence manifest missing or empty for LAB-0424: reports/evidence/LAB-0424/manifest.json
+ci: evidence manifest missing or empty for LAB-0425: reports/evidence/LAB-0425/manifest.json
+ci: evidence manifest missing or empty for LAB-0426: reports/evidence/LAB-0426/manifest.json
+ci: evidence manifest missing or empty for LAB-0427: reports/evidence/LAB-0427/manifest.json
+ci: evidence manifest missing or empty for LAB-0428: reports/evidence/LAB-0428/manifest.json
+ci: evidence manifest missing or empty for LAB-0429: reports/evidence/LAB-0429/manifest.json
+ci: evidence manifest missing or empty for LAB-0430: reports/evidence/LAB-0430/manifest.json
+ci: evidence manifest missing or empty for LAB-0431: reports/evidence/LAB-0431/manifest.json
+ci: evidence manifest missing or empty for LAB-0432: reports/evidence/LAB-0432/manifest.json
+ci: evidence manifest missing or empty for LAB-0433: reports/evidence/LAB-0433/manifest.json
+ci: evidence manifest missing or empty for LAB-0434: reports/evidence/LAB-0434/manifest.json
+ci: evidence manifest missing or empty for LAB-0435: reports/evidence/LAB-0435/manifest.json
+Switched to a new branch 'feature/accepted-evidence'
+github-ci: ok
+```
+
+## verification 4
+
+Command: `tests/run-goals.sh`
+
+```text
+goals: ok
+```
+
+## verification 5
+
+Command: `tests/run-decisions.sh`
+
+```text
+decisions: ok
+```
+
+## verification 6
+
+Command: `tests/run-queue-dry-run.sh`
+
+```text
+queue-dry-run: ok
+```

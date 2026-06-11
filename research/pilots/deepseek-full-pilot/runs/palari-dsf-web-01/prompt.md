@@ -5,7 +5,7 @@ task.
 
 Repository root for this slot:
 
-`/home/quetza/palari-pilot-workspaces/deepseek-full-palari-dsf-web-01`
+`/home/operator/palari-pilot-workspaces/deepseek-full-palari-dsf-web-01`
 
 All repository paths in this prompt are relative to that repository root. Do not
 resolve `adapters/...` or `tests/...` paths under the prompt-file directory.
