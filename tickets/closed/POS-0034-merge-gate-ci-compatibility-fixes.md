@@ -1,15 +1,15 @@
 ---
 id: POS-0034
 title: Merge-gate CI compatibility fixes
-status: in-review
+status: accepted
 risk: R2
 priority: P2
 stream: infra
 claimed_by: codex
 claimed_at: 2026-06-09T18:38:22Z
 claim_ref: refs/palari/claims/POS-0034
-claim_heartbeat_at: 2026-06-09T18:43:04Z
-claim_expires_at: 2026-06-09T18:48:04Z
+claim_heartbeat_at: 2026-06-11T06:19:54Z
+claim_expires_at: 2026-06-11T06:24:54Z
 allowed_paths:
   - .github/workflows/palari.yml
   - lib/palari/adapters_snapshot.bash
@@ -18,6 +18,7 @@ allowed_paths:
   - tests/run-golden.sh
   - tests/run-agent-wrapper.sh
   - tickets/open/POS-0034-*.md
+  - tickets/closed/POS-0034-*.md
   - reports/POS-0034-technical-report.md
   - reports/POS-0034-reviewer-note.md
   - reports/evidence/POS-0034/**
@@ -40,10 +41,10 @@ verification:
 target_branch: main
 branch: ticket/POS-0034
 worktree: /home/quetza/palari-orchestrator/../palari-orchestrator-worktrees/POS-0034
-accepted_by:
-accepted_at:
+accepted_by: founder
+accepted_at: 2026-06-11T06:21:38Z
 created: 2026-06-09
-updated: 2026-06-09
+updated: 2026-06-11
 ---
 
 # POS-0034 Merge-gate CI compatibility fixes

@@ -2,7 +2,7 @@
 
 - Ticket: POS-0034
 - Base ref: local working tree
-- Created: 2026-06-09T18:53:06Z
+- Created: 2026-06-11T06:26:03Z
 
 ## scope-check
 
@@ -17,51 +17,6 @@ report-lint: ok for POS-0034
 lint: ok for POS-0034
 ```
 
-## verification 1
+## stored evidence POS-0034
 
-Command: `tests/run-github-ci.sh`
-
-```text
-Switched to a new branch 'feature/env-ticket'
-Switched to a new branch 'feature/branch-ticket'
-Switched to a new branch 'feature/changed-open'
-Switched to a new branch 'feature/changed-closed'
-Switched to a new branch 'feature/multi-ticket'
-Switched to a new branch 'feature/accepted-evidence'
-github-ci: ok
-```
-
-## verification 2
-
-Command: `tests/run-golden.sh`
-
-```text
-Preparing worktree (new branch 'ticket/POS-0001')
-Preparing worktree (new branch 'ticket/APP-0001')
-golden: ok
-```
-
-## verification 3
-
-Command: `tests/run-agent-wrapper.sh`
-
-```text
-Preparing worktree (new branch 'ticket/LAB-0201')
-agent-wrapper: ok
-```
-
-## verification 4
-
-Command: `bash -n bin/palari lib/palari/*.bash`
-
-```text
-
-```
-
-## verification 5
-
-Command: `git diff --check`
-
-```text
-
-```
+Reused accepted ticket evidence from `reports/evidence/POS-0034`.
