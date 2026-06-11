@@ -99,6 +99,13 @@ when you need a disposable local repository copy for executor experiments.
 Worktrees still remain the default execution surface for the first wrapper
 because existing packet and evidence commands already understand them.
 
+Isolation vocabulary: a worktree is normal ticket isolation; a local sandbox
+is a disposable repo copy that protects the canonical checkout from accidental
+dirtying; a hardened sandbox (container, VM, or remote runtime) does not exist
+yet and may only arrive as a later adapter. A local sandbox is not a security
+boundary, and adapters must not describe it as one. Containment of untrusted
+executors comes from scope-check, evidence, review, and human acceptance.
+
 ## Lead Planner Adapters
 
 Lead planner adapters turn founder intent into proposals, not implementation.

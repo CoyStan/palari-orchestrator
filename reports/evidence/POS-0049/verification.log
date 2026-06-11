@@ -1,0 +1,40 @@
+# Palari CI Evidence
+
+- Ticket: POS-0049
+- Base ref: local working tree
+- Created: 2026-06-11T18:20:44Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0049 (15 changed path(s))
+```
+
+## lint
+
+```text
+lint: tickets/open/POS-0049-packet-skill-polish-from-review-findings.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+report-lint: ok for POS-0049
+lint: ok for POS-0049
+```
+
+## verification 1
+
+Command: `tests/run-skills.sh`
+
+```text
+Preparing worktree (new branch 'ticket/LAB-0102')
+Preparing worktree (new branch 'ticket/LAB-0103')
+Preparing worktree (new branch 'ticket/LAB-0105')
+skills: ok
+```
+
+## verification 2
+
+Command: `tests/run-agent-mock.sh`
+
+```text
+Preparing worktree (new branch 'ticket/LAB-0300')
+Preparing worktree (new branch 'ticket/LAB-0303')
+agent-mock: ok
+```

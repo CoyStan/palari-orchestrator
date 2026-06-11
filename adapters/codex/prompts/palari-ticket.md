@@ -1,0 +1,1 @@
+Create a well-scoped Palari ticket for the work I describe. Choose the narrowest --allowed globs, real --verify commands, an honest risk tier, and link a goal with --goal when one fits (./bin/palari goal list). Run ./bin/palari ticket create then ./bin/palari lint ID. Do not start the work unless I ask.

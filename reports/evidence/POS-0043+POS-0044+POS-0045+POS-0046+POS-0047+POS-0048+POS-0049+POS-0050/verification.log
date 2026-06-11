@@ -1,0 +1,99 @@
+# Palari CI Evidence
+
+- Ticket: POS-0043+POS-0044+POS-0045+POS-0046+POS-0047+POS-0048+POS-0049+POS-0050
+- Base ref: origin/main
+- Created: 2026-06-11T18:22:57Z
+
+## scope-check
+
+```text
+scope-check: ok for ticket set POS-0043,POS-0044,POS-0045,POS-0046,POS-0047,POS-0048,POS-0049,POS-0050 (95 changed path(s))
+```
+
+## lint POS-0043
+
+```text
+report-lint: ok for POS-0043
+lint: ok for POS-0043
+```
+
+## stored evidence POS-0043
+
+Reused accepted ticket evidence from `reports/evidence/POS-0043`.
+
+## lint POS-0044
+
+```text
+report-lint: ok for POS-0044
+lint: ok for POS-0044
+```
+
+## stored evidence POS-0044
+
+Reused accepted ticket evidence from `reports/evidence/POS-0044`.
+
+## lint POS-0045
+
+```text
+report-lint: ok for POS-0045
+lint: ok for POS-0045
+```
+
+## stored evidence POS-0045
+
+Reused accepted ticket evidence from `reports/evidence/POS-0045`.
+
+## lint POS-0046
+
+```text
+report-lint: ok for POS-0046
+lint: ok for POS-0046
+```
+
+## stored evidence POS-0046
+
+Reused accepted ticket evidence from `reports/evidence/POS-0046`.
+
+## lint POS-0047
+
+```text
+report-lint: ok for POS-0047
+lint: ok for POS-0047
+```
+
+## stored evidence POS-0047
+
+Reused accepted ticket evidence from `reports/evidence/POS-0047`.
+
+## lint POS-0048
+
+```text
+report-lint: ok for POS-0048
+lint: ok for POS-0048
+```
+
+## stored evidence POS-0048
+
+Reused accepted ticket evidence from `reports/evidence/POS-0048`.
+
+## lint POS-0049
+
+```text
+report-lint: ok for POS-0049
+lint: ok for POS-0049
+```
+
+## stored evidence POS-0049
+
+Reused accepted ticket evidence from `reports/evidence/POS-0049`.
+
+## lint POS-0050
+
+```text
+report-lint: ok for POS-0050
+lint: ok for POS-0050
+```
+
+## stored evidence POS-0050
+
+Reused accepted ticket evidence from `reports/evidence/POS-0050`.

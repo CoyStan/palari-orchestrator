@@ -1,0 +1,33 @@
+{
+  "name": "palari",
+  "owner": {
+    "name": "Palari",
+    "url": "https://palari.io"
+  },
+  "metadata": {
+    "description": "Repo-native governance for AI coding agents: scoped tickets, goals, decisions, evidence, fresh review, and explicit human acceptance.",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "palari-orchestrator",
+      "source": "./plugin",
+      "description": "Govern agent-led work in any repository: adopt Palari, plan the queue, execute scoped tickets, run fresh-context reviews, and bring structured decisions to the human.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Palari",
+        "url": "https://palari.io"
+      },
+      "homepage": "https://github.com/CoyStan/palari-orchestrator",
+      "license": "MIT",
+      "keywords": [
+        "governance",
+        "agents",
+        "tickets",
+        "review",
+        "evidence",
+        "orchestration"
+      ]
+    }
+  ]
+}

@@ -114,9 +114,15 @@ commands:
   worktree ID                  Prepare and verify ticket branch/worktree.
   packet ID ROLE               Print specialist/reviewer/acceptor or custom-profile packet.
   sandbox create ID            Create a disposable local repo sandbox.
-  agent run ID --executor opencode  Run an executor from a Palari packet.
+  sandbox list                 List local sandboxes under the worktree base.
+  sandbox inspect ID|--path P  Show sandbox metadata, dirty state, changed paths.
+  sandbox destroy ID|--path P  Remove a Palari sandbox; refuses other paths.
+  agent run ID --executor opencode|codex|mock  Run an executor from a Palari packet.
+  codex install|doctor         Install Codex prompts; check Codex readiness.
   memory ...                   Manage optional repo-native memory.
   skill create NAME --description TEXT  Scaffold feature-contract Agent Skills.
+  skill list                   List shipped, adopter, and plugin skills.
+  skill lint                   Validate skill frontmatter and authority claims.
   evidence score ID [--strict] Score ticket evidence completeness.
   ci ID [--base REF]           Run ticket gates and write evidence artifacts.
   ci --repo-only               Run non-merge-gate repository lint evidence.
@@ -163,7 +169,7 @@ propose adopt options:
   plus ticket create options below.
 ticket create options:
   --stream NAME --risk R1 --priority P2 --allowed GLOB --forbidden GLOB --goal GOAL-ID
-  --verify CHECK --review --human --contract --required-report NAME
+  --verify CHECK --review --human --contract --required-report NAME --skill NAME
   --target-branch main --by-role ROLE-ID --delegate-to-role ROLE-ID
 demo options:
   --force                      Replace existing DEM-0001/DEM-0002 demo fixtures.
@@ -171,10 +177,11 @@ ticket claim options:
   --ttl SECONDS                Lease duration; default from claim_lease_seconds.
   --allow-overlap              Acknowledge overlapping allowed_paths.
 agent run options:
-  --executor opencode          Executor adapter to run.
-  --model PROVIDER/MODEL       Optional opencode model id.
+  --executor opencode|codex|mock  Executor adapter to run.
+  --model PROVIDER/MODEL       Optional executor model id.
   --prompt TEXT                Optional executor instruction.
-  --dry-run                    Prepare packet/evidence plan without invoking opencode.
+  --scenario NAME              Mock-only: safe, forbidden-path, or outside-scope.
+  --dry-run                    Prepare packet/evidence plan without invoking the executor.
   --no-gates                   Skip automatic scope-check and ci after executor run.
 skill create options:
   --description TEXT           Required Agent Skills frontmatter description.
@@ -265,6 +272,10 @@ sandbox)
 agent)
 	shift
 	cmd_agent "$@"
+	;;
+codex)
+	shift
+	cmd_codex "$@"
 	;;
 memory)
 	shift

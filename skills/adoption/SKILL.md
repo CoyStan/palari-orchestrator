@@ -1,3 +1,8 @@
+---
+name: palari-adoption
+description: Use when installing Palari into a repository or improving the adoption path - palari init, palari adopt, doctor checks, and adapter generation without overwriting product files or activating CI and rulesets uninvited.
+---
+
 # Palari Adoption Skill
 
 Use this skill when installing Palari into a repository or improving the

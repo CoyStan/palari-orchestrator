@@ -1,3 +1,8 @@
+---
+name: palari-orchestrator
+description: Use when adopting or operating the Palari Orchestration workflow - selecting or creating tickets, running clean/context gates, preparing worktrees, emitting packets, routing specialists and reviewers, and integrating evidence.
+---
+
 # Palari Orchestrator Skill
 
 Use this skill when adopting or operating the Palari Orchestration workflow in a

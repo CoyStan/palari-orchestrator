@@ -82,7 +82,10 @@ founder as decisions. See `contracts/goals-and-decisions.md`.
    propose work but cannot authorize implementation. Link proposals and
    tickets to the goal they serve (`--goal GOAL-ID`).
 3. Create or select a ticket with risk, allowed paths, forbidden paths,
-   verification, review gates, and human gates.
+   verification, review gates, and human gates. Link governing skills with
+   `--skill NAME` (`related_skills` frontmatter); packets carry them to the
+   executor as advisory context. Skills guide execution; the ticket controls
+   authority and scope.
    Use `palari ticket create ... --by-role ROLE-ID --delegate-to-role ROLE-ID`
    only when `palari role lint` passes and the issuing role has the needed
    authority.

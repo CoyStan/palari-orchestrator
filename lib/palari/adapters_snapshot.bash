@@ -63,12 +63,126 @@ cmd_skill_create() {
 	printf 'skill create: %s\n' "${skill_file#"$ROOT"/}"
 }
 
+skill_roots() {
+	printf 'skills\n'
+	printf '%s\n' "$AGENT_SKILLS_DIR"
+	printf 'plugin/skills\n'
+}
+
+skill_files_in_root() {
+	local root="$1"
+	[[ -d "$ROOT/$root" ]] || return 0
+	find "$ROOT/$root" -mindepth 2 -maxdepth 2 -type f -name SKILL.md | LC_ALL=C sort
+}
+
+all_skill_files() {
+	local root
+	while IFS= read -r root; do
+		[[ -n "$root" ]] || continue
+		skill_files_in_root "$root"
+	done < <(skill_roots | awk '!seen[$0]++')
+}
+
+# Resolution order is the skill_roots order (skills, agent-skills,
+# plugin/skills): a shipped skill wins over an adopter or plugin skill with
+# the same name, deterministically.
+find_skill_file() {
+	local name="$1"
+	local file
+	while IFS= read -r file; do
+		[[ -n "$file" ]] || continue
+		if [[ "$(frontmatter_value "$file" name)" == "$name" ]]; then
+			printf '%s\n' "$file"
+			return 0
+		fi
+	done < <(all_skill_files)
+	return 1
+}
+
+# Heuristic guard, not a parser: flags grant-shaped sentences while skipping
+# negated or human-gated ones, because skills may describe authority they must
+# never claim ("only a human accepts") without tripping the linter.
+skill_authority_claim_lines() {
+	local file="$1"
+	grep -inE '(this skill|the skill|this agent|the agent|skills) (may|can|is allowed to|is permitted to|is authorized to|grants?|allows?)[^.]*\b(accept|accepts|merge|merges|push|pushes)\b|overrid(e|es|ing)[^.]*AGENTS\.md' "$file" 2>/dev/null |
+		grep -ivE '\b(not|never|cannot|only)\b' || true
+}
+
+cmd_skill_list() {
+	local file rel name desc count=0
+	while IFS= read -r file; do
+		[[ -n "$file" ]] || continue
+		rel="${file#"$ROOT"/}"
+		name="$(frontmatter_value "$file" name)"
+		desc="$(frontmatter_value "$file" description)"
+		[[ -n "$name" ]] || name="(missing-name)"
+		printf '%s\t%s\n' "$name" "$rel"
+		if [[ -n "$desc" ]]; then
+			if ((${#desc} > 96)); then
+				printf '  %s...\n' "${desc:0:96}"
+			else
+				printf '  %s\n' "$desc"
+			fi
+		fi
+		count=$((count + 1))
+	done < <(all_skill_files)
+	printf 'skill list: %s skill(s)\n' "$count"
+}
+
+cmd_skill_lint() {
+	local file rel name desc errors=0 count=0 pairs="" dup line
+	while IFS= read -r file; do
+		[[ -n "$file" ]] || continue
+		count=$((count + 1))
+		rel="${file#"$ROOT"/}"
+		if ! has_frontmatter "$file"; then
+			printf 'skill-lint: %s: missing YAML frontmatter\n' "$rel" >&2
+			errors=$((errors + 1))
+			continue
+		fi
+		name="$(frontmatter_value "$file" name)"
+		desc="$(frontmatter_value "$file" description)"
+		if [[ -z "$name" ]]; then
+			printf 'skill-lint: %s: missing frontmatter name\n' "$rel" >&2
+			errors=$((errors + 1))
+		elif ! valid_skill_name "$name"; then
+			printf 'skill-lint: %s: invalid skill name: %s\n' "$rel" "$name" >&2
+			errors=$((errors + 1))
+		else
+			# Names must be unique per skill root; the plugin packaging of a
+			# shipped skill may legitimately reuse its name.
+			pairs+="${rel%/*/SKILL.md} $name"$'\n'
+		fi
+		if [[ -z "$desc" ]]; then
+			printf 'skill-lint: %s: missing frontmatter description\n' "$rel" >&2
+			errors=$((errors + 1))
+		fi
+		while IFS= read -r line; do
+			[[ -n "$line" ]] || continue
+			printf 'skill-lint: %s: line %s claims authority a skill may never hold (accept/merge/push/override)\n' "$rel" "${line%%:*}" >&2
+			errors=$((errors + 1))
+		done < <(skill_authority_claim_lines "$file")
+	done < <(all_skill_files)
+	while IFS= read -r dup; do
+		[[ -n "$dup" ]] || continue
+		printf 'skill-lint: duplicate skill name in %s: %s\n' "${dup% *}" "${dup#* }" >&2
+		errors=$((errors + 1))
+	done < <(printf '%s' "$pairs" | sort | uniq -d)
+	((errors == 0)) || {
+		printf 'skill-lint: failed with %s issue(s)\n' "$errors" >&2
+		exit 1
+	}
+	printf 'skill-lint: ok (%s skill(s))\n' "$count"
+}
+
 cmd_skill() {
 	local sub="${1:-}"
 	shift || true
 	case "$sub" in
 	create | new) cmd_skill_create "$@" ;;
-	*) die "unknown skill command: ${sub:-}; try \`palari skill create NAME --description TEXT\`" ;;
+	list) cmd_skill_list "$@" ;;
+	lint) cmd_skill_lint "$@" ;;
+	*) die "unknown skill command: ${sub:-}; try \`palari skill create NAME --description TEXT\`, \`palari skill list\`, or \`palari skill lint\`" ;;
 	esac
 }
 

@@ -1,0 +1,44 @@
+# Palari CI Evidence
+
+- Ticket: POS-0050
+- Base ref: local working tree
+- Created: 2026-06-11T18:14:55Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0050 (10 changed path(s))
+```
+
+## lint
+
+```text
+lint: tickets/open/POS-0050-claude-plugin-packaging-scope.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+report-lint: ok for POS-0050
+lint: ok for POS-0050
+```
+
+## verification 1
+
+Command: `tests/run-plugin-structure.sh`
+
+```text
+manifests ok
+plugin-structure: ok
+```
+
+## verification 2
+
+Command: `./bin/palari skill lint`
+
+```text
+skill-lint: ok (4 skill(s))
+```
+
+## verification 3
+
+Command: `shellcheck -x adapters/codex/install.sh tests/run-plugin-structure.sh`
+
+```text
+
+```

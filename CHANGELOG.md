@@ -2,6 +2,65 @@
 
 ## Unreleased
 
+- Packet skill polish from review findings (POS-0049): duplicate `--skill`
+  values are deduplicated at ticket creation, packets with declared-but-
+  missing skills no longer also print "none declared", and the excerpt
+  pointer only appears when the skill body actually exceeds the excerpt cap.
+- Added Codex as a governed executor (POS-0048). `palari agent run TICKET-ID
+  --executor codex [--dry-run]` runs Codex through the shared lifecycle
+  (worktree, packet, evidence, scope-check, ci); the CLI contract -
+  `codex exec --cd --sandbox workspace-write --json --output-last-message`,
+  verified against codex-cli 0.138.0 - is isolated in one shim function. New
+  `palari codex doctor` reports readiness (AGENTS.md, CLI, prompts, executor
+  entry point) and `palari codex install` wraps the prompt installer.
+  Validated by `tests/run-agent-codex.sh` (dry-run based; no Codex CLI or
+  network required).
+- Added a deterministic mock executor (POS-0047). `palari agent run TICKET-ID
+  --executor mock --scenario safe|forbidden-path|outside-scope` runs the full
+  governed lifecycle (worktree, packet, evidence, scope-check, ci) with a
+  scripted local edit instead of an AI tool, so the headline behavior -
+  executor touches `.env`, scope-check refuses, evidence preserved, ticket
+  state not advanced - is demonstrable and CI-testable with no network or
+  credentials. Executor invocation now lives behind per-executor shims
+  (describe + run) sharing one lifecycle; the opencode contract is unchanged.
+  Validated by `tests/run-agent-mock.sh`.
+- Tickets can declare governing skills and packets carry them (POS-0046).
+  `palari ticket create --skill NAME` writes `related_skills` frontmatter
+  (creation fails on unknown names); `palari packet` injects a Relevant
+  Skills section with each skill's description and a capped excerpt;
+  `palari lint` warns on dangling references. Also tightened the skill-lint
+  authority heuristic with word boundaries so benign wording (pushback,
+  acceptance, merged) no longer trips it. Skills stay advisory: packets carry
+  them, tickets scope, gates enforce.
+- Made the local sandbox a first-class primitive (POS-0045). `palari sandbox
+  create` now writes machine-readable metadata to `.palari/sandbox.json`
+  (ticket, mode, source repo/commit, target branch, created_at), and new
+  lifecycle commands manage sandboxes: `sandbox list`, `sandbox inspect`
+  (metadata, dirty state, changed paths), and `sandbox destroy` (refuses any
+  path without the `.palari-sandbox` marker). Validated by
+  `tests/run-sandbox.sh`.
+- Documented the isolation model honestly (POS-0044). Docs now distinguish
+  worktrees (ticket isolation), local sandboxes (disposable repo copies), and
+  hardened sandboxes (container/VM/remote, not yet shipped), and state
+  explicitly that a local sandbox is not a security boundary - scope,
+  evidence, review, and acceptance gates are the control layer.
+- Made skills machine-discoverable (POS-0043). Shipped skills under `skills/`
+  now carry YAML frontmatter (`name`, `description`), and two new commands
+  inspect them: `palari skill list` enumerates shipped, adopter, and plugin
+  skills; `palari skill lint` validates frontmatter, per-root name uniqueness,
+  and refuses skills whose wording claims authority a skill may never hold
+  (accept, merge, push, or overriding `AGENTS.md`). Skills guide behavior;
+  tickets and gates enforce authority. Validated by `tests/run-skills.sh`.
+- Packaged Palari as a Claude Code plugin with a self-hosted marketplace:
+  `.claude-plugin/marketplace.json` at the repo root and the plugin under
+  `plugin/` (operating skill, six `/palari-orchestrator:*` slash commands,
+  and `palari-specialist` / `palari-reviewer` subagents that enforce
+  no-self-acceptance and fresh-context review). Install with
+  `/plugin marketplace add CoyStan/palari-orchestrator` then
+  `/plugin install palari-orchestrator@palari`. Added a Codex adapter
+  (`adapters/codex/`) with prompt files and an installer, since Codex's
+  native mechanism is the `AGENTS.md` contract Palari already ships.
+  Validated by `tests/run-plugin-structure.sh`.
 - Added first-class goals (`palari goal create|list|show|adopt|achieve|drop|lint`)
   under `goals/`. Tickets and proposals link to a goal with `serves_goal`
   (`--goal GOAL-ID` at creation), making founder intent machine-readable and
