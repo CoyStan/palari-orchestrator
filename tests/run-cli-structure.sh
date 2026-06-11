@@ -24,6 +24,7 @@ modules=(
 	proposals
 	tickets_workspace
 	demo
+	prompt
 	agents_review_scope
 	ci_accept
 	dashboard_snapshot
