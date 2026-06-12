@@ -278,6 +278,98 @@
     "decisions_decided_dir": {
       "type": "string",
       "description": "Directory for recorded decisions."
+    },
+    "model_routing_enabled": {
+      "type": "string",
+      "description": "true|false. Route agent runs by risk tier when no explicit model is given."
+    },
+    "model_class_r1": {
+      "type": "string",
+      "enum": [
+        "fast",
+        "balanced",
+        "frontier"
+      ],
+      "description": "Model class for R1 work."
+    },
+    "model_class_r2": {
+      "type": "string",
+      "enum": [
+        "fast",
+        "balanced",
+        "frontier"
+      ],
+      "description": "Model class for R2 work."
+    },
+    "model_class_r3": {
+      "type": "string",
+      "enum": [
+        "fast",
+        "balanced",
+        "frontier"
+      ],
+      "description": "Model class for R3 work."
+    },
+    "model_class_r4": {
+      "type": "string",
+      "enum": [
+        "fast",
+        "balanced",
+        "frontier"
+      ],
+      "description": "Model class for R4 work."
+    },
+    "model_class_default": {
+      "type": "string",
+      "enum": [
+        "fast",
+        "balanced",
+        "frontier"
+      ],
+      "description": "Model class for DEFAULT work."
+    },
+    "openrouter_enabled": {
+      "type": "string",
+      "description": "true|false. Enable the OpenRouter text-artifact executor."
+    },
+    "openrouter_api_key_env": {
+      "type": "string",
+      "description": "Environment variable holding the OpenRouter API key; never stored in the repo."
+    },
+    "openrouter_base_url": {
+      "type": "string",
+      "description": "OpenRouter API base URL."
+    },
+    "openrouter_allowed_models": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Allowlist of OpenRouter model ids the adapter may use; fail-closed."
+    },
+    "openrouter_advisor_model": {
+      "type": "string",
+      "description": "Optional advisor model for the openrouter:advisor server tool."
+    },
+    "openrouter_advisor_name": {
+      "type": "string",
+      "description": "Optional advisor name."
+    },
+    "openrouter_advisor_instructions": {
+      "type": "string",
+      "description": "Optional advisor persona instructions."
+    },
+    "openrouter_temperature": {
+      "type": "string",
+      "description": "Sampling temperature for deterministic-ish runs (default 0)."
+    },
+    "openrouter_seed": {
+      "type": "string",
+      "description": "Fixed seed for reproducibility where supported."
+    },
+    "openrouter_timeout_seconds": {
+      "type": "string",
+      "description": "HTTP timeout for OpenRouter requests."
     }
   }
 }

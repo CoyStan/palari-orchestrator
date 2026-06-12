@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- Imported optional OpenRouter/model-routing support (POS-0056). Tickets can
+  resolve to `fast`, `balanced`, or `frontier` model classes by risk tier,
+  inspect routing with `palari model routes|show`, override via `model_hint`,
+  and record the resolved model in executor evidence. The OpenRouter executor
+  is opt-in, stdlib-only, allowlist-gated, key-from-env only, offline-testable,
+  and produces text artifacts rather than mutating repo files.
+- Added the Python fast snapshot adapter (POS-0056) for `snapshot --json`,
+  `status [--next]`, and `web --check`, with legacy Bash fallback via
+  `PALARI_SNAPSHOT_ENGINE=bash`. Dashboard refreshes can import the fast
+  snapshot directly, and executor evidence/refusals now surface in the review
+  panel.
+- Added POS-0056 tests for model routing, OpenRouter dry/offline behavior,
+  fast-path performance, dashboard executor evidence, gate fast snapshots, and
+  README asset checks outside a git checkout.
 - Fixed sandbox demo/test baseline cleanliness (POS-0055). `palari sandbox
   create` now commits files produced by the sandbox's own `palari init`, so
   `sandbox list` and `sandbox inspect` start from a clean local sandbox after

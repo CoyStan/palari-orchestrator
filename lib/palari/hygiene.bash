@@ -84,12 +84,11 @@ hygiene_dirty_lines() {
 	git -C "$ROOT" status --short -- . 2>/dev/null || true
 }
 
-hygiene_path_generated() {
+hygiene_path_generated_with_patterns() {
 	local path="${1#./}"
+	shift
 	local pattern
-	local -a patterns=()
-	mapfile -t patterns < <(hygiene_generated_patterns)
-	for pattern in "${patterns[@]}"; do
+	for pattern in "$@"; do
 		[[ -n "$pattern" ]] || continue
 		if path_matches_pattern "$path" "$pattern"; then
 			return 0
@@ -98,16 +97,24 @@ hygiene_path_generated() {
 	return 1
 }
 
+hygiene_path_generated() {
+	local -a patterns=()
+	mapfile -t patterns < <(hygiene_generated_patterns)
+	hygiene_path_generated_with_patterns "$1" "${patterns[@]}"
+}
+
 hygiene_dirty_counts() {
 	local total_ref="$1"
 	local generated_ref="$2"
 	local source_ref="$3"
 	local line path dirty_total=0 dirty_generated=0 dirty_source=0
+	local -a generated_patterns=()
+	mapfile -t generated_patterns < <(hygiene_generated_patterns)
 	while IFS= read -r line; do
 		[[ -n "$line" ]] || continue
 		path="$(hygiene_status_path "$line")"
 		dirty_total=$((dirty_total + 1))
-		if hygiene_path_generated "$path"; then
+		if hygiene_path_generated_with_patterns "$path" "${generated_patterns[@]}"; then
 			dirty_generated=$((dirty_generated + 1))
 		else
 			dirty_source=$((dirty_source + 1))

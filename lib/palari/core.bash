@@ -221,8 +221,20 @@ shell_quote() {
 }
 
 json_string() {
+	# Pure-Bash JSON escaping for the common cases; avoids one sed subprocess
+	# per string, which dominates legacy snapshot cost when called hundreds
+	# of times. Control characters other than \n/\t/\r fall back to sed.
 	local value="${1:-}"
-	printf '"%s"' "$(printf '%s' "$value" | json_escape)"
+	if [[ "$value" == *[$'\x01'-$'\x08\x0b\x0c\x0e'-$'\x1f']* ]]; then
+		printf '"%s"' "$(printf '%s' "$value" | json_escape)"
+		return
+	fi
+	value="${value//\\/\\\\}"
+	value="${value//\"/\\\"}"
+	value="${value//$'\n'/\\n}"
+	value="${value//$'\t'/\\t}"
+	value="${value//$'\r'/\\r}"
+	printf '"%s"' "$value"
 }
 
 json_bool() {

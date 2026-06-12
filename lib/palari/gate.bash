@@ -70,13 +70,15 @@ gate_ci_attest_test() {
 }
 
 snapshot_gate_json() {
-	if gate_available; then
+	# Only probe (and import) the crypto kernel when the gate is enabled;
+	# disabled repos should not pay a Python import on every snapshot.
+	if [[ "$(cfg_nested gate enabled "false")" == "true" ]] && gate_available; then
 		gate_run status 2>/dev/null && return 0
 	fi
-	printf '{"enabled":%s,"available":false,"initialized":false,"root_fingerprint":"","layout":' \
+	printf '{"enabled": %s, "available": false, "initialized": false, "root_fingerprint": "", "layout": ' \
 		"$(json_bool "$(cfg_nested gate enabled "false")")"
 	json_string "$(cfg_nested gate layout "layouts/palari-change.yml")"
-	printf ',"tickets":{}}'
+	printf ', "tickets": {}}'
 }
 
 gate_doctor_report() {

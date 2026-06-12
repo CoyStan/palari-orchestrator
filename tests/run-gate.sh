@@ -211,6 +211,7 @@ out_contains 'accept: GTE-0001 accepted by founder'
 
 # --- 9. Snapshot carries the verdict ----------------------------------------
 expect_ok "snapshot includes gate verdict" ./bin/palari snapshot --json
+out_contains '"snapshot_engine": "python-fast"' # gate-enabled repos keep the fast path
 python3 - "$TMP_ROOT/out" <<'PY'
 import json, sys
 snapshot = json.load(open(sys.argv[1], encoding='utf-8'))

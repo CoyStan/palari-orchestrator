@@ -195,6 +195,9 @@ USAGE
 				skips=$((skips + 1))
 				continue
 			fi
+			if model_routing_enabled; then
+				reason="$reason [model class: $(ticket_model_class "$file")]"
+			fi
 			run_plan_item "next" "$id" "$title" "$reason" "$role" "$command" ""
 			planned=$((planned + 1))
 		done < <(ticket_files)

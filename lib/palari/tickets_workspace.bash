@@ -11,6 +11,7 @@ cmd_ticket_create() {
 	local target_branch="$DEFAULT_BRANCH"
 	local by_role="" delegate_to_role=""
 	local serves_goal=""
+	local model_hint=""
 	local -a allowed=()
 	local -a forbidden=()
 	local -a verification=()
@@ -74,6 +75,10 @@ cmd_ticket_create() {
 			;;
 		--goal)
 			serves_goal="$2"
+			shift 2
+			;;
+		--model-hint)
+			model_hint="$2"
 			shift 2
 			;;
 		--skill)
@@ -196,6 +201,7 @@ cmd_ticket_create() {
 		printf 'priority: %s\n' "$priority"
 		printf 'stream: %s\n' "$stream"
 		printf 'serves_goal: %s\n' "$serves_goal"
+		printf 'model_hint: %s\n' "$model_hint"
 		printf 'claimed_by:\n'
 		printf 'claimed_at:\n'
 		printf 'claim_ref:\n'
