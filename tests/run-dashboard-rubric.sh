@@ -221,14 +221,20 @@ for ticket in snapshot["tickets"]:
 PY
 
 (cd "$ROOT" && ./bin/palari snapshot --json --full >"$TMP")
-python3 - "$TMP" <<'PY'
+python3 - "$TMP" "$ROOT" <<'PY'
 import json
 import sys
+from pathlib import Path
 
 snapshot = json.load(open(sys.argv[1], encoding="utf-8"))
+root = Path(sys.argv[2])
 assert snapshot["snapshot_mode"] == "full"
 assert snapshot["roles"]["lint"].get("mode") != "shallow"
-assert any(ticket["status"] == "accepted" for ticket in snapshot["tickets"])
+# Accepted tickets only appear in full mode when the repo actually has
+# closed tickets on disk; release archives intentionally ship none.
+closed = [p for p in (root / "tickets" / "closed").glob("*.md") if p.name != "README.md"]
+if closed:
+    assert any(ticket["status"] == "accepted" for ticket in snapshot["tickets"])
 PY
 
 printf 'dashboard-rubric: ok (structure, custody surface, contrast both themes, snapshot contract)\n'

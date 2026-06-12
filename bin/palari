@@ -17,6 +17,58 @@ CONFIG="$ROOT/palari.config.yaml"
 
 PALARI_LIB_DIR="${PALARI_LIB_DIR:-$ROOT/lib/palari}"
 
+# Fast-path dispatch: read-only state commands exec the Python fast engine
+# before any Bash module is sourced, so `snapshot --json` and `status` cost
+# milliseconds instead of seconds. The legacy Bash path remains the slow,
+# portable truth: `--full`, `--legacy`, PALARI_SNAPSHOT_ENGINE=bash, or a
+# missing python3 all fall through to it. The engine is read-only by
+# construction (one optional `git status`, no writes, no lifecycle calls).
+palari_try_fast_path() {
+	local command="${1:-}"
+	shift || true
+	[[ "${PALARI_FAST_PATH:-1}" == "1" ]] || return 1
+	[[ "${PALARI_SNAPSHOT_ENGINE:-fast}" != "bash" ]] || return 1
+	local engine="$ROOT/adapters/snapshot/fast_snapshot.py"
+	[[ -f "$engine" ]] || return 1
+	command -v python3 >/dev/null 2>&1 || return 1
+	local arg
+	case "$command" in
+	snapshot)
+		local json="false"
+		for arg in "$@"; do
+			case "$arg" in
+			--json) json="true" ;;
+			--full | --legacy | --bash) return 1 ;;
+			*) return 1 ;;
+			esac
+		done
+		[[ "$json" == "true" ]] || return 1
+		exec python3 -B -S "$engine" --root "$ROOT"
+		;;
+	web)
+		if [[ "${1:-}" == "--check" && "${2:-}" == "" ]]; then
+			exec python3 -B -S "$ROOT/adapters/web/server.py" --root "$ROOT" --check
+		fi
+		return 1
+		;;
+	status)
+		local show_next=""
+		for arg in "$@"; do
+			case "$arg" in
+			--next) show_next="--next" ;;
+			--legacy | --bash) return 1 ;;
+			*) return 1 ;;
+			esac
+		done
+		# shellcheck disable=SC2086
+		exec python3 -B -S "$engine" --root "$ROOT" --status $show_next
+		;;
+	*) return 1 ;;
+	esac
+}
+
+palari_try_fast_path "$@" || true
+
 palari_require_module() {
 	local module_path="$1"
 	if [[ ! -f "$module_path" ]]; then
@@ -37,6 +89,9 @@ source "$PALARI_LIB_DIR/roles.bash"
 palari_require_module "$PALARI_LIB_DIR/init_adopt.bash"
 # shellcheck source=lib/palari/init_adopt.bash
 source "$PALARI_LIB_DIR/init_adopt.bash"
+palari_require_module "$PALARI_LIB_DIR/models.bash"
+# shellcheck source=lib/palari/models.bash
+source "$PALARI_LIB_DIR/models.bash"
 palari_require_module "$PALARI_LIB_DIR/hygiene.bash"
 # shellcheck source=lib/palari/hygiene.bash
 source "$PALARI_LIB_DIR/hygiene.bash"
@@ -122,6 +177,7 @@ commands:
   sandbox inspect ID|--path P  Show sandbox metadata, dirty state, changed paths.
   sandbox destroy ID|--path P  Remove a Palari sandbox; refuses other paths.
   agent run ID --executor opencode|codex|mock  Run an executor from a Palari packet.
+  model routes|show ID         Risk-tiered model routing: which model runs which work.
   codex install|doctor         Install Codex prompts; check Codex readiness.
   memory ...                   Manage optional repo-native memory.
   skill create NAME --description TEXT  Scaffold feature-contract Agent Skills.
@@ -273,6 +329,10 @@ packet | agent-packet)
 sandbox)
 	shift
 	cmd_sandbox "$@"
+	;;
+model)
+	shift
+	cmd_model "$@"
 	;;
 agent)
 	shift

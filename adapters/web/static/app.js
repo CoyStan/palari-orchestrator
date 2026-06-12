@@ -828,11 +828,31 @@ function readiness(snapshot, ticket) {
       : reports.reviewer
         ? "technical + reviewer present"
         : "technical present";
-  return [
+  const rows = [
     { label: "Evidence bundle", ok: evidenceOk, detail: evidenceOk ? "manifest, junit, sarif, log" : `missing ${missing.join(", ")}` },
     { label: "Reports", ok: reportsOk, detail: reportDetail },
     { label: "Lease", ok: ticket.lease?.status !== "expired", detail: ticket.lease?.status === "expired" ? "claim expired" : (ticket.lease?.status || "none") },
   ];
+  // Executor refusal evidence: when an executor ran and a gate refused it,
+  // surface the refusal as preserved evidence instead of an empty bundle.
+  for (const run of evidence.executor_evidence || []) {
+    const refused = run.scope_check_exit !== null && run.scope_check_exit !== 0;
+    const ciFailed = run.ci_exit !== null && run.ci_exit !== 0;
+    const detailParts = [
+      `executor: ${run.executor}`,
+      `run: ${run.run_exit === 0 ? "completed" : `exit ${run.run_exit}`}`,
+      refused ? "scope-check: refused" : run.scope_check_exit === 0 ? "scope-check: passed" : null,
+      ciFailed ? "ci: failed" : null,
+      run.model ? `model: ${run.model.split("\n")[0].replace(/^model: /, "")}` : null,
+      `evidence: ${run.path}`,
+    ].filter(Boolean);
+    rows.push({
+      label: refused ? "Executor refusal evidence" : "Executor evidence",
+      ok: !refused && !ciFailed,
+      detail: detailParts.join(" · "),
+    });
+  }
+  return rows;
 }
 
 function renderTicketFocus(snapshot) {

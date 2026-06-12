@@ -18,6 +18,16 @@ from typing import Any
 
 
 HERE = Path(__file__).resolve().parent
+
+# Import the fast snapshot engine directly so dashboard refreshes never spawn
+# a shell. Falls back to the CLI when the engine is unavailable.
+_SNAPSHOT_ADAPTER_DIR = HERE.parent / "snapshot"
+if str(_SNAPSHOT_ADAPTER_DIR) not in sys.path:
+    sys.path.insert(0, str(_SNAPSHOT_ADAPTER_DIR))
+try:
+    from fast_snapshot import snapshot_dict as _fast_snapshot_dict
+except Exception:  # noqa: BLE001 - any import failure means "use the CLI"
+    _fast_snapshot_dict = None
 STATIC_DIR = HERE / "static"
 SNAPSHOT_CACHE_TTL = 2.0
 SNAPSHOT_TIMEOUT_SECONDS = 30
@@ -51,6 +61,11 @@ def run(root: Path, args: list[str], timeout: int = 5) -> dict[str, Any]:
 
 
 def snapshot(root: Path) -> dict[str, Any]:
+    if _fast_snapshot_dict is not None and os.environ.get("PALARI_SNAPSHOT_ENGINE", "fast") != "bash":
+        try:
+            return _fast_snapshot_dict(root, full=False)
+        except Exception:  # noqa: BLE001 - fall back to the CLI truth path
+            pass
     cli = root / "bin" / "palari"
     result = run(root, [str(cli), "snapshot", "--json"], timeout=SNAPSHOT_TIMEOUT_SECONDS)
     if not result["ok"]:

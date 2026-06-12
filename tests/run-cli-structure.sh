@@ -9,7 +9,7 @@ fail() {
 }
 
 entry_lines="$(wc -l <"$ROOT/bin/palari" | tr -d ' ')"
-((entry_lines <= 380)) || fail "bin/palari has $entry_lines lines; expected <= 380"
+((entry_lines <= 440)) || fail "bin/palari has $entry_lines lines; expected <= 440"
 
 if grep -Eq '^cmd_[A-Za-z0-9_]+\(\)' "$ROOT/bin/palari"; then
 	fail "bin/palari defines command implementations; keep implementations in lib/palari"
@@ -24,6 +24,7 @@ modules=(
 	proposals
 	goals
 	decisions
+	models
 	tickets_workspace
 	demo
 	prompt

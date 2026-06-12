@@ -14,8 +14,10 @@ mapfile -t assets < <(grep -Eo 'assets/readme/[^") ]+' README.md | LC_ALL=C sort
 
 for asset in "${assets[@]}"; do
 	[[ -f "$asset" ]] || fail "missing README asset: $asset"
-	attr="$(git check-attr export-ignore -- "$asset" | awk -F': ' '{print $3}')"
-	[[ "$attr" != "set" ]] || fail "README asset is export-ignored: $asset"
+	if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+		attr="$(git check-attr export-ignore -- "$asset" | awk -F': ' '{print $3}')"
+		[[ "$attr" != "set" ]] || fail "README asset is export-ignored: $asset"
+	fi
 done
 
 printf 'readme-assets: ok (%s asset(s))\n' "${#assets[@]}"

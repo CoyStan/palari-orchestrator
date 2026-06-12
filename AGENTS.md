@@ -125,6 +125,14 @@ founder as decisions. See `contracts/goals-and-decisions.md`.
 - Repo-specific app preferences, browser scripts, screenshots, founder taste,
   and private connectors belong in adapters, not in the Palari core.
 
+## Model Routing
+
+Tickets route to model classes by risk tier (`./bin/palari model routes`).
+Use the routed model unless the packet or a human says otherwise; reserving
+frontier models for R3+ work is intentional cost discipline, not a quality
+judgment. If a routed model proves insufficient for a ticket, do not silently
+upgrade: record it in the technical report and propose a `model_hint` change.
+
 ## Secrets
 
 Forbidden path patterns are a guardrail, not secret detection. They use

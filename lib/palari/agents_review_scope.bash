@@ -183,6 +183,29 @@ executor_mock_run() {
 	) >"$stdout" 2>"$stderr"
 }
 
+executor_openrouter_describe() {
+	local ticket_id="$1" worktree="$2" packet_path="$3" model="$4"
+	printf 'python3 -B %s/adapters/openrouter/run.py --root %s --ticket %s --packet %s --model %s --out EVIDENCE_DIR\n' \
+		"$ROOT" "$ROOT" "$ticket_id" "$packet_path" "${model:-ROUTED}"
+	printf '# Text-artifact executor: produces a written deliverable in evidence; never edits files.\n'
+	printf '# Model must pass the openrouter_allowed_models allowlist (fail-closed).\n'
+}
+
+executor_openrouter_run() {
+	local ticket_id="$1" worktree="$2" packet_path="$3" model="$4" prompt="$5" evidence_dir="$6"
+	local stdout="$evidence_dir/run.stdout"
+	local stderr="$evidence_dir/run.stderr"
+	[[ -n "$model" ]] || die "openrouter executor refused: no model resolved for $ticket_id; configure model_<class>_openrouter in palari.config.yaml (routing is deterministic and fail-closed)"
+	python3 -B "$ROOT/adapters/openrouter/run.py" \
+		--root "$ROOT" \
+		--ticket "$ticket_id" \
+		--packet "$packet_path" \
+		--model "$model" \
+		--prompt "$prompt" \
+		--out "$evidence_dir" \
+		>"$stdout" 2>"$stderr"
+}
+
 cmd_agent_run() {
 	require_base_folders
 	local ticket="${1:-}"
@@ -221,8 +244,8 @@ cmd_agent_run() {
 		esac
 	done
 	case "$executor" in
-	opencode | codex | mock) ;;
-	*) die "agent run supports --executor opencode, codex, or mock" ;;
+	opencode | codex | mock | openrouter) ;;
+	*) die "agent run supports --executor opencode, codex, openrouter, or mock" ;;
 	esac
 	if [[ "$scenario_set" == "true" && "$executor" != "mock" ]]; then
 		die "--scenario is only valid with --executor mock"
@@ -247,17 +270,25 @@ cmd_agent_run() {
 	cp "$packet_tmp" "$packet_path"
 	rm -f "$packet_tmp"
 
+	local model_source="explicit"
+	if [[ -z "$model" ]]; then
+		model="$(resolve_ticket_model "$file" "$executor")"
+		model_source="$([[ -n "$model" ]] && printf 'routed' || printf 'executor-default')"
+	fi
+
 	evidence_dir="$worktree/$EVIDENCE_DIR/$ticket_id/executor/$executor"
 	command_file="$evidence_dir/command.txt"
 	case "$executor" in
 	opencode) executor_opencode_describe "$ticket_id" "$worktree" "$packet_path" "$model" "$prompt" >"$command_file" ;;
 	codex) executor_codex_describe "$ticket_id" "$worktree" "$packet_path" "$model" "$prompt" >"$command_file" ;;
 	mock) executor_mock_describe "$ticket_id" "$worktree" "$packet_path" "$scenario" >"$command_file" ;;
+	openrouter) executor_openrouter_describe "$ticket_id" "$worktree" "$packet_path" "$model" >"$command_file" ;;
 	esac
 
 	if [[ "$dry_run" == "true" ]]; then
 		printf 'agent run: dry-run for %s\n' "$ticket_id"
 		printf 'executor: %s\n' "$executor"
+		printf 'model: %s (%s)\n' "${model:-executor-default}" "$model_source"
 		printf 'worktree: %s\n' "$worktree"
 		printf 'packet: %s\n' "$packet_path"
 		printf 'evidence: %s\n' "${evidence_dir#"$worktree"/}"
@@ -269,8 +300,14 @@ cmd_agent_run() {
 	opencode) executor_opencode_run "$ticket_id" "$worktree" "$packet_path" "$model" "$prompt" "$evidence_dir" || executor_code=$? ;;
 	codex) executor_codex_run "$ticket_id" "$worktree" "$packet_path" "$model" "$prompt" "$evidence_dir" || executor_code=$? ;;
 	mock) executor_mock_run "$scenario" "$worktree" "$evidence_dir" || executor_code=$? ;;
+	openrouter) executor_openrouter_run "$ticket_id" "$worktree" "$packet_path" "$model" "$prompt" "$evidence_dir" || executor_code=$? ;;
 	esac
 	printf '%s\n' "$executor_code" >"$evidence_dir/run.exit"
+	{
+		printf 'model: %s\n' "${model:-executor-default}"
+		printf 'model_source: %s\n' "$model_source"
+		printf 'model_class: %s\n' "$(ticket_model_class "$file")"
+	} >"$evidence_dir/model.txt"
 
 	if [[ "$no_gates" != "true" ]]; then
 		agent_run_gate "$worktree" scope-check "$evidence_dir" ./bin/palari scope-check "$ticket_id" || scope_code=$?
@@ -417,6 +454,9 @@ cmd_packet() {
 	printf 'Ticket path: %s\n' "$rel"
 	printf 'Status: %s\n' "${status:-missing}"
 	printf 'Risk: %s\n' "${risk:-missing}"
+	if model_routing_enabled; then
+		printf 'Model class: %s (see ./bin/palari model show %s)\n' "$(ticket_model_class "$file")" "$ticket_id"
+	fi
 	printf 'Priority: %s\n' "${priority:-missing}"
 	printf 'Requires review: %s\n' "${requires_review:-missing}"
 	printf 'Requires human confirmation: %s\n' "${requires_human:-missing}"

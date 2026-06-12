@@ -14,3 +14,7 @@ docs/audits/** export-ignore
 bin/palari text eol=lf
 *.yml text eol=lf
 *.yaml text eol=lf
+
+# Python cache artifacts never belong in release archives.
+**/__pycache__/** export-ignore
+**/*.pyc export-ignore

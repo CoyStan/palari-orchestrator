@@ -28,6 +28,50 @@ goals_proposed_dir: goals/proposed
 goals_closed_dir: goals/closed
 require_serves_goal: warn
 
+# Model routing: send each ticket to the cheapest model class that matches its
+# risk tier, so frontier models are reserved for high-risk work. A ticket can
+# override with frontmatter `model_hint` (class or exact model); an explicit
+# `agent run --model` always wins. Map classes to concrete models per
+# executor below (blank = executor default). The resolved model is recorded
+# into run evidence for per-ticket cost accounting.
+model_routing_enabled: true
+model_class_r1: fast
+model_class_r2: balanced
+model_class_r3: frontier
+model_class_r4: frontier
+model_class_default: balanced
+
+# model_fast_codex: gpt-5-mini
+# model_balanced_codex: gpt-5
+# model_frontier_codex: gpt-5-pro
+
+# OpenRouter executor (optional, off by default). Bring your own key: the
+# adapter reads it from the env var named by openrouter_api_key_env and never
+# stores it. openrouter_allowed_models is a hard allowlist: agents can only
+# spend on models the human listed. Routing stays deterministic:
+# risk tier -> class -> model_<class>_openrouter and the adapter refuses
+# anything off the list. Temperature 0 and a fixed seed keep runs as
+# reproducible as providers allow.
+# Advisor: set openrouter_advisor_model to let a cheap executor consult a
+# stronger model mid-generation (OpenRouter `openrouter:advisor` tool), so
+# frontier prices are paid only for the moments that need frontier thinking.
+openrouter_enabled: false
+openrouter_api_key_env: OPENROUTER_API_KEY
+openrouter_base_url: https://openrouter.ai/api/v1
+openrouter_temperature: 0
+openrouter_seed: 7
+openrouter_timeout_seconds: 300
+openrouter_allowed_models:
+  - deepseek/deepseek-chat
+  - anthropic/claude-sonnet-4.6
+  - anthropic/claude-fable-5
+# openrouter_advisor_model: anthropic/claude-fable-5
+# openrouter_advisor_name: architect
+# openrouter_advisor_instructions: You are a systems architect. Prioritize simplicity.
+# model_fast_openrouter: deepseek/deepseek-chat
+# model_balanced_openrouter: anthropic/claude-sonnet-4.6
+# model_frontier_openrouter: anthropic/claude-fable-5
+
 # Decisions are the structured "bring me a decision" artifacts agents draft
 # and only humans record. Open decisions surface in the snapshot, the founder
 # inbox, and `palari run --dry-run` as stop items.

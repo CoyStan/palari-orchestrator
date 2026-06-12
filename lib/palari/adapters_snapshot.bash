@@ -931,7 +931,7 @@ WEBUSAGE
 		if [[ "$full" == "true" ]]; then
 			cmd_snapshot --json --full
 		else
-			cmd_snapshot --json
+			exec python3 -B -S "$ROOT/adapters/web/server.py" --root "$ROOT" --check
 		fi
 	elif [[ "$unsafe_bind" == "true" ]]; then
 		python3 -B "$ROOT/adapters/web/server.py" --root "$ROOT" --host "$host" --port "$port" --unsafe-bind
