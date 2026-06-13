@@ -28,6 +28,7 @@ modules=(
 	tickets_workspace
 	demo
 	prompt
+	state
 	agents_review_scope
 	ci_accept
 	dashboard_snapshot
