@@ -113,6 +113,9 @@ source "$PALARI_LIB_DIR/demo.bash"
 palari_require_module "$PALARI_LIB_DIR/prompt.bash"
 # shellcheck source=lib/palari/prompt.bash
 source "$PALARI_LIB_DIR/prompt.bash"
+palari_require_module "$PALARI_LIB_DIR/state.bash"
+# shellcheck source=lib/palari/state.bash
+source "$PALARI_LIB_DIR/state.bash"
 palari_require_module "$PALARI_LIB_DIR/agents_review_scope.bash"
 # shellcheck source=lib/palari/agents_review_scope.bash
 source "$PALARI_LIB_DIR/agents_review_scope.bash"
@@ -162,6 +165,7 @@ commands:
   demo [--force] [--agent-refusal]
                                Create local sample fixtures for the console.
   prompt next|ticket|long-run  Print handoff prompts for governed agent work.
+  state [--path]               Show the landed capability map for collaborators.
   ticket create ID TITLE ...   Create a scoped ticket.
   ticket claim ID [BY]         Claim an open/reopened ticket.
   ticket audit                 Explain active ticket next actions.
@@ -313,6 +317,10 @@ demo)
 prompt)
 	shift
 	cmd_prompt "$@"
+	;;
+state)
+	shift
+	cmd_state "$@"
 	;;
 ticket)
 	shift
