@@ -1,7 +1,7 @@
 ---
 id: COS-0000
 title: Add company AI OS doctrine contract
-status: claimed
+status: accepted
 risk: R2
 priority: P2
 stream: process
@@ -10,8 +10,8 @@ model_hint:
 claimed_by: codex
 claimed_at: 2026-06-14T22:08:04Z
 claim_ref: refs/palari/claims/COS-0000
-claim_heartbeat_at: 2026-06-14T22:10:14Z
-claim_expires_at: 2026-06-14T22:15:14Z
+claim_heartbeat_at: 2026-06-14T22:15:33Z
+claim_expires_at: 2026-06-14T22:20:33Z
 allowed_paths:
   - contracts/**
   - docs/**
@@ -48,8 +48,8 @@ verification:
 target_branch: main
 branch: ticket/COS-0000
 worktree:
-accepted_by:
-accepted_at:
+accepted_by: quetza
+accepted_at: 2026-06-14T22:15:42Z
 created: 2026-06-14
 updated: 2026-06-14
 ---
