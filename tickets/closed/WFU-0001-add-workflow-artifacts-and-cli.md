@@ -1,7 +1,7 @@
 ---
 id: WFU-0001
 title: Add workflow artifacts and CLI
-status: claimed
+status: accepted
 risk: R3
 priority: P2
 stream: process
@@ -10,8 +10,8 @@ model_hint:
 claimed_by: codex
 claimed_at: 2026-06-14T22:28:12Z
 claim_ref: refs/palari/claims/WFU-0001
-claim_heartbeat_at: 2026-06-14T22:34:42Z
-claim_expires_at: 2026-06-14T22:39:42Z
+claim_heartbeat_at: 2026-06-14T22:38:25Z
+claim_expires_at: 2026-06-14T22:43:25Z
 allowed_paths:
   - contracts/**
   - templates/**
@@ -52,8 +52,8 @@ verification:
 target_branch: main
 branch: ticket/WFU-0001
 worktree:
-accepted_by:
-accepted_at:
+accepted_by: quetza
+accepted_at: 2026-06-14T22:38:45Z
 created: 2026-06-14
 updated: 2026-06-14
 ---

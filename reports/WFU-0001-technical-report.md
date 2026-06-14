@@ -46,7 +46,14 @@ Passed:
 
 ## CI Evidence
 
-Pending local `palari ci WFU-0001 --base ticket/COS-0001` evidence bundle.
+Passed with `./bin/palari ci WFU-0001 --base ticket/COS-0001`.
+
+Evidence bundle:
+
+- `reports/evidence/WFU-0001/verification.log`
+- `reports/evidence/WFU-0001/junit.xml`
+- `reports/evidence/WFU-0001/palari.sarif`
+- `reports/evidence/WFU-0001/manifest.json`
 
 ## Risks / Follow-Ups
 

@@ -2,7 +2,7 @@
 
 ## Review Result
 
-Decision: accept-ready pending CI evidence.
+Decision: accept-ready.
 
 ## Findings
 
@@ -30,8 +30,6 @@ Passed:
 - `./bin/palari scope-check WFU-0001`
 - `git diff --check`
 
-Pending:
-
 - `./bin/palari ci WFU-0001 --base ticket/COS-0001`
 
 ## Required Changes
@@ -46,5 +44,4 @@ None identified in static review.
 
 ## Recommendation
 
-Run the final verification and CI evidence. If green, accept WFU-0001 and
-continue to HUM-0001.
+Accept WFU-0001 and continue to HUM-0001.
