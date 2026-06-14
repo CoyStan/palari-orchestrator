@@ -23,6 +23,7 @@ modules=(
 	hygiene
 	proposals
 	goals
+	workflows
 	decisions
 	models
 	tickets_workspace

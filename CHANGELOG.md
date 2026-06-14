@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Added workflow artifacts and CLI (WFU-0001). Workflows live under
+  `workflows/proposed`, `workflows/active`, and `workflows/closed`; new
+  `palari workflow create|list|show|lint|adopt|close` commands manage the
+  artifact lifecycle above tickets without executing work or granting
+  authority.
 - Added the R5 governance risk tier (COS-0001). Ticket creation, lint/report
   gates, evidence scoring, dashboard readiness checks, role risk ranking, root
   role authority, model routing, config/schema docs, and tests now recognize

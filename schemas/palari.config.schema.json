@@ -275,6 +275,18 @@
       "type": "string",
       "description": "Directory for open decision artifacts awaiting a human."
     },
+    "workflows_proposed_dir": {
+      "type": "string",
+      "description": "Directory for proposed workflow artifacts."
+    },
+    "workflows_active_dir": {
+      "type": "string",
+      "description": "Directory for active workflow artifacts."
+    },
+    "workflows_closed_dir": {
+      "type": "string",
+      "description": "Directory for closed workflow artifacts."
+    },
     "decisions_decided_dir": {
       "type": "string",
       "description": "Directory for recorded decisions."

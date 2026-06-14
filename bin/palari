@@ -101,6 +101,9 @@ source "$PALARI_LIB_DIR/proposals.bash"
 palari_require_module "$PALARI_LIB_DIR/goals.bash"
 # shellcheck source=lib/palari/goals.bash
 source "$PALARI_LIB_DIR/goals.bash"
+palari_require_module "$PALARI_LIB_DIR/workflows.bash"
+# shellcheck source=lib/palari/workflows.bash
+source "$PALARI_LIB_DIR/workflows.bash"
 palari_require_module "$PALARI_LIB_DIR/decisions.bash"
 # shellcheck source=lib/palari/decisions.bash
 source "$PALARI_LIB_DIR/decisions.bash"
@@ -157,6 +160,8 @@ commands:
   propose adopt ID --ticket T  Adopt a proposal into an executable ticket.
   goal create|list|show|lint   Manage first-class founder goals.
   goal adopt|achieve|drop      Human goal lifecycle actions.
+  workflow create|list|show|lint Manage workflow artifacts above tickets.
+  workflow adopt|close          Human workflow lifecycle actions.
   decide create|list|show|lint Draft and inspect structured founder decisions.
   decide record ID --choice N --by NAME  Record a human decision outcome.
   run --dry-run [--until blocked] [--goal G] [--json]
@@ -294,6 +299,10 @@ propose | proposal)
 goal)
 	shift
 	cmd_goal "$@"
+	;;
+workflow)
+	shift
+	cmd_workflow "$@"
 	;;
 decide | decision)
 	shift

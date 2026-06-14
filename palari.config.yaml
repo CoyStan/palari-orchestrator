@@ -28,6 +28,11 @@ goals_proposed_dir: goals/proposed
 goals_closed_dir: goals/closed
 require_serves_goal: warn
 
+# Workflows are company/process planning artifacts above tickets.
+workflows_proposed_dir: workflows/proposed
+workflows_active_dir: workflows/active
+workflows_closed_dir: workflows/closed
+
 # Model routing: send each ticket to the cheapest model class that matches its
 # risk tier, so frontier models are reserved for high-risk work. A ticket can
 # override with frontmatter `model_hint` (class or exact model); an explicit

@@ -33,6 +33,15 @@ promise is visible, scoped, reviewable work with explicit human gates.
 - Scope checks for local and PR-diff paths.
 - Ticket audit and queue planning with `palari run --dry-run`.
 
+### Workflow Planning
+
+- Workflow artifacts under `workflows/proposed`, `workflows/active`, and
+  `workflows/closed` model company or business processes above tickets.
+- `palari workflow create|list|show|lint|adopt|close` manages workflow
+  lifecycle without running agents or accepting work.
+- Workflow lint validates linked goals, risk ceilings, work units, expected
+  decisions, and R3/R4/R5 skill requirements.
+
 ### Work Isolation
 
 - Ticket branches and worktrees for isolated work.
