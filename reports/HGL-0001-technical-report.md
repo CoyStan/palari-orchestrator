@@ -44,13 +44,23 @@ Passed during implementation:
 
 ## CI Evidence
 
-Pending final gate evidence:
+Passed:
 
 - `./bin/palari lint HGL-0001`
 - `./bin/palari report-lint HGL-0001`
 - `./bin/palari scope-check HGL-0001`
 - `git diff --check`
 - `./bin/palari ci HGL-0001 --base ticket/HUM-0001`
+- `./bin/palari evidence score HGL-0001`
+
+Evidence bundle:
+
+- `reports/evidence/HGL-0001/verification.log`
+- `reports/evidence/HGL-0001/junit.xml`
+- `reports/evidence/HGL-0001/palari.sarif`
+- `reports/evidence/HGL-0001/manifest.json`
+
+Evidence quality score: 100/100, rating `ready`.
 
 ## Risks / Follow-Ups
 

@@ -2,7 +2,7 @@
 
 ## Review Result
 
-Decision: pending final CI evidence.
+Decision: accept-ready.
 
 ## Findings
 
@@ -16,6 +16,7 @@ Decision: pending final CI evidence.
 - R5 decisions require L5 coverage to avoid a red gate.
 - The command boundary is narrow: workflow planning, policy simulation, and
   broker evidence remain future tickets.
+- CI evidence passed and evidence quality scored 100/100.
 
 ## Verification Reviewed
 
@@ -28,7 +29,12 @@ Passed during implementation:
 - `python3 -m py_compile adapters/planning/hgl.py`
 - `bash -n lib/palari/burden.bash`
 
-Final CI and ticket gates still need to be recorded after report creation.
+- `./bin/palari lint HGL-0001`
+- `./bin/palari report-lint HGL-0001`
+- `./bin/palari scope-check HGL-0001`
+- `git diff --check`
+- `./bin/palari ci HGL-0001 --base ticket/HUM-0001`
+- `./bin/palari evidence score HGL-0001`
 
 ## Required Changes
 
@@ -42,4 +48,4 @@ None identified so far.
 
 ## Recommendation
 
-Run final HGL-0001 gates, then accept if CI and scope evidence pass.
+Accept HGL-0001.

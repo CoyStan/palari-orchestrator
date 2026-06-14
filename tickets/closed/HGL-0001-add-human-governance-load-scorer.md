@@ -1,7 +1,7 @@
 ---
 id: HGL-0001
 title: Add Human Governance Load scorer
-status: claimed
+status: accepted
 risk: R4
 priority: P2
 stream: process
@@ -10,8 +10,8 @@ model_hint:
 claimed_by: codex
 claimed_at: 2026-06-14T22:50:04Z
 claim_ref: refs/palari/claims/HGL-0001
-claim_heartbeat_at: 2026-06-14T22:50:04Z
-claim_expires_at: 2026-06-14T22:55:04Z
+claim_heartbeat_at: 2026-06-14T23:01:07Z
+claim_expires_at: 2026-06-14T23:06:07Z
 allowed_paths:
   - contracts/**
   - lib/palari/**
@@ -51,8 +51,8 @@ verification:
 target_branch: main
 branch: ticket/HGL-0001
 worktree: 
-accepted_by:
-accepted_at:
+accepted_by: quetza
+accepted_at: 2026-06-14T23:01:28Z
 created: 2026-06-14
 updated: 2026-06-14
 ---

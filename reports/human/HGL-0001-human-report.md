@@ -28,7 +28,9 @@ grant agent authority.
 
 ## Founder Acceptance
 
-Pending final verification.
+Founder pre-approval from Quetzali covers this marathon's review path.
+HGL-0001 is accepted after green verification because it implements the planned
+read-only burden scoring and coverage slice without expanding authority.
 
 ## Recommended Next Move
 
