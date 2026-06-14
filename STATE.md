@@ -51,6 +51,16 @@ promise is visible, scoped, reviewable work with explicit human gates.
 - Human lint validates skill levels, capacity numbers, authority risk, and the
   explicit policy-approval flag required for R5 authority.
 
+### Human Governance Load
+
+- `palari burden score WF-ID [--json]` computes deterministic, read-only Human
+  Governance Load from workflow expected decisions and active human profiles.
+- `palari human coverage WF-ID [--json]` shows required skills, missing or
+  underleveled skills, covering humans, and bottleneck roles for a workflow.
+- HGL output includes R0-R5 expected-decision counts, total burden, launch gate,
+  and autonomy ceiling. It does not move workflows, accept tickets, activate
+  policies, run agents, or perform side effects.
+
 ### Work Isolation
 
 - Ticket branches and worktrees for isolated work.
@@ -138,9 +148,9 @@ metadata where available.
 ## Planned
 
 - Company AI OS infrastructure: workflows above tickets, Human Governance Load
-  scoring, human governance coverage, autonomy ceilings, policy simulation,
-  mock broker evidence, outcome records, and secure governance posture checks.
-  See `contracts/company-ai-os.md`.
+  planning, policy simulation, mock broker evidence, outcome records, and
+  secure governance posture checks. See `contracts/company-ai-os.md` and
+  `contracts/human-governance-load.md`.
 - A richer collaborator orientation surface that can be regenerated or checked
   against shipped files.
 - Stronger stale-worktree and stale-branch recovery guidance.

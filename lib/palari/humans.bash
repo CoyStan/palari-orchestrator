@@ -327,6 +327,7 @@ cmd_human() {
 	list | "") cmd_human_list "$@" ;;
 	show) cmd_human_show "$@" ;;
 	lint) cmd_human_lint "$@" ;;
+	coverage) cmd_human_coverage "$@" ;;
 	adopt) cmd_human_adopt "$@" ;;
 	revoke) cmd_human_revoke "$@" ;;
 	help | -h | --help)
@@ -335,6 +336,7 @@ usage: palari human create HUMAN-ID NAME --skill skill:Lx --role ROLE --capacity
        palari human list
        palari human show HUMAN-ID
        palari human lint [HUMAN-ID]
+       palari human coverage WF-ID [--json]
        palari human adopt HUMAN-ID --by NAME
        palari human revoke HUMAN-ID --by NAME
 USAGE

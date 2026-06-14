@@ -318,6 +318,7 @@ cmd_doctor() {
 	doctor_check_file "lib/palari/goals.bash" errors
 	doctor_check_file "lib/palari/workflows.bash" errors
 	doctor_check_file "lib/palari/humans.bash" errors
+	doctor_check_file "lib/palari/burden.bash" errors
 	doctor_check_file "lib/palari/decisions.bash" errors
 	doctor_check_file "lib/palari/run.bash" errors
 	doctor_check_file "adapters/gate/palari_gate.py" errors

@@ -532,7 +532,9 @@ palari packet WEB-0002 specialist
 | `palari workflow adopt / close WF-ID --by NAME` | Human workflow lifecycle actions. |
 | `palari human create HUMAN-ID NAME --skill skill:Lx --role ROLE` | Create a proposed human governance profile. |
 | `palari human list / show / lint` | Inspect and validate human governance coverage artifacts. |
+| `palari human coverage WF-ID [--json]` | Compare a workflow's expected decision skills against active human profiles. |
 | `palari human adopt / revoke HUMAN-ID --by NAME` | Human profile lifecycle actions. |
+| `palari burden score WF-ID [--json]` | Score a workflow's read-only Human Governance Load, skill gaps, launch gate, and autonomy ceiling. |
 | `palari decide create ID TITLE --option A --option B` | Draft a structured decision with options, recommendation, and default. |
 | `palari decide record ID --choice N --by NAME` | Record the human outcome; archives it and mirrors it into repo memory. |
 | `palari run --dry-run [--goal ID] [--json]` | Read-only queue plan up to the next human gate; fails closed without --dry-run. |
@@ -602,6 +604,7 @@ ship as adapters:
 - Authority profiles: `palari authority` makes agent commit, push, PR, merge, and accept permissions explicit per repository.
 - Role-governed delegation: `palari role` lets a repo define root, lead, specialist, and reviewer authority as Markdown files. Role authority can only narrow as it flows from parent role to child role to ticket; unclear path containment escalates, and forbidden or invalid grants are rejected. Roles are local-mode authority artifacts. Signed provenance is not enforced in v1.
 - Lifecycle visibility: `palari status --next`, `palari doctor lifecycle`, and `palari ticket audit` explain active tickets that are not closed yet.
+- Workflow burden: `palari burden score WF-ID` and `palari human coverage WF-ID` estimate Human Governance Load, missing skills, bottleneck roles, launch gates, and autonomy ceilings from workflow and active human artifacts. These commands are read-only planning signals.
 - Autonomous hygiene: `palari hygiene` separates generated cache/build artifacts from source changes, highlights stale claims, and shows ticket branches with unintegrated work.
 - Executor wrappers: `palari agent run TICKET-ID --executor opencode` invokes opencode from a Palari packet and records executor evidence.
 - Mock executor: `palari agent run TICKET-ID --executor mock --scenario safe|forbidden-path|outside-scope` proves the governance loop deterministically - no AI tool, network, or credentials. The forbidden-path scenario shows an executor touching `.env`, scope-check refusing it, evidence preserved, and ticket state not advancing.

@@ -25,6 +25,7 @@ modules=(
 	goals
 	workflows
 	humans
+	burden
 	decisions
 	models
 	tickets_workspace

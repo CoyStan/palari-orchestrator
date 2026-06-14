@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Added Human Governance Load scoring and coverage commands (HGL-0001).
+  `palari burden score WF-ID [--json]` and `palari human coverage WF-ID
+  [--json]` read workflow expected decisions and active human profiles to show
+  deterministic HGL, R0-R5 decision counts, missing skills, bottleneck roles,
+  launch gates, and autonomy ceilings without mutating lifecycle state.
 - Added human governance profiles and CLI (HUM-0001). Profiles live under
   `humans/proposed`, `humans/active`, and `humans/revoked`; new
   `palari human create|list|show|lint|adopt|revoke` commands model governance
