@@ -1,0 +1,47 @@
+# Palari CI Evidence
+
+- Ticket: SNP-0001
+- Base ref: ticket/PLN-0001
+- Created: 2026-06-14T23:23:05Z
+
+## scope-check
+
+```text
+scope-check: ok for SNP-0001 (11 changed path(s))
+```
+
+## lint
+
+```text
+report-lint: ok for SNP-0001
+lint: ok for SNP-0001
+```
+
+## verification 1
+
+Command: `./tests/run-company-os-snapshot.sh`
+
+```text
+company-os-snapshot: ok
+```
+
+## verification 2
+
+Command: `./tests/run-performance.sh`
+
+```text
+performance: snapshot-json: 110 ms (budget 800 ms) ok
+performance: web-check: 135 ms (budget 800 ms) ok
+performance: status: 97 ms (budget 500 ms) ok
+performance: status-next: 99 ms (budget 500 ms) ok
+performance: web-check: 128 ms (budget 800 ms) ok
+performance: ok
+```
+
+## verification 3
+
+Command: `./tests/run-dashboard-rubric.sh`
+
+```text
+dashboard-rubric: ok (structure, custody surface, contrast both themes, snapshot contract)
+```

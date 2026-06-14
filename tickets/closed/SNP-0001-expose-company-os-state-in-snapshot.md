@@ -1,7 +1,7 @@
 ---
 id: SNP-0001
 title: Expose company OS state in snapshot
-status: claimed
+status: accepted
 risk: R3
 priority: P2
 stream: process
@@ -10,8 +10,8 @@ model_hint:
 claimed_by: codex
 claimed_at: 2026-06-14T23:12:22Z
 claim_ref: refs/palari/claims/SNP-0001
-claim_heartbeat_at: 2026-06-14T23:12:22Z
-claim_expires_at: 2026-06-14T23:17:22Z
+claim_heartbeat_at: 2026-06-14T23:25:25Z
+claim_expires_at: 2026-06-14T23:30:25Z
 allowed_paths:
   - lib/palari/**
   - adapters/snapshot/**
@@ -48,8 +48,8 @@ verification:
 target_branch: main
 branch: ticket/SNP-0001
 worktree: 
-accepted_by:
-accepted_at:
+accepted_by: quetza
+accepted_at: 2026-06-14T23:25:44Z
 created: 2026-06-14
 updated: 2026-06-14
 ---

@@ -27,7 +27,9 @@ cards, activate policies, run brokers, or perform side effects.
 
 ## Founder Acceptance
 
-Pending final verification.
+Founder pre-approval from Quetzali covers this marathon's review path.
+SNP-0001 is accepted after green verification because it adds read-only Company
+OS snapshot visibility without enabling policy or broker authority.
 
 ## Recommended Next Move
 

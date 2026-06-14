@@ -36,13 +36,23 @@ Passed during implementation:
 
 ## CI Evidence
 
-Pending final gate evidence:
+Passed:
 
 - `./bin/palari lint SNP-0001`
 - `./bin/palari report-lint SNP-0001`
 - `./bin/palari scope-check SNP-0001`
 - `git diff --check`
 - `./bin/palari ci SNP-0001 --base ticket/PLN-0001`
+- `./bin/palari evidence score SNP-0001`
+
+Evidence bundle:
+
+- `reports/evidence/SNP-0001/verification.log`
+- `reports/evidence/SNP-0001/junit.xml`
+- `reports/evidence/SNP-0001/palari.sarif`
+- `reports/evidence/SNP-0001/manifest.json`
+
+Evidence quality score: 100/100, rating `ready`.
 
 ## Risks / Follow-Ups
 
