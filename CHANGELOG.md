@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Added Company Governance cards to the local console (DSH-0001). The read-only
+  panel renders `company_os` snapshot state: workflow counts, open HGL,
+  R3/R4/R5 decision counts, active human coverage count, missing-skill count,
+  and active workflow launch gates without adding mutation controls.
 - Added compact Company OS snapshot state (SNP-0001). `palari snapshot --json`,
   the Bash snapshot fallback, and `palari web --check` now expose
   `company_os` with workflow/human counts, open HGL estimate, R3/R4/R5 decision

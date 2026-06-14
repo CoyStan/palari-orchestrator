@@ -105,6 +105,9 @@ metadata where available.
 - Optional stdlib web console in `adapters/web/`.
 - Dashboard reads `palari snapshot --json` state and shows tickets, roles,
   evidence, reports, progress, next actions, and human gates.
+- Console Company Governance cards render the `company_os` snapshot section:
+  workflow counts, open HGL, R3/R4/R5 decision counts, missing skills, and
+  active workflow launch gates.
 - Executor evidence and scope/CI refusal evidence surface in custody rows.
 - Fast stdlib Python snapshot adapter serves `snapshot --json`, `status`, and
   `web --check`, with Bash fallback through full/legacy controls.
@@ -156,8 +159,8 @@ metadata where available.
 ## Planned
 
 - Company AI OS infrastructure: policy simulation, mock broker evidence,
-  outcome records, dashboard visibility, and secure governance posture checks.
-  See `contracts/company-ai-os.md`,
+  outcome records, and secure governance posture checks. See
+  `contracts/company-ai-os.md`,
   `contracts/human-governance-load.md`, and
   `docs/autonomy/workflow-planning.md`.
 - A richer collaborator orientation surface that can be regenerated or checked
