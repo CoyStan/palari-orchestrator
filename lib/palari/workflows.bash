@@ -212,6 +212,41 @@ cmd_workflow_show() {
 	print_frontmatter_list_block "expected decisions" "$file" expected_decisions
 }
 
+cmd_workflow_plan() {
+	local id="${1:-}"
+	shift || true
+	[[ -n "$id" ]] || die "workflow plan requires WF-ID"
+	local json="false" arg
+	while (($# > 0)); do
+		arg="$1"
+		case "$arg" in
+		--json)
+			json="true"
+			shift
+			;;
+		*) die "unknown workflow plan option: $arg" ;;
+		esac
+	done
+	if [[ "$json" == "true" ]]; then
+		python3 -B "$ROOT/adapters/planning/workflow_plan.py" \
+			--root "$ROOT" \
+			--workflow "$id" \
+			--workflows-proposed-dir "$WORKFLOWS_PROPOSED_DIR" \
+			--workflows-active-dir "$WORKFLOWS_ACTIVE_DIR" \
+			--workflows-closed-dir "$WORKFLOWS_CLOSED_DIR" \
+			--humans-active-dir "$HUMANS_ACTIVE_DIR" \
+			--json
+	else
+		python3 -B "$ROOT/adapters/planning/workflow_plan.py" \
+			--root "$ROOT" \
+			--workflow "$id" \
+			--workflows-proposed-dir "$WORKFLOWS_PROPOSED_DIR" \
+			--workflows-active-dir "$WORKFLOWS_ACTIVE_DIR" \
+			--workflows-closed-dir "$WORKFLOWS_CLOSED_DIR" \
+			--humans-active-dir "$HUMANS_ACTIVE_DIR"
+	fi
+}
+
 cmd_workflow_lint() {
 	local only="${1:-}" errors=0 state file id status goal risk item yaml_issue
 	local -a files=()
@@ -348,6 +383,7 @@ cmd_workflow() {
 	create) cmd_workflow_create "$@" ;;
 	list | "") cmd_workflow_list "$@" ;;
 	show) cmd_workflow_show "$@" ;;
+	plan) cmd_workflow_plan "$@" ;;
 	lint) cmd_workflow_lint "$@" ;;
 	adopt) cmd_workflow_adopt "$@" ;;
 	close) cmd_workflow_close "$@" ;;
@@ -356,6 +392,7 @@ cmd_workflow() {
 usage: palari workflow create WF-ID TITLE --goal GOAL-ID --owner NAME [--proposed]
        palari workflow list
        palari workflow show WF-ID
+       palari workflow plan WF-ID [--json]
        palari workflow lint [WF-ID]
        palari workflow adopt WF-ID --by NAME
        palari workflow close WF-ID --by NAME --status achieved|dropped

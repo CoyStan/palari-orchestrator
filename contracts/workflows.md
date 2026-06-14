@@ -44,6 +44,8 @@ R3/R4/R5 expected decisions must name at least one `skill:Lx` requirement.
 palari workflow create WF-0001 "Improve onboarding" --goal GOAL-0100 --owner founder
 palari workflow list
 palari workflow show WF-0001
+palari workflow plan WF-0001
+palari workflow plan WF-0001 --json
 palari workflow lint
 palari workflow adopt WF-0001 --by founder
 palari workflow close WF-0001 --by founder --status achieved
@@ -52,6 +54,12 @@ palari workflow close WF-0001 --by founder --status achieved
 `workflow create` writes proposed workflows. Adoption is explicit human
 bookkeeping and does not create tickets, run agents, accept work, push, merge,
 deploy, or perform external side effects.
+
+`workflow plan` is also read-only. It combines workflow fields with Human
+Governance Load and active human coverage so an operator can inspect launch
+gate, autonomy ceiling, allowed modes, blocked modes, required skills, missing
+skills, bottlenecks, and recommended next actions before tickets are created or
+executed.
 
 ## Lint Rules
 

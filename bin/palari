@@ -167,6 +167,7 @@ commands:
   goal create|list|show|lint   Manage first-class founder goals.
   goal adopt|achieve|drop      Human goal lifecycle actions.
   workflow create|list|show|lint Manage workflow artifacts above tickets.
+  workflow plan WF-ID [--json]  Read-only workflow plan with HGL and autonomy.
   workflow adopt|close          Human workflow lifecycle actions.
   human create|list|show|lint   Manage human governance profiles.
   human adopt|revoke            Human governance profile lifecycle actions.

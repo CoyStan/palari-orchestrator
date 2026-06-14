@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Added read-only workflow planning and autonomy output (PLN-0001).
+  `palari workflow plan WF-ID [--json]` combines workflow artifacts, HGL,
+  active human coverage, allowed/blocked modes, required skills, missing
+  skills, bottlenecks, launch gates, autonomy ceilings, and recommended next
+  actions without claiming tickets or mutating lifecycle state.
 - Added Human Governance Load scoring and coverage commands (HGL-0001).
   `palari burden score WF-ID [--json]` and `palari human coverage WF-ID
   [--json]` read workflow expected decisions and active human profiles to show

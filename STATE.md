@@ -41,6 +41,10 @@ promise is visible, scoped, reviewable work with explicit human gates.
   lifecycle without running agents or accepting work.
 - Workflow lint validates linked goals, risk ceilings, work units, expected
   decisions, and R3/R4/R5 skill requirements.
+- `palari workflow plan WF-ID [--json]` combines workflow fields with Human
+  Governance Load and active human coverage to show launch gate, autonomy
+  ceiling, allowed modes, blocked modes, required skills, missing skills,
+  bottlenecks, and recommended next actions without mutating lifecycle state.
 
 ### Human Governance
 
@@ -147,10 +151,11 @@ metadata where available.
 
 ## Planned
 
-- Company AI OS infrastructure: workflows above tickets, Human Governance Load
-  planning, policy simulation, mock broker evidence, outcome records, and
-  secure governance posture checks. See `contracts/company-ai-os.md` and
-  `contracts/human-governance-load.md`.
+- Company AI OS infrastructure: policy simulation, mock broker evidence,
+  outcome records, snapshot/dashboard visibility, and secure governance posture
+  checks. See `contracts/company-ai-os.md`,
+  `contracts/human-governance-load.md`, and
+  `docs/autonomy/workflow-planning.md`.
 - A richer collaborator orientation surface that can be regenerated or checked
   against shipped files.
 - Stronger stale-worktree and stale-branch recovery guidance.
