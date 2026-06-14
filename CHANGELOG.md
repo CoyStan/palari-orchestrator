@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Added compact Company OS snapshot state (SNP-0001). `palari snapshot --json`,
+  the Bash snapshot fallback, and `palari web --check` now expose
+  `company_os` with workflow/human counts, open HGL estimate, R3/R4/R5 decision
+  counts, missing skills, bottlenecks, autonomy gate distribution,
+  simulation-only policy posture, and broker side-effect posture.
 - Added read-only workflow planning and autonomy output (PLN-0001).
   `palari workflow plan WF-ID [--json]` combines workflow artifacts, HGL,
   active human coverage, allowed/blocked modes, required skills, missing

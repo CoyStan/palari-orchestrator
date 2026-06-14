@@ -206,6 +206,13 @@ assert "roles" in snapshot
 assert "items" in snapshot["roles"]
 assert "lint" in snapshot["roles"]
 assert snapshot["roles"]["lint"]["mode"] == "shallow"
+assert "company_os" in snapshot
+company = snapshot["company_os"]
+assert "workflows" in company
+assert "human_governance" in company
+assert "autonomy" in company
+assert company["policy"]["simulation_only"] is True
+assert company["broker"]["real_side_effects_enabled"] is False
 gate = snapshot["gate"]
 for key in ("enabled", "available", "initialized", "root_fingerprint", "layout", "tickets"):
     assert key in gate, f"gate section missing {key}"

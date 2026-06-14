@@ -108,6 +108,10 @@ metadata where available.
 - Executor evidence and scope/CI refusal evidence surface in custody rows.
 - Fast stdlib Python snapshot adapter serves `snapshot --json`, `status`, and
   `web --check`, with Bash fallback through full/legacy controls.
+- `snapshot --json` includes a compact `company_os` section with workflow
+  counts, human governance counts, open HGL estimate, R3/R4/R5 decision counts,
+  missing skills, bottlenecks, autonomy gate distribution, simulation-only
+  policy posture, and broker side-effect posture.
 
 ### Evidence And Reports
 
@@ -152,8 +156,8 @@ metadata where available.
 ## Planned
 
 - Company AI OS infrastructure: policy simulation, mock broker evidence,
-  outcome records, snapshot/dashboard visibility, and secure governance posture
-  checks. See `contracts/company-ai-os.md`,
+  outcome records, dashboard visibility, and secure governance posture checks.
+  See `contracts/company-ai-os.md`,
   `contracts/human-governance-load.md`, and
   `docs/autonomy/workflow-planning.md`.
 - A richer collaborator orientation surface that can be regenerated or checked
