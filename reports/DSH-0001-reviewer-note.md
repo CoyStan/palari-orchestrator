@@ -2,7 +2,7 @@
 
 ## Review Result
 
-Decision: pending final CI evidence.
+Decision: accept-ready.
 
 ## Findings
 
@@ -13,6 +13,7 @@ Decision: pending final CI evidence.
 - No browser-side mutation controls were added.
 - Dashboard rubric, JavaScript syntax, and `web --check` passed during
   implementation.
+- CI evidence passed and evidence quality scored 100/100.
 
 ## Verification Reviewed
 
@@ -23,7 +24,11 @@ Passed during implementation:
 - `./bin/palari web --check >/tmp/palari-web-check.json`
 - `git diff --check`
 
-Final CI and ticket gates still need to be recorded after report creation.
+- `./bin/palari lint DSH-0001`
+- `./bin/palari report-lint DSH-0001`
+- `./bin/palari scope-check DSH-0001`
+- `./bin/palari ci DSH-0001 --base ticket/SNP-0001`
+- `./bin/palari evidence score DSH-0001`
 
 ## Required Changes
 
@@ -36,4 +41,4 @@ None identified so far.
 
 ## Recommendation
 
-Run final DSH-0001 gates, then accept if CI and scope evidence pass.
+Accept DSH-0001.

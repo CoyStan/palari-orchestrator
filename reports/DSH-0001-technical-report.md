@@ -27,12 +27,22 @@ Passed during implementation:
 
 ## CI Evidence
 
-Pending final gate evidence:
+Passed:
 
 - `./bin/palari lint DSH-0001`
 - `./bin/palari report-lint DSH-0001`
 - `./bin/palari scope-check DSH-0001`
 - `./bin/palari ci DSH-0001 --base ticket/SNP-0001`
+- `./bin/palari evidence score DSH-0001`
+
+Evidence bundle:
+
+- `reports/evidence/DSH-0001/verification.log`
+- `reports/evidence/DSH-0001/junit.xml`
+- `reports/evidence/DSH-0001/palari.sarif`
+- `reports/evidence/DSH-0001/manifest.json`
+
+Evidence quality score: 100/100, rating `ready`.
 
 ## Risks / Follow-Ups
 

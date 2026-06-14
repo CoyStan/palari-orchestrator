@@ -1,7 +1,7 @@
 ---
 id: DSH-0001
 title: Add company governance cards to console
-status: claimed
+status: accepted
 risk: R2
 priority: P2
 stream: process
@@ -10,8 +10,8 @@ model_hint:
 claimed_by: codex
 claimed_at: 2026-06-14T23:27:08Z
 claim_ref: refs/palari/claims/DSH-0001
-claim_heartbeat_at: 2026-06-14T23:27:08Z
-claim_expires_at: 2026-06-14T23:32:08Z
+claim_heartbeat_at: 2026-06-14T23:38:43Z
+claim_expires_at: 2026-06-14T23:43:43Z
 allowed_paths:
   - adapters/web/**
   - adapters/snapshot/**
@@ -48,8 +48,8 @@ verification:
 target_branch: main
 branch: ticket/DSH-0001
 worktree: 
-accepted_by:
-accepted_at:
+accepted_by: quetza
+accepted_at: 2026-06-14T23:39:14Z
 created: 2026-06-14
 updated: 2026-06-14
 ---
