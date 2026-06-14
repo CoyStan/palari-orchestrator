@@ -287,6 +287,18 @@
       "type": "string",
       "description": "Directory for closed workflow artifacts."
     },
+    "humans_proposed_dir": {
+      "type": "string",
+      "description": "Directory for proposed human governance profiles."
+    },
+    "humans_active_dir": {
+      "type": "string",
+      "description": "Directory for active human governance profiles."
+    },
+    "humans_revoked_dir": {
+      "type": "string",
+      "description": "Directory for revoked human governance profiles."
+    },
     "decisions_decided_dir": {
       "type": "string",
       "description": "Directory for recorded decisions."

@@ -42,6 +42,15 @@ promise is visible, scoped, reviewable work with explicit human gates.
 - Workflow lint validates linked goals, risk ceilings, work units, expected
   decisions, and R3/R4/R5 skill requirements.
 
+### Human Governance
+
+- Human governance profiles under `humans/proposed`, `humans/active`, and
+  `humans/revoked` model skills, authority ceilings, capacity, and constraints.
+- `palari human create|list|show|lint|adopt|revoke` manages profile lifecycle
+  without granting agent authority or tracking worker productivity.
+- Human lint validates skill levels, capacity numbers, authority risk, and the
+  explicit policy-approval flag required for R5 authority.
+
 ### Work Isolation
 
 - Ticket branches and worktrees for isolated work.

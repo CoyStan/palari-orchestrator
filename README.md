@@ -530,6 +530,9 @@ palari packet WEB-0002 specialist
 | `palari workflow create WF-ID TITLE --goal GOAL-ID --owner NAME` | Create a proposed company/process workflow above tickets. |
 | `palari workflow list / show / lint` | Inspect and validate workflow artifacts. |
 | `palari workflow adopt / close WF-ID --by NAME` | Human workflow lifecycle actions. |
+| `palari human create HUMAN-ID NAME --skill skill:Lx --role ROLE` | Create a proposed human governance profile. |
+| `palari human list / show / lint` | Inspect and validate human governance coverage artifacts. |
+| `palari human adopt / revoke HUMAN-ID --by NAME` | Human profile lifecycle actions. |
 | `palari decide create ID TITLE --option A --option B` | Draft a structured decision with options, recommendation, and default. |
 | `palari decide record ID --choice N --by NAME` | Record the human outcome; archives it and mirrors it into repo memory. |
 | `palari run --dry-run [--goal ID] [--json]` | Read-only queue plan up to the next human gate; fails closed without --dry-run. |

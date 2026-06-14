@@ -24,6 +24,7 @@ modules=(
 	proposals
 	goals
 	workflows
+	humans
 	decisions
 	models
 	tickets_workspace

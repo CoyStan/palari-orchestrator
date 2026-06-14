@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Added human governance profiles and CLI (HUM-0001). Profiles live under
+  `humans/proposed`, `humans/active`, and `humans/revoked`; new
+  `palari human create|list|show|lint|adopt|revoke` commands model governance
+  roles, skills, authority ceilings, capacity, and constraints without
+  granting agent authority or adding surveillance behavior.
 - Added workflow artifacts and CLI (WFU-0001). Workflows live under
   `workflows/proposed`, `workflows/active`, and `workflows/closed`; new
   `palari workflow create|list|show|lint|adopt|close` commands manage the

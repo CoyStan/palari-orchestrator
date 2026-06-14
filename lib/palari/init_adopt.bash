@@ -22,7 +22,7 @@ cmd_init() {
 		*) die "unknown init option: $1" ;;
 		esac
 	done
-	for dir in "$PROPOSED_DIR" "$OPEN_DIR" "$CLOSED_DIR" "$REPORTS_DIR" "$HUMAN_REPORTS_DIR" "$PLANNING_REPORTS_DIR" "$EVIDENCE_DIR" "$HANDOFFS_DIR" "$ROLES_ACTIVE_DIR" "$ROLES_PROPOSED_DIR" "$ROLES_REVOKED_DIR" "$GOALS_ACTIVE_DIR" "$GOALS_PROPOSED_DIR" "$GOALS_CLOSED_DIR" "$WORKFLOWS_PROPOSED_DIR" "$WORKFLOWS_ACTIVE_DIR" "$WORKFLOWS_CLOSED_DIR" "$DECISIONS_OPEN_DIR" "$DECISIONS_DECIDED_DIR"; do
+	for dir in "$PROPOSED_DIR" "$OPEN_DIR" "$CLOSED_DIR" "$REPORTS_DIR" "$HUMAN_REPORTS_DIR" "$PLANNING_REPORTS_DIR" "$EVIDENCE_DIR" "$HANDOFFS_DIR" "$ROLES_ACTIVE_DIR" "$ROLES_PROPOSED_DIR" "$ROLES_REVOKED_DIR" "$GOALS_ACTIVE_DIR" "$GOALS_PROPOSED_DIR" "$GOALS_CLOSED_DIR" "$WORKFLOWS_PROPOSED_DIR" "$WORKFLOWS_ACTIVE_DIR" "$WORKFLOWS_CLOSED_DIR" "$HUMANS_PROPOSED_DIR" "$HUMANS_ACTIVE_DIR" "$HUMANS_REVOKED_DIR" "$DECISIONS_OPEN_DIR" "$DECISIONS_DECIDED_DIR"; do
 		mkdir -p "$ROOT/$dir"
 		: >"$ROOT/$dir/.gitkeep"
 	done
@@ -317,6 +317,7 @@ cmd_doctor() {
 	doctor_check_file "lib/palari/gate.bash" errors
 	doctor_check_file "lib/palari/goals.bash" errors
 	doctor_check_file "lib/palari/workflows.bash" errors
+	doctor_check_file "lib/palari/humans.bash" errors
 	doctor_check_file "lib/palari/decisions.bash" errors
 	doctor_check_file "lib/palari/run.bash" errors
 	doctor_check_file "adapters/gate/palari_gate.py" errors

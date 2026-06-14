@@ -104,6 +104,9 @@ source "$PALARI_LIB_DIR/goals.bash"
 palari_require_module "$PALARI_LIB_DIR/workflows.bash"
 # shellcheck source=lib/palari/workflows.bash
 source "$PALARI_LIB_DIR/workflows.bash"
+palari_require_module "$PALARI_LIB_DIR/humans.bash"
+# shellcheck source=lib/palari/humans.bash
+source "$PALARI_LIB_DIR/humans.bash"
 palari_require_module "$PALARI_LIB_DIR/decisions.bash"
 # shellcheck source=lib/palari/decisions.bash
 source "$PALARI_LIB_DIR/decisions.bash"
@@ -162,6 +165,8 @@ commands:
   goal adopt|achieve|drop      Human goal lifecycle actions.
   workflow create|list|show|lint Manage workflow artifacts above tickets.
   workflow adopt|close          Human workflow lifecycle actions.
+  human create|list|show|lint   Manage human governance profiles.
+  human adopt|revoke            Human governance profile lifecycle actions.
   decide create|list|show|lint Draft and inspect structured founder decisions.
   decide record ID --choice N --by NAME  Record a human decision outcome.
   run --dry-run [--until blocked] [--goal G] [--json]
@@ -303,6 +308,10 @@ goal)
 workflow)
 	shift
 	cmd_workflow "$@"
+	;;
+human)
+	shift
+	cmd_human "$@"
 	;;
 decide | decision)
 	shift

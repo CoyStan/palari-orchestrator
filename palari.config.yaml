@@ -33,6 +33,11 @@ workflows_proposed_dir: workflows/proposed
 workflows_active_dir: workflows/active
 workflows_closed_dir: workflows/closed
 
+# Human governance profiles model decision coverage, skills, and capacity.
+humans_proposed_dir: humans/proposed
+humans_active_dir: humans/active
+humans_revoked_dir: humans/revoked
+
 # Model routing: send each ticket to the cheapest model class that matches its
 # risk tier, so frontier models are reserved for high-risk work. A ticket can
 # override with frontmatter `model_hint` (class or exact model); an explicit
