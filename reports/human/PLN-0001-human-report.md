@@ -25,7 +25,9 @@ policies, write broker evidence, push, merge, deploy, or call external systems.
 
 ## Founder Acceptance
 
-Pending final verification.
+Founder pre-approval from Quetzali covers this marathon's review path.
+PLN-0001 is accepted after green verification because it adds a read-only
+workflow planning surface without expanding execution authority.
 
 ## Recommended Next Move
 

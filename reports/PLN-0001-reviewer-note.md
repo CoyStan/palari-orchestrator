@@ -2,7 +2,7 @@
 
 ## Review Result
 
-Decision: pending final CI evidence.
+Decision: accept-ready.
 
 ## Findings
 
@@ -16,6 +16,7 @@ Decision: pending final CI evidence.
 - The focused test checks that the command does not mutate repository state.
 - Policy simulation, broker behavior, snapshots, dashboards, outcomes, and
   queue-runner semantic changes remain out of scope.
+- CI evidence passed and evidence quality scored 100/100.
 
 ## Verification Reviewed
 
@@ -28,7 +29,12 @@ Passed during implementation:
 - `python3 -m py_compile adapters/planning/workflow_plan.py adapters/planning/hgl.py`
 - `bash -n lib/palari/workflows.bash`
 
-Final CI and ticket gates still need to be recorded after report creation.
+- `./bin/palari lint PLN-0001`
+- `./bin/palari report-lint PLN-0001`
+- `./bin/palari scope-check PLN-0001`
+- `git diff --check`
+- `./bin/palari ci PLN-0001 --base ticket/HGL-0001`
+- `./bin/palari evidence score PLN-0001`
 
 ## Required Changes
 
@@ -43,4 +49,4 @@ None identified so far.
 
 ## Recommendation
 
-Run final PLN-0001 gates, then accept if CI and scope evidence pass.
+Accept PLN-0001.

@@ -1,0 +1,18 @@
+{
+  "schema_version": "1",
+  "generator": "palari-ci",
+  "manifest_file": "manifest.json",
+  "ticket": "PLN-0001",
+  "base_ref": "ticket/HGL-0001",
+  "head_sha": "8f3b0071b8541956dfaa632959ce6dde06a005c2",
+  "created_at": "2026-06-14T23:09:59Z",
+  "status": "passed",
+  "tests": 5,
+  "failures": 0,
+  "skipped": 0,
+  "artifacts": [
+    {"name":"verification.log","sha256":"5d792c7e1f5a2263402b99ccaebb38a6e14adbc6716f08966a5d2b960a72065e"},
+    {"name":"junit.xml","sha256":"205262d268e9e6ce5090c4816394e33c08c1e07c3152e35271fb9220f8eb5a6a"},
+    {"name":"palari.sarif","sha256":"aaada55ca701df4ac2f4f8359e9caf01a73d24eac00849a0790deb756062d8fa"}
+  ]
+}

@@ -1,7 +1,7 @@
 ---
 id: PLN-0001
 title: Add workflow planning and autonomy ceiling
-status: claimed
+status: accepted
 risk: R4
 priority: P2
 stream: process
@@ -10,8 +10,8 @@ model_hint:
 claimed_by: codex
 claimed_at: 2026-06-14T23:03:07Z
 claim_ref: refs/palari/claims/PLN-0001
-claim_heartbeat_at: 2026-06-14T23:03:07Z
-claim_expires_at: 2026-06-14T23:08:07Z
+claim_heartbeat_at: 2026-06-14T23:10:46Z
+claim_expires_at: 2026-06-14T23:15:46Z
 allowed_paths:
   - contracts/**
   - docs/autonomy/**
@@ -50,8 +50,8 @@ verification:
 target_branch: main
 branch: ticket/PLN-0001
 worktree: 
-accepted_by:
-accepted_at:
+accepted_by: quetza
+accepted_at: 2026-06-14T23:11:04Z
 created: 2026-06-14
 updated: 2026-06-14
 ---
