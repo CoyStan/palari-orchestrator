@@ -2,7 +2,7 @@
 
 ## Review Result
 
-Decision: accept-ready pending CI evidence.
+Decision: accept-ready.
 
 ## Findings
 
@@ -28,8 +28,6 @@ Passed:
 - `./bin/palari scope-check HUM-0001`
 - `git diff --check`
 
-Pending:
-
 - `./bin/palari ci HUM-0001 --base ticket/WFU-0001`
 
 ## Required Changes
@@ -44,5 +42,4 @@ None identified in static review.
 
 ## Recommendation
 
-Run final verification and CI evidence. If green, accept HUM-0001 and continue
-to HGL-0001.
+Accept HUM-0001 and continue to HGL-0001.

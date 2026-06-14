@@ -48,7 +48,14 @@ Passed:
 
 ## CI Evidence
 
-Pending local `palari ci HUM-0001 --base ticket/WFU-0001` evidence bundle.
+Passed with `./bin/palari ci HUM-0001 --base ticket/WFU-0001`.
+
+Evidence bundle:
+
+- `reports/evidence/HUM-0001/verification.log`
+- `reports/evidence/HUM-0001/junit.xml`
+- `reports/evidence/HUM-0001/palari.sarif`
+- `reports/evidence/HUM-0001/manifest.json`
 
 ## Risks / Follow-Ups
 
