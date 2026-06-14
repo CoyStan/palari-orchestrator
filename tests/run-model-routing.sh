@@ -35,13 +35,16 @@ CFG
 # Routing table renders.
 ./bin/palari model routes >"$TMP_ROOT/routes.out"
 grep -Fq "R1  -> fast" "$TMP_ROOT/routes.out" || fail "routes missing R1 mapping"
+grep -Fq "R5  -> frontier" "$TMP_ROOT/routes.out" || fail "routes missing R5 mapping"
 grep -Fq "anthropic/test-frontier" "$TMP_ROOT/routes.out" || fail "routes missing executor mapping"
 
-# Risk tier resolution: R1 -> fast, R3 -> frontier.
+# Risk tier resolution: R1 -> fast, R3/R5 -> frontier.
 ./bin/palari ticket create MRT-0001 "Low risk chore" --risk R1 \
 	--allowed "README.md" --verify "test -f README.md" >/dev/null
 ./bin/palari ticket create MRT-0002 "High risk change" --risk R3 \
 	--allowed "CHANGELOG.md" --verify "true" >/dev/null
+./bin/palari ticket create MRT-0005 "Governance risk change" --risk R5 \
+	--allowed "contracts/**" --verify "true" >/dev/null
 
 ./bin/palari model show MRT-0001 --executor opencode >"$TMP_ROOT/show1.out"
 grep -Fq "class: fast" "$TMP_ROOT/show1.out" || fail "R1 should route to fast"
@@ -49,6 +52,8 @@ grep -Fq "resolved model: anthropic/test-fast" "$TMP_ROOT/show1.out" || fail "fa
 
 ./bin/palari model show MRT-0002 --executor opencode >"$TMP_ROOT/show2.out"
 grep -Fq "class: frontier" "$TMP_ROOT/show2.out" || fail "R3 should route to frontier"
+./bin/palari model show MRT-0005 --executor opencode >"$TMP_ROOT/show-r5.out"
+grep -Fq "class: frontier" "$TMP_ROOT/show-r5.out" || fail "R5 should route to frontier"
 
 # model_hint overrides: class hint and exact-model hint.
 ./bin/palari ticket create MRT-0003 "Hinted class" --risk R3 --model-hint fast \

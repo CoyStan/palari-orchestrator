@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Added the R5 governance risk tier (COS-0001). Ticket creation, lint/report
+  gates, evidence scoring, dashboard readiness checks, role risk ranking, root
+  role authority, model routing, config/schema docs, and tests now recognize
+  R5 as a human-gated governance/kernel tier that routes to `frontier` by
+  default.
 - Added the Company AI OS doctrine contract (COS-0000). The contract records
   the roadmap boundary for workflows above tickets, Human Governance Load,
   human governance coverage, policy simulation, broker-controlled side effects,

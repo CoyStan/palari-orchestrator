@@ -76,6 +76,7 @@ role_risk_rank() {
 	R2) printf '2\n' ;;
 	R3) printf '3\n' ;;
 	R4) printf '4\n' ;;
+	R5) printf '5\n' ;;
 	*) return 1 ;;
 	esac
 }

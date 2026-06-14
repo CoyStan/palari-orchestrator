@@ -122,7 +122,7 @@ cmd_ticket_create() {
 		with_contract="true"
 		requires_review="true"
 		;;
-	R3 | R4)
+	R3 | R4 | R5)
 		with_contract="true"
 		requires_review="true"
 		requires_human="true"

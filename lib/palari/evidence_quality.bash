@@ -112,7 +112,7 @@ cmd_evidence_score() {
 	fi
 
 	reviewer="$(find_report_file "$REPORTS_DIR" "$ticket_id" '(^# .*Reviewer Note$|^## Review Result$|^## Required Changes$)' || true)"
-	if [[ "$requires_review" == "true" || "$risk" =~ ^R[234]$ ]]; then
+	if [[ "$requires_review" == "true" || "$risk" =~ ^R[2345]$ ]]; then
 		if [[ -z "$reviewer" ]]; then
 			evidence_score_add 15 missing "fresh reviewer note" "required for review-gated or R2+ work"
 		elif [[ "$(wc -c <"$reviewer" | tr -d ' ')" -lt 200 ]]; then
@@ -125,7 +125,7 @@ cmd_evidence_score() {
 	fi
 
 	human="$(find_report_file "$HUMAN_REPORTS_DIR" "$ticket_id" || true)"
-	if [[ "$requires_human" == "true" || "$risk" =~ ^R[34]$ ]]; then
+	if [[ "$requires_human" == "true" || "$risk" =~ ^R[345]$ ]]; then
 		if [[ -n "$human" ]]; then
 			evidence_score_add 10 ok "human/founder report"
 		else

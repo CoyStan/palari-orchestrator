@@ -20,7 +20,7 @@ forbidden_paths:
   - "**/credentials*"
   - infra/prod/**
   - prod/**
-max_risk: R4
+max_risk: R5
 may_create_roles: true
 may_create_tickets: true
 may_execute_tickets: false

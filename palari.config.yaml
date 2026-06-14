@@ -39,6 +39,7 @@ model_class_r1: fast
 model_class_r2: balanced
 model_class_r3: frontier
 model_class_r4: frontier
+model_class_r5: frontier
 model_class_default: balanced
 
 # model_fast_codex: gpt-5-mini

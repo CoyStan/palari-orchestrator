@@ -167,7 +167,9 @@ helps decide whether that work was allowed, reviewed, evidenced, and accepted.
 5. Accept only when the evidence, scope, and authority gates pass.
 
 Ceremony scales with risk. Small R0/R1 tasks stay short. R2+ work gets stronger
-review and evidence gates. R3/R4 work requires human confirmation.
+review and evidence gates. R3/R4/R5 work requires human confirmation. R5 is
+reserved for governance/kernel/authority changes to Palari or the operating
+boundary.
 
 ## The Operating Loop: Goals In, Decisions Out
 

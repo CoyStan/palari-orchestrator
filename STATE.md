@@ -24,6 +24,10 @@ promise is visible, scoped, reviewable work with explicit human gates.
 
 - Scoped Markdown tickets with `allowed_paths`, `forbidden_paths`, risk,
   priority, status, verification commands, and required reports.
+- R5 is a first-class governance/kernel risk tier. R5 tickets require review
+  and human confirmation, route conservatively, and are reserved for authority,
+  policy, broker, ForgeGate, model allowlist, credential/tool, autonomous
+  acceptance, and risk-definition changes.
 - Claim leases, heartbeats, review state, reopening, blocking, needs-human
   state, and human/authorized acceptance.
 - Scope checks for local and PR-diff paths.

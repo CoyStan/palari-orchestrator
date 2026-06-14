@@ -319,6 +319,15 @@
       ],
       "description": "Model class for R4 work."
     },
+    "model_class_r5": {
+      "type": "string",
+      "enum": [
+        "fast",
+        "balanced",
+        "frontier"
+      ],
+      "description": "Model class for R5 governance/kernel work."
+    },
     "model_class_default": {
       "type": "string",
       "enum": [

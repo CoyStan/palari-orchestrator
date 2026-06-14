@@ -27,6 +27,7 @@ model_class_for_risk() {
 	R2) cfg model_class_r2 "balanced" ;;
 	R3) cfg model_class_r3 "frontier" ;;
 	R4) cfg model_class_r4 "frontier" ;;
+	R5) cfg model_class_r5 "frontier" ;;
 	*) cfg model_class_default "balanced" ;;
 	esac
 }
@@ -84,7 +85,7 @@ cmd_model_routes() {
 	printf 'model routing: %s\n' "$(model_routing_enabled && printf 'enabled' || printf 'disabled')"
 	printf '\nrisk tier -> class\n'
 	local tier
-	for tier in R1 R2 R3 R4; do
+	for tier in R1 R2 R3 R4 R5; do
 		printf '  %-3s -> %s\n' "$tier" "$(model_class_for_risk "$tier")"
 	done
 	printf '\nclass -> model (per executor; blank = executor default)\n'
@@ -148,7 +149,7 @@ usage: palari model SUBCOMMAND
   show TICKET [--executor E]     Resolve the model a ticket would run with.
 
 Routing sends each ticket to the cheapest model class that matches its risk
-tier (R1 -> fast, R2 -> balanced, R3/R4 -> frontier by default). Configure in
+tier (R1 -> fast, R2 -> balanced, R3/R4/R5 -> frontier by default). Configure in
 palari.config.yaml (model_class_rN, model_<class>_<executor>,
 model_routing_enabled). A ticket can override with frontmatter `model_hint`
 (a class name or an exact model string); an explicit `agent run --model`

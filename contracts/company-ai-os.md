@@ -85,7 +85,8 @@ Each family must be documented, lintable, deterministic, and safe when absent.
 ## Risk And Authority Boundary
 
 R5 is reserved for Palari governing itself and the company's operating
-boundary. AI may draft or propose R5 work. AI must not silently enact,
+boundary. AI may draft or propose R5 work. R5 work must be review-gated,
+human-gated, and routed conservatively. AI must not silently enact,
 policy-accept, or self-approve R5 work.
 
 R5 includes:

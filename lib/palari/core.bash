@@ -1,7 +1,7 @@
 # shellcheck shell=bash
 # shellcheck disable=SC2034 # Core globals are consumed by other sourced Palari modules.
 VALID_STATUSES="open claimed blocked needs-human in-review reopened accepted"
-VALID_RISKS="R0 R1 R2 R3 R4"
+VALID_RISKS="R0 R1 R2 R3 R4 R5"
 VALID_PRIORITIES="P0 P1 P2 P3"
 REQUIRED_FIELDS=(
 	id title status risk priority stream allowed_paths forbidden_paths

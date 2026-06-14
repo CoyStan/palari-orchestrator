@@ -721,15 +721,15 @@ cmd_report_lint() {
 		handoff="$(find_report_file "$HANDOFFS_DIR" "$ticket_id" || true)"
 
 		if [[ "$status" == "in-review" || "$status" == "accepted" ]]; then
-			if [[ "$risk" =~ ^R[234]$ && -z "$technical" ]]; then
+			if [[ "$risk" =~ ^R[2345]$ && -z "$technical" ]]; then
 				printf 'report-lint: %s: missing technical/specialist report for %s work\n' "$ticket_id" "$risk" >&2
 				errors=$((errors + 1))
 			fi
-			if [[ ("$requires_review" == "true" || "$risk" =~ ^R[234]$) && -z "$reviewer" ]]; then
+			if [[ ("$requires_review" == "true" || "$risk" =~ ^R[2345]$) && -z "$reviewer" ]]; then
 				printf 'report-lint: %s: missing fresh-context reviewer note\n' "$ticket_id" >&2
 				errors=$((errors + 1))
 			fi
-			if [[ ("$requires_human" == "true" || "$risk" =~ ^R[34]$) && -z "$human" ]]; then
+			if [[ ("$requires_human" == "true" || "$risk" =~ ^R[345]$) && -z "$human" ]]; then
 				printf 'report-lint: %s: missing human/founder report for required human gate\n' "$ticket_id" >&2
 				errors=$((errors + 1))
 			fi
