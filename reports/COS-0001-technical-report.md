@@ -46,7 +46,14 @@ Passed:
 
 ## CI Evidence
 
-Pending local `palari ci COS-0001 --base ticket/COS-0000` evidence bundle.
+Passed with `./bin/palari ci COS-0001 --base ticket/COS-0000`.
+
+Evidence bundle:
+
+- `reports/evidence/COS-0001/verification.log`
+- `reports/evidence/COS-0001/junit.xml`
+- `reports/evidence/COS-0001/palari.sarif`
+- `reports/evidence/COS-0001/manifest.json`
 
 ## Risks / Follow-Ups
 

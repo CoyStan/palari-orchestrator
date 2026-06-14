@@ -1,7 +1,7 @@
 ---
 id: COS-0001
 title: Add R5 governance risk tier
-status: claimed
+status: accepted
 risk: R4
 priority: P2
 stream: process
@@ -10,8 +10,8 @@ model_hint:
 claimed_by: codex
 claimed_at: 2026-06-14T22:17:29Z
 claim_ref: refs/palari/claims/COS-0001
-claim_heartbeat_at: 2026-06-14T22:21:20Z
-claim_expires_at: 2026-06-14T22:26:20Z
+claim_heartbeat_at: 2026-06-14T22:26:27Z
+claim_expires_at: 2026-06-14T22:31:27Z
 allowed_paths:
   - lib/palari/**
   - palari.config.yaml
@@ -52,8 +52,8 @@ verification:
 target_branch: main
 branch: ticket/COS-0001
 worktree:
-accepted_by:
-accepted_at:
+accepted_by: quetza
+accepted_at: 2026-06-14T22:26:45Z
 created: 2026-06-14
 updated: 2026-06-14
 ---

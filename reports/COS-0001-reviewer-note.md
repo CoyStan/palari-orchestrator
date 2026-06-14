@@ -2,7 +2,7 @@
 
 ## Review Result
 
-Decision: accept-ready pending CI evidence.
+Decision: accept-ready.
 
 ## Findings
 
@@ -34,8 +34,6 @@ Passed:
 - `./bin/palari scope-check COS-0001`
 - `git diff --check`
 
-Pending:
-
 - `./bin/palari ci COS-0001 --base ticket/COS-0000`
 
 ## Required Changes
@@ -51,5 +49,5 @@ None identified in the static review.
 
 ## Recommendation
 
-Run CI evidence. If green, move COS-0001 through review and founder acceptance
-bookkeeping, then continue to WFU-0001.
+Move COS-0001 through review and founder acceptance bookkeeping, then continue
+to WFU-0001.

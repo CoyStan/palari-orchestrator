@@ -1,0 +1,53 @@
+# Palari CI Evidence
+
+- Ticket: COS-0001
+- Base ref: ticket/COS-0000
+- Created: 2026-06-14T22:24:44Z
+
+## scope-check
+
+```text
+scope-check: ok for COS-0001 (20 changed path(s))
+```
+
+## lint
+
+```text
+report-lint: ok for COS-0001
+lint: ok for COS-0001
+```
+
+## verification 1
+
+Command: `./tests/run-risks.sh`
+
+```text
+risks: ok
+```
+
+## verification 2
+
+Command: `./tests/run-cli-structure.sh`
+
+```text
+cli-structure: ok
+```
+
+## verification 3
+
+Command: `./tests/run-roles.sh`
+
+```text
+lint: tickets/open/POS-0300-role-governed-docs.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+Preparing worktree (new branch 'ticket/POS-0300')
+roles: ok
+```
+
+## verification 4
+
+Command: `./tests/run-model-routing.sh`
+
+```text
+Preparing worktree (new branch 'ticket/MRT-0001')
+model-routing: ok
+```
