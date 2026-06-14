@@ -31,9 +31,9 @@ simulation. Real policy acceptance is intentionally not implemented.
 
 ## Founder Acceptance
 
-Founder pre-approval from Quetzali covers this marathon's review path. Final
-acceptance should happen only after POL-0001 verification and fresh-context
-review are green.
+Founder pre-approval from Quetzali covers this marathon's review path.
+POL-0001 is ready for acceptance after green verification and accept-ready
+fresh-context review.
 
 ## Recommended Next Move
 

@@ -2,7 +2,7 @@
 
 ## Review Result
 
-Decision: implementation review pending final CI.
+Decision: accept-ready.
 
 ## Findings
 
@@ -15,6 +15,7 @@ Decision: implementation review pending final CI.
   and creation-refused.
 - Unknown conditions are permitted in artifacts but fail closed during
   simulation with a visible reason.
+- CI evidence passed and evidence quality scored 100/100.
 
 ## Verification Reviewed
 
@@ -26,7 +27,9 @@ Passed during implementation:
 - `./tests/run-policy-simulation.sh`
 - `./tests/run-evidence-quality.sh`
 
-Final ticket gates and CI are still pending in this draft note.
+- `./bin/palari scope-check POL-0001 --base ticket/DSH-0001`
+- `./bin/palari ci POL-0001 --base ticket/DSH-0001`
+- `./bin/palari evidence score POL-0001`
 
 ## Required Changes
 
@@ -41,4 +44,4 @@ None identified so far.
 
 ## Recommendation
 
-Run final CI/evidence. If green, update this review to accept-ready.
+Accept POL-0001.

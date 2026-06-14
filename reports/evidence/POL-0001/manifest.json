@@ -1,0 +1,18 @@
+{
+  "schema_version": "1",
+  "generator": "palari-ci",
+  "manifest_file": "manifest.json",
+  "ticket": "POL-0001",
+  "base_ref": "ticket/DSH-0001",
+  "head_sha": "94a656a5c76de270b5164aacb5ba06098523efc5",
+  "created_at": "2026-06-14T23:56:08Z",
+  "status": "passed",
+  "tests": 4,
+  "failures": 0,
+  "skipped": 0,
+  "artifacts": [
+    {"name":"verification.log","sha256":"c85d838438e98d6c318fe65ec5719b7ba0d55899cc8d3e0d9a5f8d3cf56db35e"},
+    {"name":"junit.xml","sha256":"4e2541fcabce4cd6ffb20353f1be7776f75d68d1172998a88a8d9e86755b13b2"},
+    {"name":"palari.sarif","sha256":"17e58a3dc66f661b73250b352c5744a1c55baa08b92c15230c575d1d7e0c3f44"}
+  ]
+}

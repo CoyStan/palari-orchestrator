@@ -1,7 +1,7 @@
 ---
 id: POL-0001
 title: Add policy artifacts and simulation CLI
-status: claimed
+status: accepted
 risk: R5
 priority: P2
 stream: process
@@ -10,8 +10,8 @@ model_hint:
 claimed_by: codex
 claimed_at: 2026-06-14T23:40:22Z
 claim_ref: refs/palari/claims/POL-0001
-claim_heartbeat_at: 2026-06-14T23:51:48Z
-claim_expires_at: 2026-06-14T23:56:48Z
+claim_heartbeat_at: 2026-06-14T23:56:49Z
+claim_expires_at: 2026-06-15T00:01:49Z
 allowed_paths:
   - contracts/**
   - templates/**
@@ -52,8 +52,8 @@ verification:
 target_branch: main
 branch: ticket/POL-0001
 worktree: 
-accepted_by:
-accepted_at:
+accepted_by: quetza
+accepted_at: 2026-06-14T23:56:59Z
 created: 2026-06-14
 updated: 2026-06-14
 ---
