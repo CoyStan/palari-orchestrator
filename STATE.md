@@ -115,6 +115,10 @@ metadata where available.
 
 ## Planned
 
+- Company AI OS infrastructure: workflows above tickets, Human Governance Load
+  scoring, human governance coverage, autonomy ceilings, policy simulation,
+  mock broker evidence, outcome records, and secure governance posture checks.
+  See `contracts/company-ai-os.md`.
 - A richer collaborator orientation surface that can be regenerated or checked
   against shipped files.
 - Stronger stale-worktree and stale-branch recovery guidance.

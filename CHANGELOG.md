@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Added the Company AI OS doctrine contract (COS-0000). The contract records
+  the roadmap boundary for workflows above tickets, Human Governance Load,
+  human governance coverage, policy simulation, broker-controlled side effects,
+  R5 governance/kernel protection, and outcome learning without changing
+  runtime behavior.
 - Imported optional OpenRouter/model-routing support (POS-0056). Tickets can
   resolve to `fast`, `balanced`, or `frontier` model classes by risk tier,
   inspect routing with `palari model routes|show`, override via `model_hint`,
