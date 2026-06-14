@@ -65,6 +65,18 @@ promise is visible, scoped, reviewable work with explicit human gates.
   and autonomy ceiling. It does not move workflows, accept tickets, activate
   policies, run agents, or perform side effects.
 
+### Policy Simulation
+
+- Policy artifacts under `policies/proposed`, `policies/active`, and
+  `policies/revoked` model acceptance rules before they receive any authority.
+- `palari policy create|list|show|lint` manages simulation-only policy
+  artifacts.
+- `palari policy simulate TICKET-ID [--json]` explains `would_accept` or
+  `would_not_accept` from policy conditions, ticket risk, open decisions, and
+  CI evidence without accepting or moving anything.
+- R5 tickets are never policy-eligible, and policy `risk_max: R5` is invalid.
+- Unknown policy conditions fail closed during simulation.
+
 ### Work Isolation
 
 - Ticket branches and worktrees for isolated work.

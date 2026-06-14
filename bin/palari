@@ -110,6 +110,9 @@ source "$PALARI_LIB_DIR/humans.bash"
 palari_require_module "$PALARI_LIB_DIR/burden.bash"
 # shellcheck source=lib/palari/burden.bash
 source "$PALARI_LIB_DIR/burden.bash"
+palari_require_module "$PALARI_LIB_DIR/policies.bash"
+# shellcheck source=lib/palari/policies.bash
+source "$PALARI_LIB_DIR/policies.bash"
 palari_require_module "$PALARI_LIB_DIR/decisions.bash"
 # shellcheck source=lib/palari/decisions.bash
 source "$PALARI_LIB_DIR/decisions.bash"
@@ -173,6 +176,8 @@ commands:
   human adopt|revoke            Human governance profile lifecycle actions.
   human coverage WF-ID [--json] Show human skill coverage for a workflow.
   burden score WF-ID [--json]   Score Human Governance Load for a workflow.
+  policy create|list|show|lint  Manage simulation-only policy artifacts.
+  policy simulate ID [--json]   Explain policy acceptance without accepting.
   decide create|list|show|lint Draft and inspect structured founder decisions.
   decide record ID --choice N --by NAME  Record a human decision outcome.
   run --dry-run [--until blocked] [--goal G] [--json]
@@ -322,6 +327,10 @@ human)
 burden)
 	shift
 	cmd_burden "$@"
+	;;
+policy)
+	shift
+	cmd_policy "$@"
 	;;
 decide | decision)
 	shift

@@ -38,6 +38,12 @@ humans_proposed_dir: humans/proposed
 humans_active_dir: humans/active
 humans_revoked_dir: humans/revoked
 
+# Policy acceptance artifacts start simulation-only. Policy commands can explain
+# what would happen, but cannot accept tickets or move lifecycle state.
+policies_proposed_dir: policies/proposed
+policies_active_dir: policies/active
+policies_revoked_dir: policies/revoked
+
 # Model routing: send each ticket to the cheapest model class that matches its
 # risk tier, so frontier models are reserved for high-risk work. A ticket can
 # override with frontmatter `model_hint` (class or exact model); an explicit

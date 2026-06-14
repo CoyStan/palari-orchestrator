@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Added simulation-only policy artifacts and CLI (POL-0001). Policies now live
+  under `policies/`; `palari policy create|list|show|lint` manages artifacts,
+  and `palari policy simulate TICKET-ID [--json]` explains
+  `would_accept`/`would_not_accept` without accepting work or moving lifecycle
+  state.
 - Added Company Governance cards to the local console (DSH-0001). The read-only
   panel renders `company_os` snapshot state: workflow counts, open HGL,
   R3/R4/R5 decision counts, active human coverage count, missing-skill count,
