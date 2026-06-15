@@ -1,13 +1,13 @@
 # Palari CI Evidence
 
 - Ticket: POS-0060
-- Base ref: local working tree
-- Created: 2026-06-15T11:08:31Z
+- Base ref: HEAD
+- Created: 2026-06-15T20:15:50Z
 
 ## scope-check
 
 ```text
-scope-check: ok for POS-0060 (15 changed path(s))
+scope-check: ok for POS-0060 (0 changed path(s))
 ```
 
 ## lint

@@ -1,13 +1,13 @@
 # Palari CI Evidence
 
 - Ticket: POS-0065
-- Base ref: local working tree
-- Created: 2026-06-15T12:00:51Z
+- Base ref: HEAD
+- Created: 2026-06-15T20:20:39Z
 
 ## scope-check
 
 ```text
-scope-check: ok for POS-0065 (14 changed path(s))
+scope-check: ok for POS-0065 (0 changed path(s))
 ```
 
 ## lint
@@ -23,9 +23,9 @@ Command: `./bin/palari doctor secure`
 
 ```text
 Palari secure governance doctor
-root: /home/quetza/palari-orchestrator-worktrees/POS-0065
+root: /home/quetza/palari-orchestrator-worktrees/POS-0097
 R5 dual-human approval configured: true
-R5 dual-human approval enforced by accept: false
+R5 dual-human approval enforced by accept: true
 Policy acceptance real mode enabled: false
 Policy acceptance simulation-only: true
 Broker real side effects enabled: false

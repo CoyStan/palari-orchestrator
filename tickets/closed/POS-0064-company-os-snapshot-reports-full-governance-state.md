@@ -1,7 +1,7 @@
 ---
 id: POS-0064
 title: Company OS snapshot reports full governance state
-status: in-review
+status: accepted
 risk: R2
 priority: P0
 stream: process
@@ -10,8 +10,8 @@ model_hint:
 claimed_by: Codex
 claimed_at: 2026-06-15T11:46:17Z
 claim_ref: refs/palari/claims/POS-0064
-claim_heartbeat_at: 2026-06-15T11:46:17Z
-claim_expires_at: 2026-06-15T11:51:17Z
+claim_heartbeat_at: 2026-06-15T20:23:24Z
+claim_expires_at: 2026-06-16T20:23:24Z
 allowed_paths:
   - adapters/planning/company_os_snapshot.py
   - adapters/snapshot/**
@@ -51,10 +51,11 @@ verification:
 target_branch: ticket/POS-0063
 branch: ticket/POS-0064
 worktree: 
-accepted_by:
-accepted_at:
+accepted_by: founder
+accepted_at: 2026-06-15T20:23:35Z
 created: 2026-06-15
 updated: 2026-06-15
+acceptance_mode: human
 ---
 
 # POS-0064 Company OS snapshot reports full governance state

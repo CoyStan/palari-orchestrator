@@ -1,7 +1,7 @@
 ---
 id: POS-0060
 title: HGL coverage enforces human authority ceilings
-status: in-review
+status: accepted
 risk: R3
 priority: P0
 stream: process
@@ -10,8 +10,8 @@ model_hint:
 claimed_by: Codex
 claimed_at: 2026-06-15T11:08:02Z
 claim_ref: refs/palari/claims/POS-0060
-claim_heartbeat_at: 2026-06-15T11:08:02Z
-claim_expires_at: 2026-06-15T11:13:02Z
+claim_heartbeat_at: 2026-06-15T20:23:23Z
+claim_expires_at: 2026-06-16T20:23:23Z
 allowed_paths:
   - adapters/planning/hgl.py
   - lib/palari/humans.bash
@@ -53,10 +53,11 @@ verification:
 target_branch: codex/company-ai-os-next-phase
 branch: ticket/POS-0060
 worktree: 
-accepted_by:
-accepted_at:
+accepted_by: founder
+accepted_at: 2026-06-15T20:23:26Z
 created: 2026-06-15
 updated: 2026-06-15
+acceptance_mode: human
 ---
 
 # POS-0060 HGL coverage enforces human authority ceilings

@@ -1,26 +1,31 @@
 ---
-id: POS-0061
-title: Correct HGL evidence weighting
-status: in-review
-risk: R2
+id: POS-0063
+title: Human capacity affects HGL coverage and launch gates
+status: accepted
+risk: R3
 priority: P0
 stream: process
 serves_goal: GOAL-0200
 model_hint: 
 claimed_by: Codex
-claimed_at: 2026-06-15T11:15:47Z
-claim_ref: refs/palari/claims/POS-0061
+claimed_at: 2026-06-15T11:34:18Z
+claim_ref: refs/palari/claims/POS-0063
 claim_heartbeat_at: 2026-06-15T20:08:49Z
 claim_expires_at: 2026-06-16T20:08:49Z
 allowed_paths:
+  - lib/palari/humans.bash
   - adapters/planning/hgl.py
-  - contracts/human-governance-load.md
+  - adapters/planning/workflow_plan.py
+  - contracts/human-governance.md
+  - templates/**
+  - tests/run-human-governance.sh
   - tests/run-human-governance-load.sh
-  - tests/fixtures/golden-flow
-  - tickets/open/POS-0061-correct-hgl-evidence-weighting.md
-  - reports/POS-0061-technical-report.md
-  - reports/POS-0061-reviewer-note.md
-  - reports/evidence/POS-0061/**
+  - tests/run-workflow-planning.sh
+  - tickets/open/POS-0063-human-capacity-affects-hgl-coverage-and-launch-gates.md
+  - reports/POS-0063-technical-report.md
+  - reports/POS-0063-reviewer-note.md
+  - reports/human/POS-0063-human-report.md
+  - reports/evidence/POS-0063/**
 forbidden_paths:
   - .env
   - .env.*
@@ -38,21 +43,24 @@ forbidden_paths:
   - "**/.ssh/**"
   - infra/prod/**
   - prod/**
-requires_human_confirmation: false
+requires_human_confirmation: true
 requires_review: true
 verification:
+  - ./bin/palari human lint
+  - ./tests/run-human-governance.sh
   - ./tests/run-human-governance-load.sh
-  - ./tests/run-company-os-demo.sh
-target_branch: ticket/POS-0060
-branch: ticket/POS-0061
+  - ./tests/run-workflow-planning.sh
+target_branch: ticket/POS-0062
+branch: ticket/POS-0063
 worktree: 
-accepted_by:
-accepted_at:
+accepted_by: founder
+accepted_at: 2026-06-15T20:23:32Z
 created: 2026-06-15
 updated: 2026-06-15
+acceptance_mode: human
 ---
 
-# POS-0061 Correct HGL evidence weighting
+# POS-0063 Human capacity affects HGL coverage and launch gates
 
 ## Goal
 
@@ -69,8 +77,10 @@ List what may change.
 
 ## Verification
 
+- ./bin/palari human lint
+- ./tests/run-human-governance.sh
 - ./tests/run-human-governance-load.sh
-- ./tests/run-company-os-demo.sh
+- ./tests/run-workflow-planning.sh
 
 ## Ticket Completion Contract
 

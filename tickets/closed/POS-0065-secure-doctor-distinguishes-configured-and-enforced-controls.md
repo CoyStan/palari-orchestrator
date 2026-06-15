@@ -1,7 +1,7 @@
 ---
 id: POS-0065
 title: Secure doctor distinguishes configured and enforced controls
-status: in-review
+status: accepted
 risk: R3
 priority: P0
 stream: process
@@ -47,10 +47,11 @@ verification:
 target_branch: ticket/POS-0064
 branch: ticket/POS-0065
 worktree: 
-accepted_by:
-accepted_at:
+accepted_by: founder
+accepted_at: 2026-06-15T20:23:37Z
 created: 2026-06-15
 updated: 2026-06-15
+acceptance_mode: human
 ---
 
 # POS-0065 Secure doctor distinguishes configured and enforced controls

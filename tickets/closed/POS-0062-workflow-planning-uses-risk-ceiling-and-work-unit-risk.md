@@ -1,7 +1,7 @@
 ---
 id: POS-0062
 title: Workflow planning uses risk ceiling and work-unit risk
-status: in-review
+status: accepted
 risk: R3
 priority: P0
 stream: process
@@ -10,8 +10,8 @@ model_hint:
 claimed_by: Codex
 claimed_at: 2026-06-15T11:25:51Z
 claim_ref: refs/palari/claims/POS-0062
-claim_heartbeat_at: 2026-06-15T11:25:51Z
-claim_expires_at: 2026-06-15T11:30:51Z
+claim_heartbeat_at: 2026-06-15T20:23:23Z
+claim_expires_at: 2026-06-16T20:23:23Z
 allowed_paths:
   - adapters/planning/hgl.py
   - adapters/planning/workflow_plan.py
@@ -55,10 +55,11 @@ verification:
 target_branch: ticket/POS-0061
 branch: ticket/POS-0062
 worktree: 
-accepted_by:
-accepted_at:
+accepted_by: founder
+accepted_at: 2026-06-15T20:23:30Z
 created: 2026-06-15
 updated: 2026-06-15
+acceptance_mode: human
 ---
 
 # POS-0062 Workflow planning uses risk ceiling and work-unit risk
