@@ -1,17 +1,17 @@
 ---
 id: POS-0075
 title: Centralize company OS artifact parsing
-status: open
+status: in-review
 risk: R2
 priority: P1
 stream: process
 serves_goal: GOAL-0200
 model_hint: 
-claimed_by:
-claimed_at:
-claim_ref:
-claim_heartbeat_at:
-claim_expires_at:
+claimed_by: codex
+claimed_at: 2026-06-15T13:36:30Z
+claim_ref: refs/palari/claims/POS-0075
+claim_heartbeat_at: 2026-06-15T13:36:30Z
+claim_expires_at: 2026-06-15T13:41:30Z
 allowed_paths:
   - adapters/planning/**
   - tests/run-human-governance-load.sh

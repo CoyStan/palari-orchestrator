@@ -10,49 +10,15 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
+from artifacts import find_frontmatter_file, frontmatter_dict as parse_frontmatter, md_files
+
 
 LOW_RISKS = {"R0", "R1", "R2"}
 HGL_WEIGHTS = {"R0": 1, "R1": 1, "R2": 3}
 
 
-def parse_frontmatter(path: Path) -> dict[str, Any]:
-    text = path.read_text(encoding="utf-8")
-    lines = text.splitlines()
-    if not lines or lines[0] != "---":
-        return {}
-    data: dict[str, Any] = {}
-    key: str | None = None
-    for line in lines[1:]:
-        if line == "---":
-            break
-        if re.match(r"^[A-Za-z0-9_]+:", line):
-            raw_key, raw_value = line.split(":", 1)
-            key = raw_key
-            value = raw_value.strip().strip("\"'")
-            data[key] = value
-            continue
-        if key and re.match(r"^\s*-\s+", line):
-            value = re.sub(r"^\s*-\s+", "", line).strip().strip("\"'")
-            if not isinstance(data.get(key), list):
-                data[key] = []
-            data[key].append(value)
-    return data
-
-
-def md_files(root: Path, rel_dir: str) -> list[Path]:
-    directory = root / rel_dir
-    if not directory.is_dir():
-        return []
-    return sorted(path for path in directory.glob("*.md") if path.name != "README.md")
-
-
 def find_by_id(root: Path, dirs: list[str], artifact_id: str) -> tuple[Path, dict[str, Any]] | None:
-    for rel_dir in dirs:
-        for path in md_files(root, rel_dir):
-            data = parse_frontmatter(path)
-            if data.get("id") == artifact_id:
-                return path, data
-    return None
+    return find_frontmatter_file(root, dirs, artifact_id, required=False)
 
 
 def option_text(decision: dict[str, Any], option: str) -> str:

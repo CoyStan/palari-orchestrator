@@ -10,49 +10,11 @@ import re
 from pathlib import Path
 from typing import Any
 
+from artifacts import find_frontmatter_file, frontmatter_dict as parse_frontmatter, md_files, risk_lte
+
 
 RISK_ORDER = {f"R{i}": i for i in range(6)}
 DEFAULT_POLICY_RISK_MAX = "R2"
-
-
-def parse_frontmatter(path: Path) -> dict[str, Any]:
-    text = path.read_text(encoding="utf-8")
-    lines = text.splitlines()
-    if not lines or lines[0] != "---":
-        return {}
-    data: dict[str, Any] = {}
-    key: str | None = None
-    for line in lines[1:]:
-        if line == "---":
-            break
-        if re.match(r"^[A-Za-z0-9_]+:", line):
-            raw_key, raw_value = line.split(":", 1)
-            key = raw_key
-            value = raw_value.strip().strip("\"'")
-            data[key] = value
-            continue
-        if key and re.match(r"^\s*-\s+", line):
-            value = re.sub(r"^\s*-\s+", "", line).strip().strip("\"'")
-            if not isinstance(data.get(key), list):
-                data[key] = []
-            data[key].append(value)
-    return data
-
-
-def md_files(root: Path, rel_dir: str) -> list[Path]:
-    directory = root / rel_dir
-    if not directory.is_dir():
-        return []
-    return sorted(path for path in directory.glob("*.md") if path.name != "README.md")
-
-
-def find_frontmatter_file(root: Path, dirs: list[str], artifact_id: str) -> tuple[Path, dict[str, Any]]:
-    for rel_dir in dirs:
-        for path in md_files(root, rel_dir):
-            data = parse_frontmatter(path)
-            if data.get("id") == artifact_id:
-                return path, data
-    raise SystemExit(f"error: artifact not found: {artifact_id}")
 
 
 def named_report_exists(root: Path, reports_dir: str, ticket_id: str, suffix: str) -> bool:
@@ -147,10 +109,6 @@ def evidence_score(root: Path, args: argparse.Namespace, ticket_id: str, ticket:
         missing.append("scope-check pass marker")
 
     return score, missing
-
-
-def risk_lte(left: str, right: str) -> bool:
-    return RISK_ORDER.get(left, 99) <= RISK_ORDER.get(right, -1)
 
 
 def policy_risk_allowed_by_default(risk: str) -> bool:

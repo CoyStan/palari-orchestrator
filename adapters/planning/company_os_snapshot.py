@@ -12,6 +12,7 @@ from typing import Any
 
 import hgl
 import policy_candidates
+from artifacts import md_files
 
 
 def read_text(path: pathlib.Path) -> str:
@@ -58,13 +59,6 @@ def cfg(config: dict[str, Any], key: str, default: str) -> str:
     flat = config.get("flat", {})
     value = flat.get(key, "")
     return value if value else default
-
-
-def md_files(root: pathlib.Path, rel: str) -> list[pathlib.Path]:
-    directory = root / rel
-    if not directory.is_dir():
-        return []
-    return sorted(path for path in directory.glob("*.md") if path.name != "README.md")
 
 
 def empty_company_os() -> dict[str, Any]:

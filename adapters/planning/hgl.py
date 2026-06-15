@@ -11,6 +11,8 @@ import re
 import sys
 from dataclasses import dataclass
 
+from artifacts import Artifact, find_artifact, level_number, md_files, parse_frontmatter, parse_skill, risk_number
+
 
 RISKS = ["R0", "R1", "R2", "R3", "R4", "R5"]
 RISK_WEIGHT = {"R0": 0, "R1": 0.25, "R2": 1, "R3": 3, "R4": 8, "R5": 20}
@@ -21,13 +23,6 @@ WEIGHTS = {
     "context": {"low": 0.8, "medium": 1.0, "high": 1.4},
     "evidence": {"none_or_unknown": 1.25, "weak": 1.15, "normal": 1.0, "strong": 0.8},
 }
-
-
-@dataclass(frozen=True)
-class Artifact:
-    path: pathlib.Path
-    fields: dict[str, str]
-    lists: dict[str, list[str]]
 
 
 @dataclass(frozen=True)
@@ -47,69 +42,8 @@ class Human:
     current_open_r5: int
 
 
-def parse_frontmatter(path: pathlib.Path) -> Artifact:
-    text = path.read_text(encoding="utf-8")
-    if not text.startswith("---\n"):
-        raise ValueError(f"{path}: missing frontmatter")
-    end = text.find("\n---", 4)
-    if end == -1:
-        raise ValueError(f"{path}: unterminated frontmatter")
-    fields: dict[str, str] = {}
-    lists: dict[str, list[str]] = {}
-    current_list: str | None = None
-    for raw in text[4:end].splitlines():
-        if not raw.strip():
-            continue
-        if raw.startswith("  - ") and current_list:
-            value = raw[4:].strip()
-            if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
-                value = value[1:-1]
-            lists[current_list].append(value)
-            continue
-        current_list = None
-        if ":" not in raw:
-            continue
-        key, value = raw.split(":", 1)
-        key = key.strip()
-        value = value.strip()
-        if value == "":
-            fields[key] = ""
-            lists.setdefault(key, [])
-            current_list = key
-        else:
-            if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
-                value = value[1:-1]
-            fields[key] = value
-    return Artifact(path=path, fields=fields, lists=lists)
-
-
-def find_artifact(root: pathlib.Path, dirs: list[str], artifact_id: str) -> Artifact:
-    for rel in dirs:
-        directory = root / rel
-        if not directory.exists():
-            continue
-        for path in sorted(directory.glob("*.md")):
-            artifact = parse_frontmatter(path)
-            if artifact.fields.get("id") == artifact_id:
-                return artifact
-    raise SystemExit(f"artifact not found: {artifact_id}")
-
-
 def artifacts_in_dir(root: pathlib.Path, rel: str) -> list[Artifact]:
-    directory = root / rel
-    if not directory.exists():
-        return []
-    return [parse_frontmatter(path) for path in sorted(directory.glob("*.md"))]
-
-
-def level_number(value: str) -> int:
-    match = re.fullmatch(r"L([1-5])", value.strip())
-    return int(match.group(1)) if match else 0
-
-
-def risk_number(value: str) -> int:
-    match = re.fullmatch(r"R([0-5])", value.strip())
-    return int(match.group(1)) if match else -1
+    return [parse_frontmatter(path) for path in md_files(root, rel)]
 
 
 def bool_field(value: str) -> bool:
@@ -122,16 +56,6 @@ def int_field(fields: dict[str, str], key: str, default: int) -> int:
         return int(value) if value != "" else default
     except ValueError:
         return default
-
-
-def parse_skill(value: str) -> tuple[str, int] | None:
-    if ":" not in value:
-        return None
-    skill, level = value.rsplit(":", 1)
-    parsed = level_number(level)
-    if not skill or parsed == 0:
-        return None
-    return skill, parsed
 
 
 def load_active_humans(root: pathlib.Path, active_dir: str) -> list[Human]:
