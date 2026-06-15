@@ -1,7 +1,7 @@
 ---
 id: SEC-0001
 title: Add secure governance doctor
-status: claimed
+status: accepted
 risk: R5
 priority: P2
 stream: process
@@ -10,8 +10,8 @@ model_hint:
 claimed_by: codex
 claimed_at: 2026-06-15T00:19:47Z
 claim_ref: refs/palari/claims/SEC-0001
-claim_heartbeat_at: 2026-06-15T00:21:44Z
-claim_expires_at: 2026-06-15T00:26:44Z
+claim_heartbeat_at: 2026-06-15T00:31:58Z
+claim_expires_at: 2026-06-15T00:36:58Z
 allowed_paths:
   - contracts/**
   - lib/palari/**
@@ -49,8 +49,8 @@ verification:
 target_branch: main
 branch: ticket/SEC-0001
 worktree: 
-accepted_by:
-accepted_at:
+accepted_by: quetza
+accepted_at: 2026-06-15T00:32:19Z
 created: 2026-06-15
 updated: 2026-06-15
 ---

@@ -1,0 +1,49 @@
+# Palari CI Evidence
+
+- Ticket: SEC-0001
+- Base ref: ticket/OUT-0001
+- Created: 2026-06-15T00:30:34Z
+
+## scope-check
+
+```text
+scope-check: ok for SEC-0001 (9 changed path(s))
+```
+
+## lint
+
+```text
+report-lint: ok for SEC-0001
+lint: ok for SEC-0001
+```
+
+## verification 1
+
+Command: `./tests/run-secure-doctor.sh`
+
+```text
+secure-doctor: ok
+```
+
+## verification 2
+
+Command: `./tests/run-gate.sh`
+
+```text
+reports/evidence/GTE-0001/gate/attestations/3ed3aecb5d38dbbcabc091ff4ba57fac910c767c40f965a1892b3e67f02b239b.json
+widening refused: attenuation must narrow scope, never widen it
+run-gate: ok (honest chain accepted; forgery, tamper, same-key review, and missing-kernel acceptance refused)
+```
+
+## verification 3
+
+Command: `./tests/run-gate-kernel.sh`
+
+```text
+...........................
+----------------------------------------------------------------------
+Ran 27 tests in 0.093s
+
+OK
+run-gate-kernel: ok
+```

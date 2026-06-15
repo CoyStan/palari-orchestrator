@@ -18,11 +18,33 @@
 
 ## Verification
 
-Pending.
+Passed during implementation:
+
+- `bash -n lib/palari/init_adopt.bash`
+- `bash -n bin/palari`
+- `./tests/run-secure-doctor.sh`
+- `./tests/run-gate.sh`
+- `./tests/run-gate-kernel.sh`
+- `./bin/palari lint SEC-0001`
+- `./bin/palari report-lint SEC-0001`
+- `git diff --check`
 
 ## CI Evidence
 
-Pending.
+Passed:
+
+- `./bin/palari scope-check SEC-0001 --base ticket/OUT-0001`
+- `./bin/palari ci SEC-0001 --base ticket/OUT-0001`
+- `./bin/palari evidence score SEC-0001`
+
+Evidence bundle:
+
+- `reports/evidence/SEC-0001/verification.log`
+- `reports/evidence/SEC-0001/junit.xml`
+- `reports/evidence/SEC-0001/palari.sarif`
+- `reports/evidence/SEC-0001/manifest.json`
+
+Evidence quality score: 100/100, rating `ready`.
 
 ## Risks / Follow-Ups
 

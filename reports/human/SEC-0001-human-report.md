@@ -32,11 +32,10 @@ acceptance.
 
 ## Founder Acceptance
 
-Founder pre-approval from Quetzali covers this marathon's review path.
-SEC-0001 is ready for acceptance after green verification and accept-ready
-fresh-context review.
+Founder pre-approval from Quetzali covers this marathon's review path. SEC-0001
+was accepted by `quetza` on 2026-06-15 after green verification and
+accept-ready review.
 
 ## Recommended Next Move
 
-Accept SEC-0001 if evidence is clean, then continue to deterministic Company
-OS demo fixtures according to the roadmap.
+Continue to deterministic Company OS demo fixtures according to the roadmap.
