@@ -30,7 +30,20 @@ Passed during implementation:
 
 ## CI Evidence
 
-Pending final `palari ci BRK-0001 --base ticket/POL-0002`.
+Passed:
+
+- `./bin/palari scope-check BRK-0001 --base ticket/POL-0002`
+- `./bin/palari ci BRK-0001 --base ticket/POL-0002`
+- `./bin/palari evidence score BRK-0001`
+
+Evidence bundle:
+
+- `reports/evidence/BRK-0001/verification.log`
+- `reports/evidence/BRK-0001/junit.xml`
+- `reports/evidence/BRK-0001/palari.sarif`
+- `reports/evidence/BRK-0001/manifest.json`
+
+Evidence quality score: 100/100, rating `ready`.
 
 ## Risks / Follow-Ups
 

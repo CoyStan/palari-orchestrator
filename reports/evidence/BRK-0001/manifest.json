@@ -1,0 +1,18 @@
+{
+  "schema_version": "1",
+  "generator": "palari-ci",
+  "manifest_file": "manifest.json",
+  "ticket": "BRK-0001",
+  "base_ref": "ticket/POL-0002",
+  "head_sha": "d48aa483a1c77ace7ff4c37c19107f8fbf6efc04",
+  "created_at": "2026-06-15T00:09:06Z",
+  "status": "passed",
+  "tests": 4,
+  "failures": 0,
+  "skipped": 0,
+  "artifacts": [
+    {"name":"verification.log","sha256":"4045e452dc299bd23d6530421f4a3f3d0cf3769d5110cc22764d74f0e3560ed7"},
+    {"name":"junit.xml","sha256":"4e2541fcabce4cd6ffb20353f1be7776f75d68d1172998a88a8d9e86755b13b2"},
+    {"name":"palari.sarif","sha256":"5db769adbdca0ecd22b1e5259f66e435138dd72ad7f7f3b6ca492a0c1e5069d7"}
+  ]
+}

@@ -1,7 +1,7 @@
 ---
 id: BRK-0001
 title: Add mock broker evidence boundary
-status: claimed
+status: accepted
 risk: R5
 priority: P2
 stream: process
@@ -10,8 +10,8 @@ model_hint:
 claimed_by: codex
 claimed_at: 2026-06-15T00:04:31Z
 claim_ref: refs/palari/claims/BRK-0001
-claim_heartbeat_at: 2026-06-15T00:04:31Z
-claim_expires_at: 2026-06-15T00:09:31Z
+claim_heartbeat_at: 2026-06-15T00:09:43Z
+claim_expires_at: 2026-06-15T00:14:43Z
 allowed_paths:
   - contracts/**
   - adapters/broker/**
@@ -49,8 +49,8 @@ verification:
 target_branch: main
 branch: ticket/BRK-0001
 worktree: 
-accepted_by:
-accepted_at:
+accepted_by: quetza
+accepted_at: 2026-06-15T00:09:54Z
 created: 2026-06-15
 updated: 2026-06-15
 ---

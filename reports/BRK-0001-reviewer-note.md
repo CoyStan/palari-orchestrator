@@ -2,7 +2,7 @@
 
 ## Review Result
 
-Decision: implementation review pending final CI.
+Decision: accept-ready.
 
 ## Findings
 
@@ -13,6 +13,7 @@ Decision: implementation review pending final CI.
   changed paths, and refusal posture.
 - Dangerous command patterns are refused before execution, while refusal
   evidence is still preserved.
+- CI evidence passed and evidence quality scored 100/100.
 
 ## Verification Reviewed
 
@@ -24,7 +25,9 @@ Passed during implementation:
 - `./tests/run-broker-mock.sh`
 - `./tests/run-evidence-quality.sh`
 
-Final ticket gates and CI are still pending in this draft note.
+- `./bin/palari scope-check BRK-0001 --base ticket/POL-0002`
+- `./bin/palari ci BRK-0001 --base ticket/POL-0002`
+- `./bin/palari evidence score BRK-0001`
 
 ## Required Changes
 
@@ -38,4 +41,4 @@ None identified so far.
 
 ## Recommendation
 
-Run final CI/evidence. If green, update this review to accept-ready.
+Accept BRK-0001.
