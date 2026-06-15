@@ -163,8 +163,7 @@ usage: palari COMMAND [ARGS]
 commands:
   init [--ci] [--hooks]        Create configured directories and optional adapters.
   adopt TARGET [--ci] [--hooks] Copy Palari into an existing git repository.
-  doctor [lifecycle|secure|governance]
-                               Check install health, lifecycle, or governance posture.
+  doctor [lifecycle]           Check install health or active ticket lifecycle.
   status [--next]              Show compact orchestration status.
   snapshot --json [--full]     Print the repo-native JSON state model.
   hygiene [--strict]           Classify dirty state and autonomous-ticket drift.
