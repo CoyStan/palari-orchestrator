@@ -17,7 +17,7 @@ mkdir -p "$WORK"
 cd "$WORK"
 chmod +x bin/palari scripts/palari tests/run-company-os-snapshot.sh
 rm -f tickets/open/*.md tickets/closed/*.md reports/*.md reports/human/*.md handoffs/*.md
-rm -rf reports/evidence/* .palari workflows/proposed/*.md workflows/active/*.md workflows/closed/*.md humans/proposed/*.md humans/active/*.md humans/revoked/*.md
+rm -rf reports/evidence/* .palari workflows/proposed/*.md workflows/active/*.md workflows/closed/*.md humans/proposed/*.md humans/active/*.md humans/revoked/*.md decisions/open/*.md decisions/decided/*.md memory/decisions/*.md outcomes/open/*.md outcomes/recorded/*.md policies/proposed/*.md policies/active/*.md policies/revoked/*.md
 
 git init -b main >/dev/null
 git config user.email "snapshot@example.invalid"
