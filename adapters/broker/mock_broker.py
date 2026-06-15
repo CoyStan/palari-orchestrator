@@ -154,6 +154,11 @@ def normalize_repo_path(path: str) -> tuple[str, str]:
     return "/".join(parts) if parts else ".", ""
 
 
+def has_parent_path_segment(path: str) -> bool:
+    clean = path.strip().strip('"').replace("\\", "/")
+    return any(part == ".." for part in clean.split("/"))
+
+
 def path_matches(path: str, pattern: str) -> bool:
     clean_path, path_error = normalize_repo_path(path)
     if path_error:
@@ -248,7 +253,10 @@ def sandbox_command_refusal(command: list[str]) -> str:
     match = SANDBOX_PRINTF_REDIRECT.match(script)
     if not match:
         return "sandbox command refused: only simple `printf ... > relative-repo-path` writes are supported"
-    _, path_error = normalize_repo_path(match.group("target"))
+    target = match.group("target")
+    if has_parent_path_segment(target):
+        return "sandbox command refused: path traversal segments are not supported"
+    _, path_error = normalize_repo_path(target)
     if path_error:
         return f"sandbox command refused: {path_error}"
     return ""

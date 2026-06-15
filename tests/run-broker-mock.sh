@@ -287,6 +287,33 @@ assert data["sandbox_command_policy"] == "simple_printf_redirect_only"
 assert data["broker_exit_code"] == 126
 PY
 
+readme_before_sha="$(sha256sum README.md | awk '{print $1}')"
+if ./bin/palari broker sandbox BRK-0100 -- sh -c 'printf "traversal\n" > tests/../README.md' >"$TMP_ROOT/sandbox-traversal.out" 2>&1; then
+	fail "sandbox broker should refuse traversal paths before execution"
+fi
+readme_after_sha="$(sha256sum README.md | awk '{print $1}')"
+[[ "$readme_before_sha" == "$readme_after_sha" ]] ||
+	fail "sandbox traversal command changed an otherwise allowed path"
+grep -Fq "decision: denied" "$TMP_ROOT/sandbox-traversal.out" ||
+	fail "sandbox traversal denial missing"
+grep -Fq "path traversal segments are not supported" "$TMP_ROOT/sandbox-traversal.out" ||
+	fail "sandbox traversal diagnostic missing"
+traversal_summary="$(find reports/evidence/BRK-0100/broker -name summary.json | sort | tail -n 1)"
+python3 - "$traversal_summary" <<'PY'
+import json
+import sys
+
+data = json.load(open(sys.argv[1]))
+assert data["broker_mode"] == "sandbox"
+assert data["executed"] is False
+assert data["decision"] == "denied"
+assert data["decision_reason"] == "sandbox_command_refused"
+assert data["sandbox_command_policy"] == "simple_printf_redirect_only"
+assert data["broker_exit_code"] == 126
+assert "path traversal segments" in data["refusal_reason"]
+assert data["changed_paths"] == []
+PY
+
 if ./bin/palari broker sandbox BRK-0100 -- sh -c 'printf "secret\n" > .env' >"$TMP_ROOT/sandbox-forbidden.out" 2>&1; then
 	fail "sandbox broker should return nonzero for forbidden path changes"
 fi
