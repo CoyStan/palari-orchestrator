@@ -72,6 +72,143 @@ valid_nonnegative_int() {
 	[[ "$value" =~ ^[0-9]+$ ]]
 }
 
+human_capacity_value() {
+	local file="$1"
+	local current_key="$2"
+	local legacy_key="$3"
+	local default="$4"
+	local value
+	value="$(frontmatter_value "$file" "$current_key")"
+	if [[ -z "$value" && -n "$legacy_key" ]]; then
+		value="$(frontmatter_value "$file" "$legacy_key")"
+	fi
+	[[ -n "$value" ]] && printf '%s\n' "$value" || printf '%s\n' "$default"
+}
+
+human_has_legacy_capacity() {
+	local file="$1"
+	local key value
+	for key in capacity_weekly_hgl capacity_open_r3 capacity_open_r4 capacity_open_r5; do
+		value="$(frontmatter_value "$file" "$key")"
+		[[ -n "$value" ]] && return 0
+	done
+	return 1
+}
+
+human_migrate_capacity_file() {
+	local file="$1"
+	local weekly current_weekly max_r3 current_r3 max_r4 current_r4 max_r5 current_r5
+	local need_weekly="false" need_current_weekly="false" need_max_r3="false" need_current_r3="false"
+	local need_max_r4="false" need_current_r4="false" need_max_r5="false" need_current_r5="false"
+	weekly="$(human_capacity_value "$file" weekly_hgl_budget capacity_weekly_hgl 0)"
+	current_weekly="$(human_capacity_value "$file" current_weekly_hgl "" 0)"
+	max_r3="$(human_capacity_value "$file" max_concurrent_r3 capacity_open_r3 0)"
+	current_r3="$(human_capacity_value "$file" current_open_r3 "" 0)"
+	max_r4="$(human_capacity_value "$file" max_concurrent_r4 capacity_open_r4 0)"
+	current_r4="$(human_capacity_value "$file" current_open_r4 "" 0)"
+	max_r5="$(human_capacity_value "$file" max_concurrent_r5 capacity_open_r5 0)"
+	current_r5="$(human_capacity_value "$file" current_open_r5 "" 0)"
+	[[ -n "$(frontmatter_value "$file" weekly_hgl_budget)" ]] || need_weekly="true"
+	[[ -n "$(frontmatter_value "$file" current_weekly_hgl)" ]] || need_current_weekly="true"
+	[[ -n "$(frontmatter_value "$file" max_concurrent_r3)" ]] || need_max_r3="true"
+	[[ -n "$(frontmatter_value "$file" current_open_r3)" ]] || need_current_r3="true"
+	[[ -n "$(frontmatter_value "$file" max_concurrent_r4)" ]] || need_max_r4="true"
+	[[ -n "$(frontmatter_value "$file" current_open_r4)" ]] || need_current_r4="true"
+	[[ -n "$(frontmatter_value "$file" max_concurrent_r5)" ]] || need_max_r5="true"
+	[[ -n "$(frontmatter_value "$file" current_open_r5)" ]] || need_current_r5="true"
+
+	local tmp="${file}.tmp.$$"
+	awk \
+		-v weekly="$weekly" \
+		-v current_weekly="$current_weekly" \
+		-v max_r3="$max_r3" \
+		-v current_r3="$current_r3" \
+		-v max_r4="$max_r4" \
+		-v current_r4="$current_r4" \
+		-v max_r5="$max_r5" \
+		-v current_r5="$current_r5" \
+		-v need_weekly="$need_weekly" \
+		-v need_current_weekly="$need_current_weekly" \
+		-v need_max_r3="$need_max_r3" \
+		-v need_current_r3="$need_current_r3" \
+		-v need_max_r4="$need_max_r4" \
+		-v need_current_r4="$need_current_r4" \
+		-v need_max_r5="$need_max_r5" \
+		-v need_current_r5="$need_current_r5" '
+function emit_capacity() {
+	if (emitted) return
+	if (need_weekly == "true") print "weekly_hgl_budget: " weekly
+	if (need_current_weekly == "true") print "current_weekly_hgl: " current_weekly
+	if (need_max_r3 == "true") print "max_concurrent_r3: " max_r3
+	if (need_current_r3 == "true") print "current_open_r3: " current_r3
+	if (need_max_r4 == "true") print "max_concurrent_r4: " max_r4
+	if (need_current_r4 == "true") print "current_open_r4: " current_r4
+	if (need_max_r5 == "true") print "max_concurrent_r5: " max_r5
+	if (need_current_r5 == "true") print "current_open_r5: " current_r5
+	emitted = 1
+}
+NR == 1 && $0 == "---" { in_fm = 1; print; next }
+in_fm && $0 ~ /^capacity_(weekly_hgl|open_r[345]):/ { emit_capacity(); next }
+in_fm && need_weekly == "true" && $0 ~ /^weekly_hgl_budget:/ { next }
+in_fm && need_current_weekly == "true" && $0 ~ /^current_weekly_hgl:/ { next }
+in_fm && need_max_r3 == "true" && $0 ~ /^max_concurrent_r3:/ { next }
+in_fm && need_current_r3 == "true" && $0 ~ /^current_open_r3:/ { next }
+in_fm && need_max_r4 == "true" && $0 ~ /^max_concurrent_r4:/ { next }
+in_fm && need_current_r4 == "true" && $0 ~ /^current_open_r4:/ { next }
+in_fm && need_max_r5 == "true" && $0 ~ /^max_concurrent_r5:/ { next }
+in_fm && need_current_r5 == "true" && $0 ~ /^current_open_r5:/ { next }
+in_fm && $0 == "---" { emit_capacity(); in_fm = 0; print; next }
+{ print }
+' "$file" >"$tmp"
+	mv "$tmp" "$file"
+}
+
+cmd_human_migrate_capacity() {
+	local mode="" arg
+	while (($# > 0)); do
+		arg="$1"
+		case "$arg" in
+		--check)
+			[[ -z "$mode" ]] || die "human migrate-capacity accepts exactly one of --check or --write"
+			mode="check"
+			shift
+			;;
+		--write)
+			[[ -z "$mode" ]] || die "human migrate-capacity accepts exactly one of --check or --write"
+			mode="write"
+			shift
+			;;
+		*) die "unknown human migrate-capacity option: $arg" ;;
+		esac
+	done
+	[[ -n "$mode" ]] || die "human migrate-capacity requires --check or --write"
+	if [[ "$mode" == "write" ]]; then
+		require_clean_git_at "$ROOT" "canonical repo"
+	fi
+
+	local file rel count=0
+	while IFS= read -r file; do
+		[[ -n "$file" ]] || continue
+		human_has_legacy_capacity "$file" || continue
+		count=$((count + 1))
+		rel="${file#"$ROOT"/}"
+		if [[ "$mode" == "check" ]]; then
+			printf 'human migrate-capacity: needs migration: %s\n' "$rel"
+		else
+			human_migrate_capacity_file "$file"
+			printf 'human migrate-capacity: migrated: %s\n' "$rel"
+		fi
+	done < <(all_human_files)
+
+	if ((count == 0)); then
+		printf 'human migrate-capacity: ok (no deprecated capacity fields found)\n'
+	elif [[ "$mode" == "check" ]]; then
+		printf 'human migrate-capacity: %s profile(s) need migration\n' "$count"
+	else
+		printf 'human migrate-capacity: migrated %s profile(s)\n' "$count"
+	fi
+}
+
 cmd_human_create() {
 	local id="${1:-}" name="${2:-}"
 	shift 2 || true
@@ -149,10 +286,6 @@ cmd_human_create() {
 		printf 'current_open_r4: 0\n'
 		printf 'max_concurrent_r5: 1\n'
 		printf 'current_open_r5: 0\n'
-		printf 'capacity_weekly_hgl: %s\n' "$capacity_hgl"
-		printf 'capacity_open_r3: 0\n'
-		printf 'capacity_open_r4: 0\n'
-		printf 'capacity_open_r5: 0\n'
 		if ((${#constraints[@]} > 0)); then
 			write_yaml_list constraints "${constraints[@]}"
 		else
@@ -389,6 +522,7 @@ cmd_human() {
 	list | "") cmd_human_list "$@" ;;
 	show) cmd_human_show "$@" ;;
 	lint) cmd_human_lint "$@" ;;
+	migrate-capacity) cmd_human_migrate_capacity "$@" ;;
 	coverage) cmd_human_coverage "$@" ;;
 	org-plan) cmd_human_org_plan "$@" ;;
 	adopt) cmd_human_adopt "$@" ;;
@@ -399,6 +533,7 @@ usage: palari human create HUMAN-ID NAME --skill skill:Lx --role ROLE --capacity
        palari human list
        palari human show HUMAN-ID
        palari human lint [HUMAN-ID]
+       palari human migrate-capacity --check|--write
        palari human coverage WF-ID [--json]
        palari human org-plan [--json]
        palari human adopt HUMAN-ID --by NAME

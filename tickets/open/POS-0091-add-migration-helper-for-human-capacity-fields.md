@@ -1,17 +1,17 @@
 ---
 id: POS-0091
 title: Add migration helper for human capacity fields
-status: open
+status: in-review
 risk: R2
 priority: P2
 stream: process
 serves_goal: GOAL-0200
 model_hint: 
-claimed_by:
-claimed_at:
-claim_ref:
-claim_heartbeat_at:
-claim_expires_at:
+claimed_by: Codex
+claimed_at: 2026-06-15T16:30:29Z
+claim_ref: refs/palari/claims/POS-0091
+claim_heartbeat_at: 2026-06-15T16:37:30Z
+claim_expires_at: 2026-06-15T16:42:30Z
 allowed_paths:
   - lib/palari/humans.bash
   - adapters/planning/**

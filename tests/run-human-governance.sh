@@ -144,6 +144,75 @@ grep -Fq "capacity_weekly_hgl must be a non-negative integer" "$TMP_ROOT/bad-cap
 	fail "capacity diagnostic missing"
 rm -f humans/active/HUMAN-DANA-dana.md
 
+git add .
+git commit -m "human lifecycle fixture state" >/dev/null
+
+cat >humans/active/HUMAN-GRACE-grace.md <<'DOC'
+---
+id: HUMAN-GRACE
+name: Grace
+status: active
+roles:
+  - operations_governor
+skills:
+  - operations:L4
+authority_max_risk: R4
+may_approve_policy_changes: false
+capacity_weekly_hgl: 22
+capacity_open_r3: 3
+capacity_open_r4: 1
+capacity_open_r5: 0
+constraints:
+---
+
+# HUMAN-GRACE Grace
+DOC
+git add humans/active/HUMAN-GRACE-grace.md
+git commit -m "legacy human capacity fixture" >/dev/null
+
+git_before="$(git status --porcelain | sort)"
+./bin/palari human migrate-capacity --check >"$TMP_ROOT/migrate-check.out"
+git_after="$(git status --porcelain | sort)"
+[[ "$git_before" == "$git_after" ]] ||
+	fail "human migrate-capacity --check should not modify files"
+grep -Fq "needs migration: humans/active/HUMAN-GRACE-grace.md" "$TMP_ROOT/migrate-check.out" ||
+	fail "migrate check should report legacy profile"
+grep -Fq "1 profile(s) need migration" "$TMP_ROOT/migrate-check.out" ||
+	fail "migrate check count missing"
+./bin/palari human lint HUMAN-GRACE >"$TMP_ROOT/legacy-lint.out"
+grep -Fq "human lint: ok for HUMAN-GRACE" "$TMP_ROOT/legacy-lint.out" ||
+	fail "legacy capacity profile should remain lint-compatible"
+
+printf 'dirty\n' >dirty-source.txt
+if ./bin/palari human migrate-capacity --write >"$TMP_ROOT/migrate-dirty.out" 2>&1; then
+	fail "human migrate-capacity --write should refuse a dirty repo"
+fi
+grep -Fq "canonical repo has" "$TMP_ROOT/migrate-dirty.out" ||
+	fail "migrate dirty-repo diagnostic missing"
+rm -f dirty-source.txt
+
+./bin/palari human migrate-capacity --write >"$TMP_ROOT/migrate-write.out"
+grep -Fq "migrated: humans/active/HUMAN-GRACE-grace.md" "$TMP_ROOT/migrate-write.out" ||
+	fail "migrate write should report migrated profile"
+grep -Fq "weekly_hgl_budget: 22" humans/active/HUMAN-GRACE-grace.md ||
+	fail "migrate write should set weekly_hgl_budget"
+grep -Fq "current_weekly_hgl: 0" humans/active/HUMAN-GRACE-grace.md ||
+	fail "migrate write should set current_weekly_hgl"
+grep -Fq "max_concurrent_r3: 3" humans/active/HUMAN-GRACE-grace.md ||
+	fail "migrate write should set max_concurrent_r3 from legacy capacity_open_r3"
+grep -Fq "current_open_r5: 0" humans/active/HUMAN-GRACE-grace.md ||
+	fail "migrate write should set current_open_r5"
+if grep -Fq "capacity_" humans/active/HUMAN-GRACE-grace.md; then
+	fail "migrate write should remove deprecated capacity fields"
+fi
+./bin/palari human migrate-capacity --check >"$TMP_ROOT/migrate-clean.out"
+grep -Fq "ok (no deprecated capacity fields found)" "$TMP_ROOT/migrate-clean.out" ||
+	fail "migrate check should be clean after write"
+./bin/palari human lint HUMAN-GRACE >"$TMP_ROOT/migrated-lint.out"
+grep -Fq "human lint: ok for HUMAN-GRACE" "$TMP_ROOT/migrated-lint.out" ||
+	fail "migrated profile should lint"
+rm -f humans/active/HUMAN-GRACE-grace.md
+
 cat >humans/active/HUMAN-ERIN-erin.md <<'DOC'
 ---
 id: HUMAN-ERIN
