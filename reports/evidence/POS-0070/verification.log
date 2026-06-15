@@ -2,7 +2,7 @@
 
 - Ticket: POS-0070
 - Base ref: HEAD
-- Created: 2026-06-15T22:44:36Z
+- Created: 2026-06-15T23:02:04Z
 
 ## scope-check
 
@@ -37,4 +37,5 @@ credentials_available_to_agents: false
 network_or_hosted_api_access: false
 network_isolation_enforced: false
 note: broker run requires --mock or --sandbox and records evidence under reports/evidence/TICKET/broker/.
+sandbox_command_policy: simple_printf_redirect_only
 ```
