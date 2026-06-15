@@ -1,7 +1,7 @@
 ---
 id: POS-0068
 title: Policy simulation is R2 max until broker and R5 controls mature
-status: in-review
+status: accepted
 risk: R2
 priority: P1
 stream: process
@@ -10,8 +10,8 @@ model_hint:
 claimed_by: codex
 claimed_at: 2026-06-15T12:33:48Z
 claim_ref: refs/palari/claims/POS-0068
-claim_heartbeat_at: 2026-06-15T12:38:44Z
-claim_expires_at: 2026-06-15T12:43:44Z
+claim_heartbeat_at: 2026-06-15T22:38:53Z
+claim_expires_at: 2026-06-15T22:43:53Z
 allowed_paths:
   - lib/palari/policies.bash
   - adapters/planning/policy_simulation.py
@@ -50,9 +50,9 @@ verification:
 target_branch: ticket/POS-0067
 branch: ticket/POS-0068
 worktree: 
-accepted_by:
+accepted_by: founder
 acceptance_mode: human
-accepted_at:
+accepted_at: 2026-06-15T22:38:55Z
 created: 2026-06-15
 updated: 2026-06-15
 ---
