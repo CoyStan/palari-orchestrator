@@ -63,3 +63,41 @@ requirement is not satisfied in mixed candidate cases.
 - `reports/evidence/POS-0060/junit.xml`
 - `reports/evidence/POS-0060/palari.sarif`
 - `reports/evidence/POS-0060/manifest.json`
+
+---
+
+## Fresh-Context Re-Review After Repair
+
+Review result: Accept-ready.
+
+Reviewer: Turing subagent, 2026-06-15.
+
+Scope reviewed:
+
+- Latest stacked worktree `/home/quetza/palari-orchestrator-worktrees/POS-0097`.
+- Repair commit `42ddc865c70d9d5b7d5adcaeeccbfceb6af25421`.
+- `adapters/planning/hgl.py`
+- `tests/run-human-governance-load.sh`
+- `reports/evidence/POS-0060/manifest.json`
+- `reports/evidence/POS-0060/verification.log`
+
+Findings:
+
+- No reopen findings.
+- Mixed candidate-state reporting now emits multiple failure messages instead
+  of collapsing to a false single reason.
+- The regression covers the real prior case: one under-authorized
+  `privacy:L5` candidate plus one R5-authorized `privacy:L5` candidate at R5
+  capacity.
+
+Verification:
+
+- `./tests/run-human-governance-load.sh` passed.
+- Refreshed POS-0060 evidence records commit
+  `42ddc865c70d9d5b7d5adcaeeccbfceb6af25421`, status `passed`, 7 tests, 0
+  failures.
+
+Caveat:
+
+- This is stacked-branch evidence refreshed with `--base HEAD`; it attests the
+  final stacked repair commit, not an isolated POS-0060-only branch diff.

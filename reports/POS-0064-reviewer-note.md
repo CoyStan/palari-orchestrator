@@ -82,3 +82,83 @@ upstream issues and the POS-0064 findings above are resolved.
 - `reports/evidence/POS-0064/junit.xml`
 - `reports/evidence/POS-0064/palari.sarif`
 - `reports/evidence/POS-0064/manifest.json`
+
+---
+
+## Fresh-Context Re-Review After Initial Repair
+
+Review result: Reopen.
+
+Reviewer: Hume subagent, 2026-06-15.
+
+Scope reviewed:
+
+- Latest stacked worktree `/home/quetza/palari-orchestrator-worktrees/POS-0097`.
+- Initial repair commit `102779a355f7d96619e4ff701485335328394979`.
+- `adapters/planning/company_os_snapshot.py`
+- `adapters/snapshot/fast_snapshot.py`
+- `lib/palari/adapters_snapshot.bash`
+- `tests/run-company-os-snapshot.sh`
+
+Findings:
+
+- Malformed active workflow, invalid broker summary, invalid outcome, and
+  missing helper fallback now explicitly reported errors or failed closed in
+  the snapshot payload.
+- Remaining P1: dashboard cards `high_risk_decisions`, `missing_skills`, and
+  `bottlenecks` still emitted healthy `ok` zero/empty values when Company OS
+  state was unavailable.
+
+Verification:
+
+- `./tests/run-company-os-snapshot.sh` passed.
+- `./tests/run-dashboard-rubric.sh` passed.
+
+Required follow-up:
+
+- Make those dashboard cards report bad/unknown or explicit error state under
+  unavailable workflow/governance state.
+
+---
+
+## Fresh-Context Re-Review After Dashboard Card Repair
+
+Review result: Accept-ready.
+
+Reviewer: Archimedes subagent, 2026-06-15.
+
+Scope reviewed:
+
+- Latest stacked worktree `/home/quetza/palari-orchestrator-worktrees/POS-0097`.
+- Final repair commit `42ddc865c70d9d5b7d5adcaeeccbfceb6af25421`.
+- `adapters/planning/company_os_snapshot.py`
+- `adapters/snapshot/fast_snapshot.py`
+- `lib/palari/adapters_snapshot.bash`
+- `tests/run-company-os-snapshot.sh`
+- `reports/evidence/POS-0064/manifest.json`
+- `reports/evidence/POS-0064/verification.log`
+
+Findings:
+
+- No blocking findings.
+- Company OS/workflow/governance errors now drive `high_risk_decisions`,
+  `missing_skills`, and `bottlenecks` to `bad`/`unknown` with error detail
+  instead of `ok 0`.
+- Malformed active workflows become red `analysis_error` items with propagated
+  workflow/governance errors.
+- Invalid broker summaries and malformed outcomes produce explicit parse
+  errors.
+- Fast and Bash/helper-missing fallbacks emit explicit error-shaped Company OS
+  objects instead of healthy-empty snapshots.
+
+Verification:
+
+- `./tests/run-company-os-snapshot.sh` passed.
+- Refreshed POS-0064 evidence records commit
+  `42ddc865c70d9d5b7d5adcaeeccbfceb6af25421`, status `passed`, 6 tests, 0
+  failures.
+
+Caveat:
+
+- This is stacked-branch evidence refreshed with `--base HEAD`; it attests the
+  final stacked repair commit, not an isolated POS-0064-only branch diff.

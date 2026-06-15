@@ -77,3 +77,40 @@ also has its own blockers, so the stack is not accept-ready.
 - `reports/evidence/POS-0062/junit.xml`
 - `reports/evidence/POS-0062/palari.sarif`
 - `reports/evidence/POS-0062/manifest.json`
+
+---
+
+## Fresh-Context Re-Review After Repair
+
+Review result: Accept-ready.
+
+Reviewer: Ohm subagent, 2026-06-15.
+
+Scope reviewed:
+
+- Latest stacked worktree `/home/quetza/palari-orchestrator-worktrees/POS-0097`.
+- Repair commit `42ddc865c70d9d5b7d5adcaeeccbfceb6af25421`.
+- `adapters/planning/hgl.py`
+- `tests/run-workflow-planning.sh`
+- `reports/evidence/POS-0062/manifest.json`
+- `reports/evidence/POS-0062/verification.log`
+
+Findings:
+
+- No reopen findings.
+- Uncovered R3 workflow ceiling and R3 work-unit sources now emit
+  `risk_coverage_gaps` when no exception exists.
+- `human_decision_exceptions` suppresses the R3 gap as documented.
+- R4/R5 gap behavior remains independent of the R3 exception path.
+
+Verification:
+
+- `./tests/run-workflow-planning.sh` passed.
+- Refreshed POS-0062 evidence records commit
+  `42ddc865c70d9d5b7d5adcaeeccbfceb6af25421`, status `passed`, 6 tests, 0
+  failures.
+
+Caveat:
+
+- This is stacked-branch evidence refreshed with `--base HEAD`; it attests the
+  final stacked repair commit, not an isolated POS-0062-only branch diff.
