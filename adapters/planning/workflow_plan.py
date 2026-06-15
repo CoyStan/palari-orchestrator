@@ -65,6 +65,8 @@ def recommendations(plan: dict[str, Any]) -> list[str]:
         actions.append(f"create or assign {skill} {level} coverage")
     for role in plan["bottlenecks"]:
         actions.append(f"add backup coverage for bottleneck role {role}")
+    for gap in plan.get("risk_coverage_gaps", []):
+        actions.append(f"add expected human decision coverage: {gap}")
     if plan["launch_gate"] == "red":
         actions.append("keep the workflow in research or simulation until coverage improves")
     if plan["expected_decisions"].get("R4", 0) or plan["expected_decisions"].get("R5", 0):
@@ -106,6 +108,8 @@ def build_plan(root: pathlib.Path, args: argparse.Namespace) -> dict[str, Any]:
         "required_skills": covered_skill_rows(hgl_data),
         "missing_skills": hgl_data["missing_skills"],
         "bottlenecks": hgl_data["bottlenecks"],
+        "risk_sources": hgl_data["risk_sources"],
+        "risk_coverage_gaps": hgl_data["risk_coverage_gaps"],
         "work_units": workflow.lists.get("work_units", []),
         "guardrails": workflow.lists.get("guardrails", []),
     }
@@ -147,6 +151,12 @@ def print_text(plan: dict[str, Any]) -> None:
     print_list("Missing skills", plan["missing_skills"])
     print()
     print_list("Bottlenecks", plan["bottlenecks"])
+    print()
+    print("Risk sources:")
+    for key, value in plan["risk_sources"].items():
+        print(f"- {key}: {value}")
+    print()
+    print_list("Risk coverage gaps", plan["risk_coverage_gaps"])
     print()
     print_list("Recommended next actions", plan["recommended_next_actions"])
     print()

@@ -109,6 +109,13 @@ assert "production_write_without_human" in data["ai_must_not_proceed"]
 assert data["human_governance_load"] == 15
 assert data["expected_decisions"]["R3"] == 1
 assert data["expected_decisions"]["R4"] == 1
+assert data["risk_sources"] == {
+    "workflow_risk_ceiling": "R4",
+    "max_work_unit_risk": "R4",
+    "max_expected_decision_risk": "R4",
+    "max_declared_risk": "R4",
+}
+assert data["risk_coverage_gaps"] == []
 assert data["required_skills"]["product_strategy"]["covered_by"] == ["HUMAN-ALICE"]
 assert data["required_skills"]["analytics"]["covered_by"] == ["HUMAN-BOB"]
 assert any("product_governor" in item for item in data["recommended_next_actions"])
@@ -143,6 +150,28 @@ assert data["missing_skills"] == ["privacy:L5"]
 assert data["ai_can_proceed"] == ["research"]
 assert "draft" in data["ai_must_not_proceed"]
 assert "keep the workflow in research or simulation" in " ".join(data["recommended_next_actions"])
+PY
+
+./bin/palari workflow create WF-0003 "R5 ceiling without decisions" \
+	--goal GOAL-0100 \
+	--owner founder \
+	--risk-ceiling R5 >/dev/null
+./bin/palari workflow adopt WF-0003 --by founder >/dev/null
+./bin/palari workflow plan WF-0003 --json >"$TMP_ROOT/r5-ceiling.json"
+python3 - "$TMP_ROOT/r5-ceiling.json" <<'PY'
+import json
+import sys
+
+data = json.load(open(sys.argv[1]))
+assert data["risk_sources"]["workflow_risk_ceiling"] == "R5", data["risk_sources"]
+assert data["risk_sources"]["max_declared_risk"] == "R5", data["risk_sources"]
+assert data["launch_gate"] == "red", data
+assert data["autonomy_ceiling"] == "simulation_only", data
+assert data["risk_coverage_gaps"] == [
+    "workflow risk ceiling R5 has no expected decision at or above that risk"
+], data["risk_coverage_gaps"]
+assert "full_autonomy" not in data["autonomy_ceiling"]
+assert "high_autonomy" not in data["autonomy_ceiling"]
 PY
 
 printf 'workflow-planning: ok\n'

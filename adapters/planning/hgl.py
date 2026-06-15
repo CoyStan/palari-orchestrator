@@ -220,6 +220,45 @@ def parse_decision(item: str) -> dict[str, object]:
     }
 
 
+def parse_work_unit(item: str) -> dict[str, str]:
+    parts = item.split("|")
+    while len(parts) < 4:
+        parts.append("")
+    unit_id, kind, risk, title = parts[:4]
+    return {"id": unit_id, "kind": kind, "risk": risk, "title": title, "raw": item}
+
+
+def max_risk(values: list[str]) -> str:
+    valid = [value for value in values if risk_number(value) >= 0]
+    if not valid:
+        return "R0"
+    return max(valid, key=risk_number)
+
+
+def has_expected_risk_at_least(counts: dict[str, int], risk: str) -> bool:
+    threshold = risk_number(risk)
+    return any(risk_number(item) >= threshold and count > 0 for item, count in counts.items())
+
+
+def risk_coverage_gaps(
+    workflow_risk_ceiling: str, work_units: list[dict[str, str]], counts: dict[str, int]
+) -> list[str]:
+    gaps: list[str] = []
+    if risk_number(workflow_risk_ceiling) >= 4 and not has_expected_risk_at_least(
+        counts, workflow_risk_ceiling
+    ):
+        gaps.append(
+            f"workflow risk ceiling {workflow_risk_ceiling} has no expected decision at or above that risk"
+        )
+    for unit in work_units:
+        risk = unit.get("risk", "")
+        if risk_number(risk) >= 4 and not has_expected_risk_at_least(counts, risk):
+            gaps.append(
+                f"work unit {unit.get('id', '(unknown)')} {risk} has no expected decision at or above that risk"
+            )
+    return sorted(set(gaps))
+
+
 def human_id(human: Human) -> str:
     return human.artifact.fields.get("id", "")
 
@@ -320,6 +359,8 @@ def analyze(root: pathlib.Path, args: argparse.Namespace) -> dict[str, object]:
         args.workflow,
     )
     humans = load_active_humans(root, args.humans_active_dir)
+    workflow_risk_ceiling = workflow.fields.get("risk_ceiling", "R0") or "R0"
+    work_units = [parse_work_unit(item) for item in workflow.lists.get("work_units", [])]
     decisions = [parse_decision(item) for item in workflow.lists.get("expected_decisions", [])]
     counts = {risk: 0 for risk in RISKS}
     decision_rows: list[dict[str, object]] = []
@@ -370,6 +411,24 @@ def analyze(root: pathlib.Path, args: argparse.Namespace) -> dict[str, object]:
             }
         )
 
+    max_work_unit_risk = max_risk([unit.get("risk", "R0") for unit in work_units])
+    max_expected_decision_risk = max_risk([str(decision["risk"]) for decision in decisions])
+    max_declared_risk = max_risk(
+        [workflow_risk_ceiling, max_work_unit_risk, max_expected_decision_risk]
+    )
+    risk_sources = {
+        "workflow_risk_ceiling": workflow_risk_ceiling,
+        "max_work_unit_risk": max_work_unit_risk,
+        "max_expected_decision_risk": max_expected_decision_risk,
+        "max_declared_risk": max_declared_risk,
+    }
+    planning_gaps = risk_coverage_gaps(workflow_risk_ceiling, work_units, counts)
+    if planning_gaps:
+        if risk_number(max_declared_risk) >= 4:
+            red = True
+        elif risk_number(max_declared_risk) == 3:
+            yellow = True
+
     capacity = sum(human.weekly_hgl_budget for human in humans)
     if capacity and total > capacity:
         yellow = True
@@ -385,11 +444,18 @@ def analyze(root: pathlib.Path, args: argparse.Namespace) -> dict[str, object]:
 
     if gate == "red":
         autonomy = "simulation_only"
-    elif counts["R4"] or counts["R5"]:
+    elif risk_number(max_declared_risk) >= 5:
+        autonomy = (
+            "human_led"
+            if workflow.fields.get("autonomy_target") == "human_led"
+            and has_expected_risk_at_least(counts, "R5")
+            else "simulation_only"
+        )
+    elif risk_number(max_declared_risk) >= 4:
         autonomy = "human_led"
-    elif counts["R3"]:
+    elif risk_number(max_declared_risk) >= 3:
         autonomy = "conditional_autonomy"
-    elif counts["R2"]:
+    elif risk_number(max_declared_risk) >= 2:
         autonomy = "high_autonomy"
     else:
         autonomy = "full_autonomy"
@@ -410,6 +476,8 @@ def analyze(root: pathlib.Path, args: argparse.Namespace) -> dict[str, object]:
         "missing_skills": sorted(missing_skills),
         "coverage_failures": sorted(coverage_failures),
         "bottlenecks": sorted(bottlenecks),
+        "risk_sources": risk_sources,
+        "risk_coverage_gaps": planning_gaps,
         "launch_gate": gate,
         "autonomy_ceiling": autonomy,
         "capacity_weekly_hgl": capacity,
@@ -440,6 +508,12 @@ def print_text(data: dict[str, object], coverage_only: bool) -> None:
         print(f"  - {item}")
     print("bottlenecks:")
     for item in data["bottlenecks"] or ["(none)"]:  # type: ignore[operator]
+        print(f"  - {item}")
+    print("risk_sources:")
+    for key, value in data["risk_sources"].items():  # type: ignore[union-attr]
+        print(f"  {key}: {value}")
+    print("risk_coverage_gaps:")
+    for item in data["risk_coverage_gaps"] or ["(none)"]:  # type: ignore[operator]
         print(f"  - {item}")
     print(f"launch_gate: {data['launch_gate']}")
     print(f"autonomy_ceiling: {data['autonomy_ceiling']}")

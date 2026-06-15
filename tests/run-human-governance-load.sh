@@ -305,7 +305,8 @@ assert row["underleveled"] == []
 assert row["at_capacity"] == []
 assert data["missing_skills"] == []
 assert data["coverage_failures"] == []
-assert data["autonomy_ceiling"] == "human_led"
+assert data["launch_gate"] == "green"
+assert data["autonomy_ceiling"] == "simulation_only"
 PY
 
 printf 'human-governance-load: ok\n'

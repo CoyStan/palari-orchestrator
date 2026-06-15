@@ -38,6 +38,16 @@ Important fields:
 
 R3/R4/R5 expected decisions must name at least one `skill:Lx` requirement.
 
+Risk source rules:
+
+- `risk_ceiling`, every `work_units` risk, and every `expected_decisions` risk
+  contribute to the workflow's maximum declared risk.
+- R4/R5 work units must have an expected human decision at or above that risk.
+- R3 work units without a matching expected decision produce a visible lint
+  warning unless the workflow documents a human decision exception.
+- A workflow with an R5 ceiling or R5 work unit must not be planned as high or
+  full autonomy just because expected decisions are empty.
+
 ## CLI
 
 ```bash
@@ -72,6 +82,9 @@ Workflow lint checks:
 - valid work unit pipe format and risk
 - valid expected-decision risk
 - R3/R4/R5 expected decisions include at least one `skill:Lx`
+- R4/R5 work units have expected decisions at or above the work-unit risk
+- R3 work units without expected decisions are called out as warnings unless
+  an exception is documented
 - frontmatter remains YAML-safe
 
 ## Non-Authority

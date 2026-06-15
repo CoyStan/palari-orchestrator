@@ -11,6 +11,8 @@ HGL reads repo-native artifacts only:
 
 - workflow `expected_decisions` entries from `workflows/proposed`,
   `workflows/active`, and `workflows/closed`
+- workflow `risk_ceiling` and `work_units` risk declarations from the same
+  artifacts
 - active human governance profiles from `humans/active`
 
 The scorer treats folder state and frontmatter as the source of truth. Missing
@@ -122,6 +124,10 @@ The first scorer uses conservative gates:
 
 - red when required R3/R4/R5 skills are missing or underleveled
 - red when an R5 decision lacks L5 coverage
+- red when an R4/R5 workflow risk ceiling or work unit lacks an expected human
+  decision at or above that risk
+- yellow when an R3 risk source lacks an expected human decision and no
+  exception is documented
 - yellow when R3/R4 coverage exists but only one qualified human covers a
   required skill
 - yellow when total HGL exceeds declared active human weekly capacity
@@ -130,10 +136,16 @@ The first scorer uses conservative gates:
 Autonomy ceiling follows the gate and risk shape:
 
 - red workflows are `simulation_only`
-- R4 or R5 workflows are `human_led`
+- R5 workflows are `simulation_only` unless explicitly human-led with R5 human
+  decision coverage
+- R4 workflows are `human_led` or `simulation_only`, never high/full autonomy
 - R3 workflows are `conditional_autonomy`
 - R2 workflows are `high_autonomy`
 - R0/R1-only workflows are `full_autonomy`
+
+Scoring and planning output include `risk_sources` so humans can see whether
+the maximum risk came from workflow ceiling, work units, expected decisions, or
+some combination of them.
 
 Future planner tickets may add richer explanations, but this contract keeps
 the first scorer deterministic and fail-closed.

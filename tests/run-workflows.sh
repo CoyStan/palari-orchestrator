@@ -149,6 +149,54 @@ grep -Fq "work unit WU-0001 invalid risk: R6" "$TMP_ROOT/bad-unit.out" ||
 	fail "invalid work unit risk diagnostic absent"
 rm -f workflows/proposed/WF-0004-invalid-unit.md
 
+cat >workflows/proposed/WF-0005-r3-unit-warning.md <<'DOC'
+---
+id: WF-0005
+title: R3 Unit Warning
+status: proposed
+goal: GOAL-0100
+owner: founder
+risk_ceiling: R3
+autonomy_target: conditional
+work_units:
+  - WU-0001|analysis|R3|Analyze customer-impacting change
+expected_decisions:
+---
+
+# WF-0005 R3 Unit Warning
+DOC
+
+./bin/palari workflow lint WF-0005 >"$TMP_ROOT/r3-unit-warning.out"
+grep -Fq "warning: work unit WU-0001 R3 has no expected decision at or above R3" "$TMP_ROOT/r3-unit-warning.out" ||
+	fail "R3 work unit warning missing"
+grep -Fq "workflow lint: ok for WF-0005" "$TMP_ROOT/r3-unit-warning.out" ||
+	fail "R3 work unit warning should not fail lint"
+rm -f workflows/proposed/WF-0005-r3-unit-warning.md
+
+cat >workflows/proposed/WF-0006-r4-unit-no-decision.md <<'DOC'
+---
+id: WF-0006
+title: R4 Unit No Decision
+status: proposed
+goal: GOAL-0100
+owner: founder
+risk_ceiling: R4
+autonomy_target: conditional
+work_units:
+  - WU-0001|rollout|R4|Roll out a production change
+expected_decisions:
+---
+
+# WF-0006 R4 Unit No Decision
+DOC
+
+if ./bin/palari workflow lint WF-0006 >"$TMP_ROOT/r4-unit-no-decision.out" 2>&1; then
+	fail "R4 work unit without expected decision should fail"
+fi
+grep -Fq "work unit WU-0001 R4 requires expected decision at or above R4" "$TMP_ROOT/r4-unit-no-decision.out" ||
+	fail "R4 work unit decision diagnostic missing"
+rm -f workflows/proposed/WF-0006-r4-unit-no-decision.md
+
 ./bin/palari workflow lint >"$TMP_ROOT/final-lint.out"
 grep -Fq "workflow lint: ok" "$TMP_ROOT/final-lint.out" ||
 	fail "final workflow lint should pass"
