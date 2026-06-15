@@ -1,7 +1,7 @@
 ---
 id: POS-0072
 title: Add local sandbox broker for ticket-scoped repo-file work
-status: in-review
+status: accepted
 risk: R4
 priority: P1
 stream: process
@@ -10,8 +10,8 @@ model_hint:
 claimed_by: codex
 claimed_at: 2026-06-15T13:10:52Z
 claim_ref: refs/palari/claims/POS-0072
-claim_heartbeat_at: 2026-06-15T13:10:52Z
-claim_expires_at: 2026-06-15T13:15:52Z
+claim_heartbeat_at: 2026-06-15T23:27:30Z
+claim_expires_at: 2026-06-15T23:32:30Z
 allowed_paths:
   - adapters/broker/**
   - lib/palari/**
@@ -49,9 +49,9 @@ verification:
 target_branch: main
 branch: ticket/POS-0072
 worktree: 
-accepted_by:
+accepted_by: founder
 acceptance_mode: human
-accepted_at:
+accepted_at: 2026-06-15T23:27:32Z
 created: 2026-06-15
 updated: 2026-06-15
 ---
