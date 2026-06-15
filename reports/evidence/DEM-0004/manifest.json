@@ -1,0 +1,18 @@
+{
+  "schema_version": "1",
+  "generator": "palari-ci",
+  "manifest_file": "manifest.json",
+  "ticket": "DEM-0004",
+  "base_ref": "ticket/SEC-0001",
+  "head_sha": "bf4f25b46d3f6b90638a542216e93de2712f22d1",
+  "created_at": "2026-06-15T00:44:03Z",
+  "status": "passed",
+  "tests": 5,
+  "failures": 0,
+  "skipped": 0,
+  "artifacts": [
+    {"name":"verification.log","sha256":"18fc680c2ae6dbcd9d8b0067e81f541f48dd249245f6ab9983a9e1b546a54732"},
+    {"name":"junit.xml","sha256":"205262d268e9e6ce5090c4816394e33c08c1e07c3152e35271fb9220f8eb5a6a"},
+    {"name":"palari.sarif","sha256":"6ac7413dd664131a9aff7535b36ca22ca59b5674a93c1cbf5ab052619fb43589"}
+  ]
+}

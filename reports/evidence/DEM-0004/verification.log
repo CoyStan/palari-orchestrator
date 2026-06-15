@@ -1,0 +1,43 @@
+# Palari CI Evidence
+
+- Ticket: DEM-0004
+- Base ref: ticket/SEC-0001
+- Created: 2026-06-15T00:43:44Z
+
+## scope-check
+
+```text
+scope-check: ok for DEM-0004 (7 changed path(s))
+```
+
+## lint
+
+```text
+report-lint: ok for DEM-0004
+lint: ok for DEM-0004
+```
+
+## verification 1
+
+Command: `./tests/run-demo.sh`
+
+```text
+lint: tickets/open/DEM-0003-mock-agent-forbidden-path-refusal.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+demo: ok
+```
+
+## verification 2
+
+Command: `./tests/run-company-os-demo.sh`
+
+```text
+company-os-demo: ok
+```
+
+## verification 3
+
+Command: `./bin/palari demo --company-os --force >/tmp/palari-company-demo.out`
+
+```text
+
+```

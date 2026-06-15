@@ -1,7 +1,7 @@
 ---
 id: DEM-0004
 title: Add company OS demo fixtures
-status: claimed
+status: accepted
 risk: R2
 priority: P2
 stream: process
@@ -10,8 +10,8 @@ model_hint:
 claimed_by: codex
 claimed_at: 2026-06-15T00:34:03Z
 claim_ref: refs/palari/claims/DEM-0004
-claim_heartbeat_at: 2026-06-15T00:34:03Z
-claim_expires_at: 2026-06-15T00:39:03Z
+claim_heartbeat_at: 2026-06-15T00:45:13Z
+claim_expires_at: 2026-06-15T00:50:13Z
 allowed_paths:
   - lib/palari/demo.bash
   - workflows/**
@@ -52,8 +52,8 @@ verification:
 target_branch: main
 branch: ticket/DEM-0004
 worktree: 
-accepted_by:
-accepted_at:
+accepted_by: quetza
+accepted_at: 2026-06-15T00:45:25Z
 created: 2026-06-15
 updated: 2026-06-15
 ---
