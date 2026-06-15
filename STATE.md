@@ -74,8 +74,13 @@ promise is visible, scoped, reviewable work with explicit human gates.
 - `palari policy simulate TICKET-ID [--json]` explains `would_accept` or
   `would_not_accept` from policy conditions, ticket risk, open decisions, and
   CI evidence without accepting or moving anything.
+- `palari policy candidates [--json]` suggests conservative simulation policy
+  candidates from repeated decided R0-R2 decisions where the human chose the
+  recommended option.
 - R5 tickets are never policy-eligible, and policy `risk_max: R5` is invalid.
 - Unknown policy conditions fail closed during simulation.
+- Candidate detection never creates or activates policy files automatically,
+  and it excludes R3/R4/R5 decision classes from auto-accept suggestions.
 
 ### Work Isolation
 

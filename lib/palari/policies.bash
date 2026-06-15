@@ -264,6 +264,30 @@ cmd_policy_simulate() {
 	python3 -B "$ROOT/adapters/planning/policy_simulation.py" "${args[@]}"
 }
 
+cmd_policy_candidates() {
+	local json="false" arg
+	while (($# > 0)); do
+		arg="$1"
+		case "$arg" in
+		--json)
+			json="true"
+			shift
+			;;
+		*) die "unknown policy candidates option: $arg" ;;
+		esac
+	done
+	local args=(
+		--root "$ROOT"
+		--tickets-open-dir "$OPEN_DIR"
+		--tickets-closed-dir "$CLOSED_DIR"
+		--decisions-decided-dir "$DECISIONS_DECIDED_DIR"
+	)
+	if [[ "$json" == "true" ]]; then
+		args+=(--json)
+	fi
+	python3 -B "$ROOT/adapters/planning/policy_candidates.py" "${args[@]}"
+}
+
 cmd_policy() {
 	local sub="${1:-list}"
 	shift || true
@@ -273,6 +297,7 @@ cmd_policy() {
 	show) cmd_policy_show "$@" ;;
 	lint) cmd_policy_lint "$@" ;;
 	simulate) cmd_policy_simulate "$@" ;;
+	candidates) cmd_policy_candidates "$@" ;;
 	help | -h | --help)
 		cat <<'USAGE'
 usage: palari policy create POL-ID TITLE --risk-max RISK --mode simulation [--condition CONDITION]
@@ -280,6 +305,7 @@ usage: palari policy create POL-ID TITLE --risk-max RISK --mode simulation [--co
        palari policy show POL-ID
        palari policy lint [POL-ID]
        palari policy simulate TICKET-ID [--json]
+       palari policy candidates [--json]
 
 Policy commands are simulation-only. They never accept tickets or move state.
 USAGE

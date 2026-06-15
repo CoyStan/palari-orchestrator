@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Added conservative policy candidate suggestions (POL-0002). `palari policy
+  candidates [--json]` inspects decided R0-R2 decisions linked to tickets,
+  groups repeated recommendation/chosen-option patterns, estimates rough HGL
+  reduction, and suggests simulation policy creation commands without creating
+  or activating policy files.
 - Added simulation-only policy artifacts and CLI (POL-0001). Policies now live
   under `policies/`; `palari policy create|list|show|lint` manages artifacts,
   and `palari policy simulate TICKET-ID [--json]` explains
