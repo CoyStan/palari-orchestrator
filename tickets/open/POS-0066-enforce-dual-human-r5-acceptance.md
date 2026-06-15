@@ -18,6 +18,7 @@ allowed_paths:
   - lib/palari/evidence_quality.bash
   - lib/palari/init_adopt.bash
   - lib/palari/humans.bash
+  - adapters/snapshot/fast_snapshot.py
   - contracts/company-ai-os.md
   - contracts/human-governance.md
   - contracts/signed-acceptance.md

@@ -2,35 +2,47 @@
 
 ## Review Result
 
-Pending fresh-context review.
+Reopen
 
 ## Findings
 
-No independent fresh-context findings have been recorded yet. Suggested review focus:
-
-- Confirm R5 `palari accept` requires `--by` and `--co-by` when `governance.r5_requires_dual_human: true`.
-- Confirm both acceptors must be distinct active human profiles with R5 authority and `may_approve_policy_changes: true`.
-- Confirm `palari accept` still allows R0-R4 acceptance with the existing `--by` flow.
-- Confirm policy acceptance remains disabled/simulation-only and ForgeGate does not replace human approval.
-- Confirm `doctor secure` now reports `R5 dual-human approval enforced by accept: true`.
+- P1: The POS-0066 blocker repair changed
+  `adapters/snapshot/fast_snapshot.py`, but the POS-0066 scope contract did
+  not list that path in `allowed_paths`. `./bin/palari scope-check POS-0066
+  --base HEAD~1` failed with `adapters/snapshot/fast_snapshot.py` outside
+  allowed paths.
+- Functional R5 behavior looked correct: the fast snapshot/operator next action
+  now showed `./bin/palari accept POS-0066 --by HUMAN-ONE --co-by HUMAN-TWO`;
+  `./bin/palari evidence score POS-0066` was ready and showed the same command.
+- Acceptance enforcement still required `--by` and `--co-by`, distinct active
+  R5 human profiles, `may_approve_policy_changes: true`, and no claimant or
+  implementer acceptor.
+- Policy acceptance remained simulation-only and ForgeGate did not replace
+  human approval.
+- No active R5 human profiles existed for eventual acceptance.
 
 ## Verification Reviewed
 
-Pending fresh-context reviewer verification. Implementation evidence currently includes:
-
-- `./tests/run-risks.sh`
-- `./tests/run-secure-doctor.sh`
-- `./tests/run-gate-kernel.sh`
-- `bats tests/palari_acceptance.bats`
-- Full ticket CI evidence should be present under `reports/evidence/POS-0066/`.
+- Fresh-context review by Erdos subagent on 2026-06-15.
+- Inspected current stacked worktree
+  `/home/quetza/palari-orchestrator-worktrees/POS-0097`.
+- Ran/inspected:
+  - `./bin/palari scope-check POS-0066 --base HEAD~1`
+  - `./bin/palari snapshot --json`
+  - `./bin/palari evidence score POS-0066`
+  - `./bin/palari doctor secure`
 
 ## Required Changes
 
-None recorded yet; pending fresh-context review.
+- Add `adapters/snapshot/fast_snapshot.py` to POS-0066 `allowed_paths`.
+- Refresh POS-0066 evidence against the final repair commit.
+- Re-run fresh-context review.
 
 ## Recommendation
 
-Pending fresh-context review before founder/human acceptance. POS-0066 is R5 and must not be self-accepted by an agent.
+Do not accept POS-0066 until the scope contract includes the changed fast
+snapshot path and evidence/re-review are refreshed. POS-0066 is R5 and must not
+be self-accepted by an agent.
 
 ## Evidence Notes
 
