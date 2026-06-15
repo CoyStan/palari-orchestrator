@@ -115,6 +115,9 @@ for path in sys.argv[1:]:
     assert gov["missing_skills"] == ["privacy:L5"], gov
     assert "product_governor" in gov["bottlenecks"], gov
     assert "WF-0002 exceeds available weekly HGL" in gov["capacity_warnings"], gov
+    assert gov["debt"]["level"] == "high", gov
+    assert gov["debt"]["item_count"] >= 2, gov
+    assert gov["debt"]["highest_leverage_fix"], gov
     autonomy = company["autonomy"]
     assert autonomy["yellow_workflows"] == 1, autonomy
     assert autonomy["red_workflows"] == 1, autonomy

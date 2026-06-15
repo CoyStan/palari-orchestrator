@@ -11,6 +11,7 @@ from types import SimpleNamespace
 from typing import Any
 
 import hgl
+import governance_debt
 import policy_candidates
 from artifacts import md_files
 
@@ -73,6 +74,11 @@ def empty_company_os() -> dict[str, Any]:
             "missing_skills": [],
             "bottlenecks": [],
             "capacity_warnings": [],
+            "debt": {
+                "level": "none",
+                "item_count": 0,
+                "highest_leverage_fix": "No active Human Governance Debt detected for current workflows.",
+            },
         },
         "autonomy": {"green_workflows": 0, "yellow_workflows": 0, "red_workflows": 0},
         "policy": {
@@ -250,6 +256,17 @@ def build_company_os(root: pathlib.Path, config: dict[str, Any] | None = None) -
 
     section["workflows"]["items"] = sorted(items, key=lambda item: item["id"])
     section["humans"]["coverage_gaps"] = sorted(missing_skills)
+    debt_args = SimpleNamespace(
+        workflows_proposed_dir=dirs["workflows_proposed"],
+        workflows_active_dir=dirs["workflows_active"],
+        workflows_closed_dir=dirs["workflows_closed"],
+        humans_active_dir=dirs["humans_active"],
+        tickets_open_dir=dirs["tickets_open"],
+        tickets_closed_dir=dirs["tickets_closed"],
+        decisions_decided_dir=dirs["decisions_decided"],
+        outcomes_recorded_dir=dirs["outcomes_recorded"],
+    )
+    debt = governance_debt.build_debt(root, debt_args)
     section["human_governance"] = {
         "open_hgl_estimate": hgl_total,
         "r3_decisions_open": r3,
@@ -258,6 +275,11 @@ def build_company_os(root: pathlib.Path, config: dict[str, Any] | None = None) -
         "missing_skills": sorted(missing_skills),
         "bottlenecks": sorted(bottlenecks),
         "capacity_warnings": sorted(capacity_warnings),
+        "debt": {
+            "level": debt["level"],
+            "item_count": debt["item_count"],
+            "highest_leverage_fix": debt["highest_leverage_fix"],
+        },
     }
     section["autonomy"] = {
         "green_workflows": autonomy_counts["green"],

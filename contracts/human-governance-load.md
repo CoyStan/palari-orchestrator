@@ -121,6 +121,13 @@ HGL score, required skills, eligible humans, coverage status, and a short list
 of reasons human judgment is required. R5 entries must explicitly remain
 human-governed and must not imply policy acceptance can satisfy the decision.
 
+`palari burden debt` reports Human Governance Debt across active workflows. It
+is a read-only operator report for missing skill coverage, high-risk bottlenecks,
+capacity pressure, weak evidence, policy-candidate opportunities, and R5
+dual-human coverage gaps. The report may summarize a highest-leverage fix, but
+it must not mutate humans, workflows, policies, tickets, outcomes, or weights.
+It is governance capacity planning, not productivity tracking.
+
 Human profiles model governance coverage. They are not employee productivity
 records and do not grant agent execution authority.
 

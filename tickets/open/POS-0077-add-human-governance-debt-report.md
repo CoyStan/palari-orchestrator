@@ -1,17 +1,17 @@
 ---
 id: POS-0077
 title: Add Human Governance Debt report
-status: open
+status: in-review
 risk: R2
 priority: P2
 stream: process
 serves_goal: GOAL-0200
 model_hint: 
-claimed_by:
-claimed_at:
-claim_ref:
-claim_heartbeat_at:
-claim_expires_at:
+claimed_by: Codex
+claimed_at: 2026-06-15T13:56:04Z
+claim_ref: refs/palari/claims/POS-0077
+claim_heartbeat_at: 2026-06-15T13:56:04Z
+claim_expires_at: 2026-06-15T14:01:04Z
 allowed_paths:
   - adapters/planning/**
   - lib/palari/**
@@ -60,15 +60,28 @@ updated: 2026-06-15
 
 ## Goal
 
-State the result this ticket should produce.
+Add a deterministic, read-only Human Governance Debt report for active company
+OS workflows.
 
 ## Scope
 
-List what may change.
+- `palari burden debt [--json]` command wiring.
+- Planning adapter logic for debt detection and prioritization.
+- Snapshot summary reference to the debt report.
+- Human Governance Load contract and focused tests.
+- Ticket reports and evidence.
 
 ## Acceptance
 
-- The scoped result exists.
+- `palari burden debt` prints a readable debt level, debt items, and highest
+  leverage fix.
+- `palari burden debt --json` returns deterministic structured data.
+- The report covers missing skills, high-risk bottlenecks, weak evidence,
+  R5 dual-human coverage gaps, capacity pressure, and policy-candidate
+  opportunities where current repo artifacts expose them.
+- Snapshot includes a compact debt summary.
+- The report remains read-only and does not mutate workflows, humans, tickets,
+  policies, outcomes, evidence, weights, or side effects.
 - Path and risk rules are respected.
 
 ## Verification
@@ -80,19 +93,25 @@ List what may change.
 
 ### Non-Goals
 
-- Nearby work this ticket must not absorb.
+- Do not recalibrate HGL weights.
+- Do not create, accept, or activate policies.
+- Do not create human profiles, workflows, tickets, decisions, or outcomes.
+- Do not add external integrations or broker side effects.
 
 ### Definition Of Done
 
-- Concrete done condition.
+- Operators can inspect current governance debt from the CLI and snapshot
+  without changing repo-native state.
 
 ### Evidence Required
 
-- Report, command, review, screenshot, or manual check to inspect.
+- Technical report, reviewer note, human report, verification log, CI manifest,
+  JUnit, SARIF, and evidence score.
 
 ### Expansion Rules
 
-- Stop if scope, risk, or authority changes.
+- Stop if implementation requires new authority semantics, policy acceptance,
+  employee productivity metrics, or non-read-only behavior.
 
 ### Final Review Gate
 
