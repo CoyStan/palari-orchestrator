@@ -73,4 +73,3 @@ cmd_human_coverage() {
 		hgl_adapter_args "$workflow" --coverage-only
 	fi
 }
-
