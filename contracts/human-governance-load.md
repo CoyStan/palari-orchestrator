@@ -24,6 +24,8 @@ invent authority.
 ```bash
 palari burden score WF-ID
 palari burden score WF-ID --json
+palari burden calibrate
+palari burden calibrate --json
 palari human coverage WF-ID
 palari human coverage WF-ID --json
 ```
@@ -127,6 +129,14 @@ capacity pressure, weak evidence, policy-candidate opportunities, and R5
 dual-human coverage gaps. The report may summarize a highest-leverage fix, but
 it must not mutate humans, workflows, policies, tickets, outcomes, or weights.
 It is governance capacity planning, not productivity tracking.
+
+`palari burden calibrate` reports read-only calibration suggestions from
+recorded outcome impact fields. It compares predicted vs actual HGL, predicted
+vs actual risk, successful policy-candidate outcomes, and evidence references
+associated with lower actual HGL. The report may recommend that a human review
+future HGL weights, risk estimates, evidence templates, or simulation-only
+policy candidates, but it must not change weights, risk tiers, policy state,
+workflow state, human profiles, tickets, outcomes, or authority automatically.
 
 Human profiles model governance coverage. They are not employee productivity
 records and do not grant agent execution authority.

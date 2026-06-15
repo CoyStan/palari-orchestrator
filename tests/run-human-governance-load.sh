@@ -17,7 +17,7 @@ mkdir -p "$WORK"
 cd "$WORK"
 chmod +x bin/palari scripts/palari tests/run-human-governance-load.sh
 rm -f tickets/open/*.md tickets/closed/*.md reports/*.md reports/human/*.md handoffs/*.md
-rm -rf reports/evidence/* .palari workflows/proposed/*.md workflows/active/*.md workflows/closed/*.md humans/proposed/*.md humans/active/*.md humans/revoked/*.md
+rm -rf reports/evidence/* .palari workflows/proposed/*.md workflows/active/*.md workflows/closed/*.md humans/proposed/*.md humans/active/*.md humans/revoked/*.md outcomes/open/*.md outcomes/recorded/*.md
 
 git init -b main >/dev/null
 git config user.email "hgl@example.invalid"
@@ -86,6 +86,26 @@ assert data["capacity"]["weekly_hgl_budget"] == 80
 assert data["capacity"]["current_weekly_hgl"] == 0
 assert data["capacity"]["available_weekly_hgl"] == 80
 assert data["capacity"]["risk_capacity_failures"] == []
+PY
+
+./bin/palari burden calibrate >"$TMP_ROOT/calibration-empty.out"
+grep -Fq "Mode: read-only; no weights or policies were changed." "$TMP_ROOT/calibration-empty.out" ||
+	fail "empty calibration report should be read-only"
+grep -Fq "Outcomes considered: 0" "$TMP_ROOT/calibration-empty.out" ||
+	fail "empty calibration report should count zero outcomes"
+./bin/palari burden calibrate --json >"$TMP_ROOT/calibration-empty.json"
+python3 - "$TMP_ROOT/calibration-empty.json" <<'PY'
+import json
+import sys
+
+data = json.load(open(sys.argv[1]))
+assert data["mode"] == "read_only"
+assert data["weight_changes_applied"] is False
+assert data["policy_changes_applied"] is False
+assert data["outcomes_considered"] == 0
+assert data["overestimated_hgl"] == []
+assert data["underestimated_hgl"] == []
+assert data["risk_mismatches"] == []
 PY
 
 python3 - <<'PY'

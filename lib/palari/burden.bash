@@ -28,6 +28,13 @@ debt_adapter_args() {
 		"$@"
 }
 
+calibration_adapter_args() {
+	python3 "$ROOT/adapters/planning/hgl_calibration.py" \
+		--root "$ROOT" \
+		--outcomes-recorded-dir "$OUTCOMES_RECORDED_DIR" \
+		"$@"
+}
+
 cmd_burden_score() {
 	local workflow="${1:-}"
 	shift || true
@@ -69,20 +76,41 @@ cmd_burden_debt() {
 	fi
 }
 
+cmd_burden_calibrate() {
+	local json="false" arg
+	while (($# > 0)); do
+		arg="$1"
+		case "$arg" in
+		--json)
+			json="true"
+			shift
+			;;
+		*) die "unknown burden calibrate option: $arg" ;;
+		esac
+	done
+	if [[ "$json" == "true" ]]; then
+		calibration_adapter_args --json
+	else
+		calibration_adapter_args
+	fi
+}
+
 cmd_burden() {
 	local sub="${1:-}"
 	shift || true
 	case "$sub" in
 	score) cmd_burden_score "$@" ;;
 	debt) cmd_burden_debt "$@" ;;
+	calibrate) cmd_burden_calibrate "$@" ;;
 	help | -h | --help | "")
 		cat <<'USAGE'
 usage:
   palari burden score WF-ID [--json]
   palari burden debt [--json]
+  palari burden calibrate [--json]
 
-Score Human Governance Load for a workflow or report Human Governance Debt.
-Read-only.
+Score Human Governance Load for a workflow, report Human Governance Debt, or
+suggest outcome-based calibration. Read-only.
 USAGE
 		;;
 	*) die "unknown burden command: $sub" ;;

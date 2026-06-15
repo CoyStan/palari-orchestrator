@@ -1,0 +1,34 @@
+# Palari CI Evidence
+
+- Ticket: POS-0081
+- Base ref: local working tree
+- Created: 2026-06-15T14:42:50Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0081 (16 changed path(s))
+```
+
+## lint
+
+```text
+report-lint: ok for POS-0081
+lint: ok for POS-0081
+```
+
+## verification 1
+
+Command: `./tests/run-human-governance-load.sh`
+
+```text
+human-governance-load: ok
+```
+
+## verification 2
+
+Command: `./tests/run-outcomes.sh`
+
+```text
+outcomes: ok
+```
