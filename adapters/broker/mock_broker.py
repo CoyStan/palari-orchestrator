@@ -47,6 +47,11 @@ def sha256_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+def sha256_json(data: dict[str, Any]) -> str:
+    encoded = json.dumps(data, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return sha256_bytes(encoded)
+
+
 def git_status(root: Path) -> set[str]:
     result = subprocess.run(
         ["git", "-C", str(root), "status", "--porcelain"],
@@ -63,6 +68,40 @@ def git_status(root: Path) -> set[str]:
     return paths
 
 
+def find_ticket_file(root: Path, ticket: str) -> Path | None:
+    for rel_dir in ("tickets/open", "tickets/closed", "tickets/proposed"):
+        for path in sorted((root / rel_dir).glob(f"{ticket}-*.md")):
+            return path
+    return None
+
+
+def ticket_frontmatter(root: Path, ticket: str) -> dict[str, Any]:
+    path = find_ticket_file(root, ticket)
+    if path is None:
+        return {}
+    lines = path.read_text(encoding="utf-8").splitlines()
+    if not lines or lines[0] != "---":
+        return {}
+    data: dict[str, Any] = {}
+    key = ""
+    for line in lines[1:]:
+        if line == "---":
+            break
+        if line.startswith("  - ") and key:
+            data.setdefault(key, []).append(line[4:].strip().strip('"'))
+            continue
+        if ":" not in line or line.startswith(" "):
+            continue
+        raw_key, raw_value = line.split(":", 1)
+        key = raw_key.strip()
+        value = raw_value.strip()
+        if value:
+            data[key] = value.strip('"')
+        else:
+            data[key] = []
+    return data
+
+
 def refusal_reason(command: list[str]) -> str:
     joined = " ".join(command).lower()
     for snippet in DANGEROUS_SNIPPETS:
@@ -75,11 +114,82 @@ def write_json(path: Path, data: dict[str, Any]) -> None:
     path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def action_request(root: Path, ticket: str, command: list[str], out: Path) -> dict[str, Any]:
+    meta = ticket_frontmatter(root, ticket)
+    request_id = f"BRK-REQ-{out.name}"
+    risk = str(meta.get("risk") or "R0")
+    return {
+        "schema_version": "broker-action-request-v1",
+        "request_id": request_id,
+        "actor": "palari-local-broker",
+        "ticket": ticket,
+        "workflow": str(meta.get("workflow") or ""),
+        "risk": risk,
+        "tool": command[0] if command else "",
+        "action": "execute_command",
+        "resource": ".",
+        "side_effect_class": "local_process_observation",
+        "requires_human": risk in {"R3", "R4", "R5"},
+        "requires_policy": False,
+        "allowed_by": ["mock_only_observation", "ticket_exists"],
+        "forbidden_if": [
+            "credential_required",
+            "network_required",
+            "resource_outside_ticket_scope",
+            "forbidden_path",
+            "real_side_effect_requested",
+        ],
+    }
+
+
+def broker_result(
+    request: dict[str, Any],
+    *,
+    reason: str,
+    timed_out: bool,
+    exit_code: int,
+    stdout: bytes,
+    stderr: bytes,
+    changed_paths: list[str],
+) -> dict[str, Any]:
+    if reason:
+        status = "denied"
+        decision_reason = "dangerous_command_refused"
+        decision_reasons = [reason]
+    elif timed_out:
+        status = "failed"
+        decision_reason = "command_timeout"
+        decision_reasons = ["mock broker command timed out"]
+    elif exit_code != 0:
+        status = "failed"
+        decision_reason = "command_failed"
+        decision_reasons = [f"command exited {exit_code}"]
+    else:
+        status = "observed"
+        decision_reason = "mock_broker_observed_command"
+        decision_reasons = ["mock broker observed command"]
+    output_material = stdout + b"\n" + stderr + b"\n" + "\n".join(changed_paths).encode("utf-8")
+    return {
+        "schema_version": "broker-result-v1",
+        "request_id": request["request_id"],
+        "status": status,
+        "decision_reason": decision_reason,
+        "decision_reasons": decision_reasons,
+        "observed_at": now(),
+        "input_hash": sha256_json(request),
+        "output_hash": sha256_bytes(output_material),
+        "changed_resources": changed_paths,
+        "side_effects_enabled": False,
+        "signed_by": "broker-mock",
+    }
+
+
 def run_command(args: argparse.Namespace) -> int:
     root = Path(args.root).resolve()
     out = Path(args.out).resolve()
     command = list(args.command)
     out.mkdir(parents=True, exist_ok=True)
+    request = action_request(root, args.ticket, command, out)
 
     before = git_status(root)
     reason = refusal_reason(command)
@@ -111,6 +221,15 @@ def run_command(args: argparse.Namespace) -> int:
 
     after = git_status(root)
     changed_paths = sorted(after - before)
+    result_record = broker_result(
+        request,
+        reason=reason,
+        timed_out=timed_out,
+        exit_code=exit_code,
+        stdout=stdout,
+        stderr=stderr,
+        changed_paths=changed_paths,
+    )
 
     (out / "stdout.txt").write_bytes(stdout)
     (out / "stderr.txt").write_bytes(stderr)
@@ -126,9 +245,17 @@ def run_command(args: argparse.Namespace) -> int:
         "cwd": str(root),
         "command": command,
     }
+    write_json(out / "request.json", request)
+    write_json(out / "result.json", result_record)
     write_json(out / "command.json", command_record)
     summary = {
         **command_record,
+        "request_id": request["request_id"],
+        "action_request": request,
+        "broker_result": result_record,
+        "status": result_record["status"],
+        "decision_reason": result_record["decision_reason"],
+        "decision_reasons": result_record["decision_reasons"],
         "executed": executed,
         "refused": bool(reason),
         "refusal_reason": reason,
@@ -137,8 +264,14 @@ def run_command(args: argparse.Namespace) -> int:
         "stdout_sha256": sha256_bytes(stdout),
         "stderr_sha256": sha256_bytes(stderr),
         "changed_paths": changed_paths,
+        "changed_resources": changed_paths,
+        "signed_by": result_record["signed_by"],
+        "input_hash": result_record["input_hash"],
+        "output_hash": result_record["output_hash"],
         "artifacts": {
             "command": "command.json",
+            "request": "request.json",
+            "result": "result.json",
             "stdout": "stdout.txt",
             "stderr": "stderr.txt",
             "changed_paths": "changed_paths.txt",

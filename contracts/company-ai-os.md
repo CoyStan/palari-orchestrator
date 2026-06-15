@@ -174,6 +174,14 @@ Broker evidence must distinguish what was observed by the broker from what was
 claimed by an agent, signed by ForgeGate, accepted by a human, or simulated by
 a policy.
 
+Broker requests and results must be explicit artifacts before any future
+side-effect authority is added. A request names the actor, ticket, workflow,
+risk, tool, action, resource, side-effect class, and the authority sources that
+would allow or forbid it. A result records `allowed`, `denied`, `observed`, or
+`failed`, with hashes, changed resources, and `side_effects_enabled: false`
+unless a later R5-approved broker boundary changes that. In the current mock
+mode, `observed` is evidence only and is not a permission grant.
+
 ## Non-Goals For The First Company OS Batch
 
 Do not build these until the supporting safeguards exist and a later ticket

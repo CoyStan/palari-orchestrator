@@ -48,6 +48,21 @@ grep -Fq "ticket not found" "$TMP_ROOT/missing-ticket.out" ||
 grep -Fq "real_side_effects_enabled: false" "$TMP_ROOT/status.out" ||
 	fail "broker status must show side effects disabled"
 
+python3 - "$REPO_ROOT/schemas/broker-action-request.schema.json" "$REPO_ROOT/schemas/broker-result.schema.json" <<'PY'
+import json
+import sys
+
+request_schema = json.load(open(sys.argv[1]))
+result_schema = json.load(open(sys.argv[2]))
+assert request_schema["properties"]["schema_version"]["const"] == "broker-action-request-v1"
+assert "repo_file_write" in request_schema["properties"]["side_effect_class"]["enum"]
+assert "credential_access" in request_schema["properties"]["side_effect_class"]["enum"]
+assert "network_access" in request_schema["properties"]["side_effect_class"]["enum"]
+assert result_schema["properties"]["schema_version"]["const"] == "broker-result-v1"
+assert result_schema["properties"]["status"]["enum"] == ["allowed", "denied", "observed", "failed"]
+assert result_schema["properties"]["side_effects_enabled"]["const"] is False
+PY
+
 ./bin/palari broker run BRK-0100 --mock -- printf "hello broker" >"$TMP_ROOT/run.out"
 grep -Fq "side_effects_enabled: false" "$TMP_ROOT/run.out" ||
 	fail "broker run should print side-effect posture"
@@ -69,11 +84,39 @@ assert data["executed"] is True
 assert data["refused"] is False
 assert data["exit_code"] == 0
 assert data["command"] == ["printf", "hello broker"]
+assert data["request_id"].startswith("BRK-REQ-RUN-")
+assert data["status"] == "observed"
+assert data["decision_reason"] == "mock_broker_observed_command"
+assert data["changed_resources"] == data["changed_paths"]
+assert data["signed_by"] == "broker-mock"
+assert len(data["input_hash"]) == 64
+assert len(data["output_hash"]) == 64
+request = data["action_request"]
+assert request["schema_version"] == "broker-action-request-v1"
+assert request["ticket"] == "BRK-0100"
+assert request["risk"] == "R2"
+assert request["tool"] == "printf"
+assert request["action"] == "execute_command"
+assert request["side_effect_class"] == "local_process_observation"
+assert request["requires_human"] is False
+assert request["requires_policy"] is False
+assert "mock_only_observation" in request["allowed_by"]
+assert "credential_required" in request["forbidden_if"]
+result = data["broker_result"]
+assert result["schema_version"] == "broker-result-v1"
+assert result["request_id"] == request["request_id"]
+assert result["status"] == "observed"
+assert result["side_effects_enabled"] is False
+assert result["signed_by"] == "broker-mock"
 assert len(data["stdout_sha256"]) == 64
 assert len(data["stderr_sha256"]) == 64
 PY
 grep -Fq "hello broker" "$(dirname "$summary")/stdout.txt" ||
 	fail "broker stdout artifact missing command output"
+test -f "$(dirname "$summary")/request.json" ||
+	fail "broker request artifact missing"
+test -f "$(dirname "$summary")/result.json" ||
+	fail "broker result artifact missing"
 
 ./bin/palari broker evidence BRK-0100 >"$TMP_ROOT/evidence.out"
 grep -Fq "Broker evidence for BRK-0100" "$TMP_ROOT/evidence.out" ||
@@ -91,6 +134,7 @@ assert data["ticket"] == "BRK-0100"
 assert data["real_side_effects_enabled"] is False
 assert data["count"] == 1
 assert data["items"][0]["exit_code"] == 0
+assert data["items"][0]["status"] == "observed"
 PY
 
 if ./bin/palari broker run BRK-0100 --mock -- rm -rf /tmp/palari-broker-should-not-run >"$TMP_ROOT/refused.out" 2>&1; then
@@ -109,6 +153,9 @@ refused = [item for item in data["items"] if item["refused"]]
 assert len(refused) == 1
 assert refused[0]["executed"] is False
 assert refused[0]["exit_code"] == 126
+assert refused[0]["status"] == "denied"
+assert refused[0]["decision_reason"] == "dangerous_command_refused"
+assert refused[0]["broker_result"]["status"] == "denied"
 assert "rm -rf" in refused[0]["refusal_reason"]
 PY
 

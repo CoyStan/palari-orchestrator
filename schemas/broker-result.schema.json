@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/CoyStan/palari-orchestrator/schemas/broker-result.schema.json",
+  "title": "Palari Broker Result",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "request_id",
+    "status",
+    "decision_reason",
+    "observed_at",
+    "input_hash",
+    "output_hash",
+    "changed_resources",
+    "side_effects_enabled",
+    "signed_by"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "broker-result-v1"
+    },
+    "request_id": {
+      "type": "string",
+      "pattern": "^BRK-REQ-[A-Za-z0-9._:-]+$"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "allowed",
+        "denied",
+        "observed",
+        "failed"
+      ]
+    },
+    "decision_reason": {
+      "type": "string",
+      "minLength": 1
+    },
+    "decision_reasons": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "observed_at": {
+      "type": "string",
+      "minLength": 1
+    },
+    "input_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "output_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "changed_resources": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "side_effects_enabled": {
+      "const": false
+    },
+    "signed_by": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

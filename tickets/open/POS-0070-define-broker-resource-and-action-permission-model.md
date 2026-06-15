@@ -1,17 +1,17 @@
 ---
 id: POS-0070
 title: Define broker resource and action permission model
-status: open
+status: in-review
 risk: R4
 priority: P1
 stream: process
 serves_goal: GOAL-0200
 model_hint: 
-claimed_by:
-claimed_at:
-claim_ref:
-claim_heartbeat_at:
-claim_expires_at:
+claimed_by: codex
+claimed_at: 2026-06-15T12:54:12Z
+claim_ref: refs/palari/claims/POS-0070
+claim_heartbeat_at: 2026-06-15T12:54:12Z
+claim_expires_at: 2026-06-15T12:59:12Z
 allowed_paths:
   - contracts/broker.md
   - contracts/company-ai-os.md
