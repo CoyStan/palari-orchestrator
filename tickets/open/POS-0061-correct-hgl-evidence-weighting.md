@@ -10,8 +10,8 @@ model_hint:
 claimed_by: Codex
 claimed_at: 2026-06-15T11:15:47Z
 claim_ref: refs/palari/claims/POS-0061
-claim_heartbeat_at: 2026-06-15T11:15:47Z
-claim_expires_at: 2026-06-15T11:20:47Z
+claim_heartbeat_at: 2026-06-15T20:08:49Z
+claim_expires_at: 2026-06-16T20:08:49Z
 allowed_paths:
   - adapters/planning/hgl.py
   - contracts/human-governance-load.md
