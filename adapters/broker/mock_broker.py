@@ -10,9 +10,15 @@ execution.
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import hashlib
+import io
 import json
+import os
+import shutil
 import subprocess
+import tarfile
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -36,6 +42,18 @@ DANGEROUS_SNIPPETS = (
     "gh pr merge",
     "chmod 777",
     "chown ",
+)
+
+SECRET_ENV_EXACT = {
+    "GITHUB_TOKEN",
+    "OPENAI_API_KEY",
+    "ANTHROPIC_API_KEY",
+}
+
+SECRET_ENV_SUFFIXES = (
+    "_TOKEN",
+    "_KEY",
+    "_SECRET",
 )
 
 
@@ -100,6 +118,70 @@ def ticket_frontmatter(root: Path, ticket: str) -> dict[str, Any]:
         else:
             data[key] = []
     return data
+
+
+def path_matches(path: str, pattern: str) -> bool:
+    clean_path = path.removeprefix("./")
+    clean_pattern = pattern.removeprefix("./").strip('"')
+    return fnmatch.fnmatchcase(clean_path, clean_pattern)
+
+
+def changed_path_violations(paths: list[str], meta: dict[str, Any]) -> tuple[list[str], list[str]]:
+    allowed = [str(item) for item in meta.get("allowed_paths", []) if str(item)]
+    forbidden = [str(item) for item in meta.get("forbidden_paths", []) if str(item)]
+    violations: list[str] = []
+    outside_scope: list[str] = []
+    for path in paths:
+        if any(path_matches(path, pattern) for pattern in forbidden):
+            violations.append(path)
+            continue
+        if allowed and not any(path_matches(path, pattern) for pattern in allowed):
+            outside_scope.append(path)
+    return sorted(violations), sorted(outside_scope)
+
+
+def scrubbed_environment() -> dict[str, str]:
+    clean: dict[str, str] = {}
+    for key, value in os.environ.items():
+        if key in SECRET_ENV_EXACT or key.startswith("AWS_") or key.endswith(SECRET_ENV_SUFFIXES):
+            continue
+        clean[key] = value
+    return clean
+
+
+def create_repo_copy(root: Path) -> tuple[Path, Path]:
+    temp_root = Path(tempfile.mkdtemp(prefix="palari-broker-sandbox-"))
+    sandbox = temp_root / "repo"
+    sandbox.mkdir(parents=True, exist_ok=True)
+    archive = subprocess.run(
+        ["git", "-C", str(root), "archive", "--format=tar", "HEAD"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=True,
+    )
+    with tarfile.open(fileobj=io.BytesIO(archive.stdout), mode="r:") as tar:
+        tar.extractall(sandbox)
+    subprocess.run(["git", "-C", str(sandbox), "init", "-b", "sandbox"], stdout=subprocess.DEVNULL, check=True)
+    subprocess.run(["git", "-C", str(sandbox), "config", "user.email", "palari-broker-sandbox@example.invalid"], check=True)
+    subprocess.run(["git", "-C", str(sandbox), "config", "user.name", "Palari Broker Sandbox"], check=True)
+    subprocess.run(["git", "-C", str(sandbox), "add", "."], check=True)
+    subprocess.run(
+        ["git", "-C", str(sandbox), "commit", "-m", "broker sandbox baseline"],
+        stdout=subprocess.DEVNULL,
+        check=True,
+    )
+    return temp_root, sandbox
+
+
+def sandbox_patch(sandbox: Path) -> bytes:
+    subprocess.run(["git", "-C", str(sandbox), "add", "-N", "."], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+    result = subprocess.run(
+        ["git", "-C", str(sandbox), "diff", "--binary"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    )
+    return result.stdout
 
 
 def refusal_reason(command: list[str]) -> str:
@@ -303,6 +385,186 @@ def run_command(args: argparse.Namespace) -> int:
     return 1 if reason else exit_code
 
 
+def run_sandbox(args: argparse.Namespace) -> int:
+    root = Path(args.root).resolve()
+    out = Path(args.out).resolve()
+    command = list(args.command)
+    out.mkdir(parents=True, exist_ok=True)
+    run_id = out.name
+    started_at = now()
+    meta = ticket_frontmatter(root, args.ticket)
+    request = action_request(root, args.ticket, command, out)
+    request["side_effect_class"] = "repo_file_write"
+    request["allowed_by"] = ["local_sandbox_repo_copy", "ticket_scope"]
+
+    reason = refusal_reason(command)
+    stdout = b""
+    stderr = b""
+    exit_code = 126 if reason else 0
+    broker_exit_code = exit_code
+    timed_out = False
+    executed = False
+    changed_paths: list[str] = []
+    forbidden_changes: list[str] = []
+    outside_scope_changes: list[str] = []
+    patch = b""
+    temp_root: Path | None = None
+    sandbox: Path | None = None
+
+    try:
+        if not reason:
+            temp_root, sandbox = create_repo_copy(root)
+            executed = True
+            try:
+                result = subprocess.run(
+                    command,
+                    cwd=sandbox,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    timeout=30,
+                    check=False,
+                    env=scrubbed_environment(),
+                )
+                stdout = result.stdout
+                stderr = result.stderr
+                exit_code = int(result.returncode)
+            except subprocess.TimeoutExpired as exc:
+                stdout = exc.stdout or b""
+                stderr = (exc.stderr or b"") + b"\nlocal sandbox broker timeout after 30 seconds\n"
+                exit_code = 124
+                timed_out = True
+            changed_paths = sorted(git_status(sandbox))
+            forbidden_changes, outside_scope_changes = changed_path_violations(changed_paths, meta)
+            patch = sandbox_patch(sandbox)
+        forbidden_path_changes = sorted(set(forbidden_changes + outside_scope_changes))
+        ended_at = now()
+
+        if reason:
+            decision = "denied"
+            decision_reason = "dangerous_command_refused"
+            decision_reasons = [reason]
+            broker_exit_code = 126
+        elif forbidden_path_changes:
+            decision = "denied_or_violation"
+            decision_reason = "sandbox_scope_violation"
+            decision_reasons = []
+            for path in forbidden_changes:
+                decision_reasons.append(f"forbidden path changed: {path}")
+            for path in outside_scope_changes:
+                decision_reasons.append(f"path outside ticket scope changed: {path}")
+            broker_exit_code = 1
+        elif timed_out:
+            decision = "failed"
+            decision_reason = "command_timeout"
+            decision_reasons = ["local sandbox command timed out"]
+            broker_exit_code = exit_code
+        elif exit_code != 0:
+            decision = "failed"
+            decision_reason = "command_failed"
+            decision_reasons = [f"command exited {exit_code}"]
+            broker_exit_code = exit_code
+        else:
+            decision = "observed_allowed"
+            decision_reason = "sandbox_changes_within_ticket_scope"
+            decision_reasons = ["local sandbox changed only ticket-allowed paths"]
+            broker_exit_code = 0
+
+        result_status = "observed" if decision == "observed_allowed" else "failed" if decision == "failed" else "denied"
+        output_material = stdout + b"\n" + stderr + b"\n" + "\n".join(changed_paths).encode("utf-8")
+        result_record = {
+            "schema_version": "broker-result-v1",
+            "request_id": request["request_id"],
+            "status": result_status,
+            "decision_reason": decision_reason,
+            "decision_reasons": decision_reasons,
+            "observed_at": ended_at,
+            "input_hash": sha256_json(request),
+            "output_hash": sha256_bytes(output_material),
+            "changed_resources": changed_paths,
+            "side_effects_enabled": False,
+            "signed_by": "broker-sandbox",
+        }
+        command_record = {
+            "schema_version": "1",
+            "ticket": args.ticket,
+            "created_at": started_at,
+            "mode": "sandbox",
+            "side_effects_enabled": False,
+            "credentials_available_to_agents": False,
+            "network_or_hosted_api_access": False,
+            "network_isolation_enforced": False,
+            "cwd": str(sandbox or root),
+            "command": command,
+        }
+
+        (out / "stdout.txt").write_bytes(stdout)
+        (out / "stderr.txt").write_bytes(stderr)
+        (out / "changed_paths.txt").write_text("\n".join(changed_paths) + ("\n" if changed_paths else ""), encoding="utf-8")
+        (out / "patch.diff").write_bytes(patch)
+        write_json(out / "request.json", request)
+        write_json(out / "result.json", result_record)
+        write_json(out / "command.json", command_record)
+        summary = {
+            **command_record,
+            "schema_version": "broker-observation-v1",
+            "run_id": run_id,
+            "broker_mode": "sandbox",
+            "boundary_type": "local_sandbox_repo_copy",
+            "working_directory": str(sandbox or root),
+            "started_at": started_at,
+            "ended_at": ended_at,
+            "request_id": request["request_id"],
+            "action_request": request,
+            "broker_result": result_record,
+            "status": result_record["status"],
+            "decision": decision,
+            "decision_reason": decision_reason,
+            "decision_reasons": decision_reasons,
+            "executed": executed,
+            "refused": bool(reason),
+            "refusal_reason": reason,
+            "timed_out": timed_out,
+            "exit_code": exit_code,
+            "broker_exit_code": broker_exit_code,
+            "stdout_sha256": sha256_bytes(stdout),
+            "stderr_sha256": sha256_bytes(stderr),
+            "changed_paths": changed_paths,
+            "changed_resources": changed_paths,
+            "forbidden_path_changes": forbidden_path_changes,
+            "outside_scope_changes": outside_scope_changes,
+            "sandbox_real_repo_mutated": False,
+            "sandbox_retained": False,
+            "signed_by": result_record["signed_by"],
+            "input_hash": result_record["input_hash"],
+            "output_hash": result_record["output_hash"],
+            "artifacts": {
+                "command": "command.json",
+                "request": "request.json",
+                "result": "result.json",
+                "stdout": "stdout.txt",
+                "stderr": "stderr.txt",
+                "changed_paths": "changed_paths.txt",
+                "patch": "patch.diff",
+            },
+        }
+        write_json(out / "summary.json", summary)
+
+        rel = out.relative_to(root)
+        print(f"broker sandbox: {args.ticket}")
+        print(f"decision: {decision}")
+        print(f"exit_code: {exit_code}")
+        print(f"broker_exit_code: {broker_exit_code}")
+        print("side_effects_enabled: false")
+        print("boundary_type: local_sandbox_repo_copy")
+        if forbidden_path_changes:
+            print(f"forbidden_path_changes: {len(forbidden_path_changes)}")
+        print(f"evidence: {rel}")
+        return broker_exit_code
+    finally:
+        if temp_root is not None:
+            shutil.rmtree(temp_root, ignore_errors=True)
+
+
 def evidence_items(root: Path, evidence_dir: str, ticket: str) -> list[dict[str, Any]]:
     broker_dir = root / evidence_dir / ticket / "broker"
     if not broker_dir.is_dir():
@@ -353,6 +615,12 @@ def main() -> int:
     run.add_argument("--out", required=True)
     run.add_argument("command", nargs=argparse.REMAINDER)
 
+    sandbox = sub.add_parser("sandbox")
+    sandbox.add_argument("--root", required=True)
+    sandbox.add_argument("--ticket", required=True)
+    sandbox.add_argument("--out", required=True)
+    sandbox.add_argument("command", nargs=argparse.REMAINDER)
+
     evidence = sub.add_parser("evidence")
     evidence.add_argument("--root", required=True)
     evidence.add_argument("--ticket", required=True)
@@ -360,11 +628,13 @@ def main() -> int:
     evidence.add_argument("--json", action="store_true")
 
     args = parser.parse_args()
-    if args.command_name == "run":
+    if args.command_name in {"run", "sandbox"}:
         if args.command and args.command[0] == "--":
             args.command = args.command[1:]
         if not args.command:
-            raise SystemExit("error: broker run requires a command")
+            raise SystemExit(f"error: broker {args.command_name} requires a command")
+        if args.command_name == "sandbox":
+            return run_sandbox(args)
         return run_command(args)
     return list_evidence(args)
 

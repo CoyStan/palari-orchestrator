@@ -61,10 +61,12 @@ credential_access
 network_access
 ```
 
-For this version, only mock observation is executable. Requests that imply
-external writes, credential access, network access, production mutation, or
-resources outside ticket scope must fail closed until a later R5-approved
-broker boundary authorizes and enforces them.
+For this version, only mock observation and local sandbox repo-copy execution
+are executable. Requests that imply external writes, credential access,
+production mutation, or resources outside ticket scope must fail closed until a
+later R5-approved broker boundary authorizes and enforces them. Local sandbox
+mode scrubs obvious credential environment variables, but it is not a network
+isolation boundary.
 
 The first result schema is:
 
@@ -129,9 +131,27 @@ credentials_available_to_agents: false
 network_or_hosted_api_access: false
 ```
 
+Local sandbox broker observations use:
+
+```yaml
+broker_mode: sandbox
+boundary_type: local_sandbox_repo_copy
+side_effects_enabled: false
+credentials_available_to_agents: false
+network_or_hosted_api_access: false
+network_isolation_enforced: false
+```
+
+Local sandbox mode executes a command in a disposable repo copy, detects changed
+paths, compares them to ticket `allowed_paths` and `forbidden_paths`, writes a
+patch artifact, and deletes the copy. It never copies changes back to the real
+repo. A scoped change records `decision: observed_allowed`. A forbidden or
+outside-scope change records `decision: denied_or_violation` and the broker
+returns nonzero.
+
 ## Evidence Boundary
 
-Mock broker runs write evidence under:
+Mock and local sandbox broker runs write evidence under:
 
 ```text
 reports/evidence/TICKET-ID/broker/RUN-*/
@@ -144,6 +164,7 @@ Each run records:
 - exit code
 - stdout/stderr artifacts and SHA-256 hashes
 - observed changed paths from a cheap git-status diff
+- local sandbox patch artifacts when sandbox mode runs
 - refusal reason when a command is blocked
 - `side_effects_enabled: false`
 
@@ -163,9 +184,10 @@ forbidden_path
 real_side_effect_requested
 ```
 
-Only `dangerous_command_refused` is enforced by the mock broker in this ticket.
-The other reasons are contract vocabulary for later permission-check and
-sandbox tickets.
+`dangerous_command_refused` is enforced before command execution. Local sandbox
+mode also records `sandbox_scope_violation` when changed paths are forbidden or
+outside ticket scope. Other reasons remain contract vocabulary for later
+permission-check tickets.
 
 ## Future Work
 

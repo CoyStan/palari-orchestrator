@@ -35,8 +35,8 @@ git commit -m "broker baseline" >/dev/null
 if ./bin/palari broker run BRK-0100 -- printf hello >"$TMP_ROOT/no-mock.out" 2>&1; then
 	fail "broker run should require --mock"
 fi
-grep -Fq "mock-only" "$TMP_ROOT/no-mock.out" ||
-	fail "missing mock-only diagnostic"
+grep -Fq "mock/sandbox only" "$TMP_ROOT/no-mock.out" ||
+	fail "missing mock/sandbox diagnostic"
 
 if ./bin/palari broker run MISSING-0001 --mock -- printf hello >"$TMP_ROOT/missing-ticket.out" 2>&1; then
 	fail "broker run should require an existing ticket"
@@ -47,6 +47,8 @@ grep -Fq "ticket not found" "$TMP_ROOT/missing-ticket.out" ||
 ./bin/palari broker status >"$TMP_ROOT/status.out"
 grep -Fq "real_side_effects_enabled: false" "$TMP_ROOT/status.out" ||
 	fail "broker status must show side effects disabled"
+grep -Fq "network_isolation_enforced: false" "$TMP_ROOT/status.out" ||
+	fail "broker status must not claim network isolation"
 
 python3 - "$REPO_ROOT/schemas/broker-action-request.schema.json" "$REPO_ROOT/schemas/broker-result.schema.json" <<'PY'
 import json
@@ -170,6 +172,65 @@ assert refused[0]["decision"] == "denied"
 assert refused[0]["decision_reason"] == "dangerous_command_refused"
 assert refused[0]["broker_result"]["status"] == "denied"
 assert "rm -rf" in refused[0]["refusal_reason"]
+PY
+
+./bin/palari broker run BRK-0100 --sandbox -- sh -c 'printf "\nsandbox allowed\n" >> README.md' >"$TMP_ROOT/sandbox-allowed.out"
+grep -Fq "decision: observed_allowed" "$TMP_ROOT/sandbox-allowed.out" ||
+	fail "sandbox allowed decision missing"
+grep -Fq "boundary_type: local_sandbox_repo_copy" "$TMP_ROOT/sandbox-allowed.out" ||
+	fail "sandbox boundary diagnostic missing"
+if grep -Fq "sandbox allowed" README.md; then
+	fail "sandbox broker copied changes back to the real repo"
+fi
+sandbox_summary="$(find reports/evidence/BRK-0100/broker -name summary.json | sort | tail -n 1)"
+python3 - "$sandbox_summary" <<'PY'
+import json
+import sys
+
+data = json.load(open(sys.argv[1]))
+assert data["schema_version"] == "broker-observation-v1"
+assert data["broker_mode"] == "sandbox"
+assert data["mode"] == "sandbox"
+assert data["boundary_type"] == "local_sandbox_repo_copy"
+assert data["side_effects_enabled"] is False
+assert data["credentials_available_to_agents"] is False
+assert data["network_or_hosted_api_access"] is False
+assert data["network_isolation_enforced"] is False
+assert data["decision"] == "observed_allowed"
+assert data["broker_exit_code"] == 0
+assert data["changed_paths"] == ["README.md"]
+assert data["forbidden_path_changes"] == []
+assert data["sandbox_real_repo_mutated"] is False
+assert data["sandbox_retained"] is False
+assert data["broker_result"]["signed_by"] == "broker-sandbox"
+assert data["artifacts"]["patch"] == "patch.diff"
+PY
+grep -Fq "sandbox allowed" "$(dirname "$sandbox_summary")/patch.diff" ||
+	fail "sandbox patch artifact missing allowed change"
+
+if ./bin/palari broker sandbox BRK-0100 -- sh -c 'printf "secret\n" > .env' >"$TMP_ROOT/sandbox-forbidden.out" 2>&1; then
+	fail "sandbox broker should return nonzero for forbidden path changes"
+fi
+grep -Fq "decision: denied_or_violation" "$TMP_ROOT/sandbox-forbidden.out" ||
+	fail "sandbox violation decision missing"
+if test -f .env; then
+	fail "sandbox broker copied forbidden .env back to the real repo"
+fi
+violation_summary="$(find reports/evidence/BRK-0100/broker -name summary.json | sort | tail -n 1)"
+python3 - "$violation_summary" <<'PY'
+import json
+import sys
+
+data = json.load(open(sys.argv[1]))
+assert data["broker_mode"] == "sandbox"
+assert data["decision"] == "denied_or_violation"
+assert data["status"] == "denied"
+assert data["decision_reason"] == "sandbox_scope_violation"
+assert data["broker_exit_code"] != 0
+assert data["changed_paths"] == [".env"]
+assert data["forbidden_path_changes"] == [".env"]
+assert data["outside_scope_changes"] == []
+assert data["sandbox_real_repo_mutated"] is False
 PY
 
 printf 'broker-mock: ok\n'
