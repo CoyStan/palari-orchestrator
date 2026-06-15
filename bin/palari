@@ -231,58 +231,7 @@ commands:
   github ci [--base REF]       Discover PR tickets and run merge-gate Palari CI.
   web [--host HOST] [--port PORT]  Run the optional local web dashboard.
   accept ID --by NAME          Human/authorized-reviewer acceptance gate.
-init options:
-  --ci                         Generate GitHub workflow and ruleset templates.
-  --hooks                      Generate local lefthook config.
-  --all                        Generate all optional adapters.
-  --force                      Overwrite generated adapter files.
-adopt options:
-  --ci                         Also generate GitHub workflow and ruleset templates.
-  --hooks                      Also generate local lefthook config.
-  --all                        Generate all optional adapters.
-  --force                      Overwrite existing copied Palari files.
-  --dry-run                    Print planned writes without copying files.
-authority options:
-  check ACTION                 ACTION is commit, push-branch, open-pr, merge-main, or accept.
-  --user-explicit              Allow user-explicit actions such as solo-founder accept.
-role options:
-  propose ROLE TITLE --by-role PARENT
-  adopt ROLE --by ACTOR
-  revoke ROLE --by ACTOR
-github options:
-  ci --base REF                 Diff changed ticket files against REF...HEAD.
-  ci --repo-only                Explicit non-merge-gate repository check.
-ci options:
-  --base REF                    Diff ticket scope against REF...HEAD.
-  --repo-only                   Explicitly skip ticket scope enforcement.
-propose create options:
-  --intent TEXT                 Founder intent to seed the proposal body.
-  --planner NAME                Planner identity; default human.
-  --model NAME                  Planner model, e.g. deepseek/deepseek-v4-flash.
-  --source TEXT                 Source note, thread, issue, or request id.
-propose adopt options:
-  --ticket ID --title TEXT      Ticket id and optional ticket title override.
-  plus ticket create options below.
-ticket create options:
-  --stream NAME --risk R1 --priority P2 --allowed GLOB --forbidden GLOB --goal GOAL-ID
-  --verify CHECK --review --human --contract --required-report NAME --skill NAME
-  --target-branch main --by-role ROLE-ID --delegate-to-role ROLE-ID
-demo options:
-  --force                      Replace existing fixtures for the selected demo.
-  --agent-refusal              Create a mock executor forbidden-path refusal fixture.
-ticket claim options:
-  --ttl SECONDS                Lease duration; default from claim_lease_seconds.
-  --allow-overlap              Acknowledge overlapping allowed_paths.
-agent run options:
-  --executor opencode|codex|mock  Executor adapter to run.
-  --model PROVIDER/MODEL       Optional executor model id.
-  --prompt TEXT                Optional executor instruction.
-  --scenario NAME              Mock-only: safe, forbidden-path, or outside-scope.
-  --dry-run                    Prepare packet/evidence plan without invoking the executor.
-  --no-gates                   Skip automatic scope-check and ci after executor run.
-skill create options:
-  --description TEXT           Required Agent Skills frontmatter description.
-  --dir DIR                    Optional output dir; default agent-skills.
+Run `palari COMMAND help` for command-specific options.
 USAGE
 }
 
