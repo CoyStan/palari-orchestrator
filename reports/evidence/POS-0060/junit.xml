@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="palari" tests="7" failures="0" skipped="0">
+    <testcase classname="palari" name="scope-check"/>
+    <testcase classname="palari" name="lint"/>
+    <testcase classname="palari" name="verification 1"/>
+    <testcase classname="palari" name="verification 2"/>
+    <testcase classname="palari" name="verification 3"/>
+    <testcase classname="palari" name="verification 4"/>
+    <testcase classname="palari" name="verification 5"/>
+</testsuite>

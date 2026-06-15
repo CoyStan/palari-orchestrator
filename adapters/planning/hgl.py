@@ -35,7 +35,16 @@ class Human:
     artifact: Artifact
     skills: dict[str, int]
     roles: list[str]
-    capacity_hgl: int
+    authority_max_risk: str
+    may_approve_policy_changes: bool
+    current_weekly_hgl: int
+    weekly_hgl_budget: int
+    max_concurrent_r3: int
+    current_open_r3: int
+    max_concurrent_r4: int
+    current_open_r4: int
+    max_concurrent_r5: int
+    current_open_r5: int
 
 
 def parse_frontmatter(path: pathlib.Path) -> Artifact:
@@ -98,6 +107,23 @@ def level_number(value: str) -> int:
     return int(match.group(1)) if match else 0
 
 
+def risk_number(value: str) -> int:
+    match = re.fullmatch(r"R([0-5])", value.strip())
+    return int(match.group(1)) if match else -1
+
+
+def bool_field(value: str) -> bool:
+    return value.strip().lower() == "true"
+
+
+def int_field(fields: dict[str, str], key: str, default: int) -> int:
+    try:
+        value = fields.get(key, "")
+        return int(value) if value != "" else default
+    except ValueError:
+        return default
+
+
 def parse_skill(value: str) -> tuple[str, int] | None:
     if ":" not in value:
         return None
@@ -119,16 +145,46 @@ def load_active_humans(root: pathlib.Path, active_dir: str) -> list[Human]:
             if parsed:
                 skill, level = parsed
                 skills[skill] = max(skills.get(skill, 0), level)
-        try:
-            capacity = int(artifact.fields.get("capacity_weekly_hgl", "0") or "0")
-        except ValueError:
-            capacity = 0
+        weekly_budget = int_field(
+            artifact.fields,
+            "weekly_hgl_budget",
+            int_field(artifact.fields, "capacity_weekly_hgl", 0),
+        )
+        # Legacy capacity_open_rN values were written as 0 by early profile
+        # templates, so a legacy zero means "unspecified" rather than no
+        # capacity. Explicit max_concurrent_rN fields are authoritative.
+        max_r3 = int_field(
+            artifact.fields,
+            "max_concurrent_r3",
+            max(1, int_field(artifact.fields, "capacity_open_r3", 6)),
+        )
+        max_r4 = int_field(
+            artifact.fields,
+            "max_concurrent_r4",
+            max(1, int_field(artifact.fields, "capacity_open_r4", 2)),
+        )
+        max_r5 = int_field(
+            artifact.fields,
+            "max_concurrent_r5",
+            max(1, int_field(artifact.fields, "capacity_open_r5", 1)),
+        )
         humans.append(
             Human(
                 artifact=artifact,
                 skills=skills,
                 roles=artifact.lists.get("roles", []),
-                capacity_hgl=capacity,
+                authority_max_risk=artifact.fields.get("authority_max_risk", "R0") or "R0",
+                may_approve_policy_changes=bool_field(
+                    artifact.fields.get("may_approve_policy_changes", "false")
+                ),
+                current_weekly_hgl=int_field(artifact.fields, "current_weekly_hgl", 0),
+                weekly_hgl_budget=weekly_budget,
+                max_concurrent_r3=max_r3,
+                current_open_r3=int_field(artifact.fields, "current_open_r3", 0),
+                max_concurrent_r4=max_r4,
+                current_open_r4=int_field(artifact.fields, "current_open_r4", 0),
+                max_concurrent_r5=max_r5,
+                current_open_r5=int_field(artifact.fields, "current_open_r5", 0),
             )
         )
     return humans
@@ -164,20 +220,70 @@ def parse_decision(item: str) -> dict[str, object]:
     }
 
 
-def coverage_for(required: list[tuple[str, int]], humans: list[Human]) -> tuple[list[dict[str, object]], str]:
+def human_id(human: Human) -> str:
+    return human.artifact.fields.get("id", "")
+
+
+def human_can_cover_risk(human: Human, risk: str) -> bool:
+    return risk_number(human.authority_max_risk) >= risk_number(risk)
+
+
+def human_at_risk_capacity(human: Human, risk: str) -> bool:
+    if risk == "R3":
+        return human.current_open_r3 >= human.max_concurrent_r3
+    if risk == "R4":
+        return human.current_open_r4 >= human.max_concurrent_r4
+    if risk == "R5":
+        return human.current_open_r5 >= human.max_concurrent_r5
+    return False
+
+
+def coverage_failure(skill: str, level: int, decision_risk: str, row: dict[str, object]) -> str:
+    label = f"{skill}:L{level}"
+    if row["under_authorized"]:
+        return f"{label} has candidates but none with {decision_risk} authority"
+    if row["at_capacity"]:
+        return f"{label} has authorized candidates but all are at risk capacity"
+    if row["underleveled"]:
+        return f"{label} has humans with the skill but below the required level"
+    return f"{label} has no active human candidates"
+
+
+def coverage_for(
+    required: list[tuple[str, int]], humans: list[Human], decision_risk: str
+) -> tuple[list[dict[str, object]], str]:
     rows: list[dict[str, object]] = []
     scarcity = "covered_by_two_or_more"
     for skill, level in required:
-        covering = [
-            human
-            for human in humans
-            if human.skills.get(skill, 0) >= level
-        ]
+        covering: list[Human] = []
+        under_authorized: list[Human] = []
+        underleveled: list[Human] = []
+        at_capacity: list[Human] = []
+        for human in humans:
+            human_level = human.skills.get(skill, 0)
+            if human_level == 0:
+                continue
+            if human_level < level:
+                underleveled.append(human)
+                continue
+            if not human_can_cover_risk(human, decision_risk):
+                under_authorized.append(human)
+                continue
+            if decision_risk == "R5" and not human.may_approve_policy_changes:
+                under_authorized.append(human)
+                continue
+            if human_at_risk_capacity(human, decision_risk):
+                at_capacity.append(human)
+                continue
+            covering.append(human)
         rows.append(
             {
                 "skill": skill,
                 "level": f"L{level}",
-                "covered_by": [human.artifact.fields.get("id", "") for human in covering],
+                "covered_by": [human_id(human) for human in covering],
+                "under_authorized": [human_id(human) for human in under_authorized],
+                "underleveled": [human_id(human) for human in underleveled],
+                "at_capacity": [human_id(human) for human in at_capacity],
                 "roles": sorted({role for human in covering for role in human.roles}),
             }
         )
@@ -218,6 +324,7 @@ def analyze(root: pathlib.Path, args: argparse.Namespace) -> dict[str, object]:
     counts = {risk: 0 for risk in RISKS}
     decision_rows: list[dict[str, object]] = []
     missing_skills: set[str] = set()
+    coverage_failures: set[str] = set()
     bottlenecks: set[str] = set()
     total = 0
     red = False
@@ -227,11 +334,16 @@ def analyze(root: pathlib.Path, args: argparse.Namespace) -> dict[str, object]:
         risk = str(decision["risk"])
         if risk in counts:
             counts[risk] += 1
-        coverage, scarcity = coverage_for(decision["required"], humans)  # type: ignore[arg-type]
+        coverage, scarcity = coverage_for(
+            decision["required"], humans, risk  # type: ignore[arg-type]
+        )
         for row in coverage:
             covered = row["covered_by"]
             if not covered:
                 missing_skills.add(f"{row['skill']}:{row['level']}")
+                coverage_failures.add(
+                    coverage_failure(str(row["skill"]), level_number(str(row["level"])), risk, row)
+                )
             elif isinstance(covered, list) and len(covered) == 1:
                 for role in row.get("roles", []):  # type: ignore[union-attr]
                     bottlenecks.add(str(role))
@@ -258,7 +370,7 @@ def analyze(root: pathlib.Path, args: argparse.Namespace) -> dict[str, object]:
             }
         )
 
-    capacity = sum(human.capacity_hgl for human in humans)
+    capacity = sum(human.weekly_hgl_budget for human in humans)
     if capacity and total > capacity:
         yellow = True
     if missing_skills and any(counts[risk] for risk in ["R3", "R4", "R5"]):
@@ -296,6 +408,7 @@ def analyze(root: pathlib.Path, args: argparse.Namespace) -> dict[str, object]:
         "expected_decisions": counts,
         "required_skills": dict(sorted(required_skills.items())),
         "missing_skills": sorted(missing_skills),
+        "coverage_failures": sorted(coverage_failures),
         "bottlenecks": sorted(bottlenecks),
         "launch_gate": gate,
         "autonomy_ceiling": autonomy,
@@ -321,6 +434,9 @@ def print_text(data: dict[str, object], coverage_only: bool) -> None:
         print("  (none)")
     print("missing_skills:")
     for item in data["missing_skills"] or ["(none)"]:  # type: ignore[operator]
+        print(f"  - {item}")
+    print("coverage_failures:")
+    for item in data["coverage_failures"] or ["(none)"]:  # type: ignore[operator]
         print(f"  - {item}")
     print("bottlenecks:")
     for item in data["bottlenecks"] or ["(none)"]:  # type: ignore[operator]
@@ -350,4 +466,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

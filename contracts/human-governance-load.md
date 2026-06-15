@@ -80,13 +80,28 @@ making human judgment visible, not pretending to be mathematically complete.
 
 ## Coverage
 
-A skill is covered when at least one active human profile has the required
-skill at the required level or higher. Coverage output should show:
+A decision skill is covered when at least one active human profile satisfies
+all coverage checks:
+
+- the human has the required skill at the required level or higher
+- `authority_max_risk` is greater than or equal to the decision risk
+- the human has remaining risk-specific capacity for R3/R4/R5 decisions
+- for R5 decisions, `may_approve_policy_changes: true`
+
+Coverage must fail closed for serious work. A `privacy:L5` human with
+`authority_max_risk: R2` does not cover an R5 privacy decision. An R5-authorized
+human without `may_approve_policy_changes: true` also does not cover an R5
+decision.
+
+Coverage output should show:
 
 - required skills and levels
 - missing or underleveled skills
+- under-authorized humans who have the skill but not the decision authority
+- humans who are otherwise qualified but at risk-specific capacity
 - humans and roles that cover each required skill when available
 - bottleneck roles when only one covering human is available
+- coverage failure reasons in text output and JSON
 
 Human profiles model governance coverage. They are not employee productivity
 records and do not grant agent execution authority.

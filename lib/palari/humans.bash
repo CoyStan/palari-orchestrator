@@ -131,6 +131,14 @@ cmd_human_create() {
 		printf 'may_approve_policy_changes: %s\n' "$may_policy"
 		printf 'may_approve_production_rollout: false\n'
 		printf 'may_approve_customer_send: false\n'
+		printf 'weekly_hgl_budget: %s\n' "$capacity_hgl"
+		printf 'current_weekly_hgl: 0\n'
+		printf 'max_concurrent_r3: 6\n'
+		printf 'current_open_r3: 0\n'
+		printf 'max_concurrent_r4: 2\n'
+		printf 'current_open_r4: 0\n'
+		printf 'max_concurrent_r5: 1\n'
+		printf 'current_open_r5: 0\n'
 		printf 'capacity_weekly_hgl: %s\n' "$capacity_hgl"
 		printf 'capacity_open_r3: 0\n'
 		printf 'capacity_open_r4: 0\n'
@@ -174,12 +182,17 @@ cmd_human_list() {
 cmd_human_show() {
 	local id="${1:-}"
 	[[ -n "$id" ]] || die "human show requires HUMAN-ID"
-	local file
+	local file weekly current
 	file="$(find_human_file "$id")" || die "human not found: $id"
+	weekly="$(frontmatter_value "$file" weekly_hgl_budget)"
+	[[ -n "$weekly" ]] || weekly="$(frontmatter_value "$file" capacity_weekly_hgl)"
+	current="$(frontmatter_value "$file" current_weekly_hgl)"
+	[[ -n "$current" ]] || current="0"
 	printf 'Human: %s - %s\n' "$id" "$(frontmatter_value "$file" name)"
 	printf 'status: %s\n' "$(frontmatter_value "$file" status)"
 	printf 'authority_max_risk: %s\n' "$(frontmatter_value "$file" authority_max_risk)"
-	printf 'capacity_weekly_hgl: %s\n' "$(frontmatter_value "$file" capacity_weekly_hgl)"
+	printf 'weekly_hgl_budget: %s\n' "$weekly"
+	printf 'current_weekly_hgl: %s\n' "$current"
 	printf 'file: %s\n' "${file#"$ROOT"/}"
 	print_frontmatter_list_block "roles" "$file" roles
 	print_frontmatter_list_block "skills" "$file" skills
@@ -242,7 +255,12 @@ cmd_human_lint() {
 			printf 'human lint: %s R5 authority requires may_approve_policy_changes: true\n' "$id"
 			errors=$((errors + 1))
 		fi
-		for value in capacity_weekly_hgl capacity_open_r3 capacity_open_r4 capacity_open_r5; do
+		for value in \
+			weekly_hgl_budget current_weekly_hgl \
+			max_concurrent_r3 current_open_r3 \
+			max_concurrent_r4 current_open_r4 \
+			max_concurrent_r5 current_open_r5 \
+			capacity_weekly_hgl capacity_open_r3 capacity_open_r4 capacity_open_r5; do
 			item="$(frontmatter_value "$file" "$value")"
 			if [[ -n "$item" && ! "$item" =~ ^[0-9]+$ ]]; then
 				printf 'human lint: %s %s must be a non-negative integer\n' "$id" "$value"

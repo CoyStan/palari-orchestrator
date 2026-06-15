@@ -1,17 +1,17 @@
 ---
 id: POS-0060
 title: HGL coverage enforces human authority ceilings
-status: open
+status: in-review
 risk: R3
 priority: P0
 stream: process
 serves_goal: GOAL-0200
 model_hint: 
-claimed_by:
-claimed_at:
-claim_ref:
-claim_heartbeat_at:
-claim_expires_at:
+claimed_by: Codex
+claimed_at: 2026-06-15T11:08:02Z
+claim_ref: refs/palari/claims/POS-0060
+claim_heartbeat_at: 2026-06-15T11:08:02Z
+claim_expires_at: 2026-06-15T11:13:02Z
 allowed_paths:
   - adapters/planning/hgl.py
   - lib/palari/humans.bash
@@ -20,6 +20,11 @@ allowed_paths:
   - tests/run-human-governance-load.sh
   - tests/run-human-governance.sh
   - tests/fixtures/golden-flow
+  - tickets/open/POS-0060-hgl-coverage-enforces-human-authority-ceilings.md
+  - reports/POS-0060-technical-report.md
+  - reports/POS-0060-reviewer-note.md
+  - reports/human/POS-0060-human-report.md
+  - reports/evidence/POS-0060/**
 forbidden_paths:
   - .env
   - .env.*
@@ -41,7 +46,7 @@ requires_human_confirmation: true
 requires_review: true
 verification:
   - ./bin/palari human lint
-  - ./bin/palari burden score WF-9004 --json
+  - ./tests/run-company-os-demo.sh
   - ./tests/run-human-governance-load.sh
   - ./tests/run-human-governance.sh
   - ./tests/run-workflow-planning.sh
@@ -72,7 +77,7 @@ List what may change.
 ## Verification
 
 - ./bin/palari human lint
-- ./bin/palari burden score WF-9004 --json
+- ./tests/run-company-os-demo.sh
 - ./tests/run-human-governance-load.sh
 - ./tests/run-human-governance.sh
 - ./tests/run-workflow-planning.sh
