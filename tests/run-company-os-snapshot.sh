@@ -133,6 +133,28 @@ for path in sys.argv[1:]:
         "tickets_with_broker_evidence": ["BRK-0200"],
     }, company
     assert company["outcomes"] == {"open": 0, "recorded": 0, "invalidated": 0}, company
+    if not path.endswith("bash.json"):
+        cards = company["dashboard_cards"]
+        card_map = {card["id"]: card for card in cards}
+        required = {
+            "human_governance_load",
+            "high_risk_decisions",
+            "missing_skills",
+            "bottlenecks",
+            "autonomy_gates",
+            "policy_candidates",
+            "broker_posture",
+            "outcomes",
+            "secure_posture",
+        }
+        assert required <= set(card_map), card_map
+        assert card_map["human_governance_load"]["status"] == "bad", card_map
+        assert card_map["high_risk_decisions"]["value"] == "1/1/1", card_map
+        assert card_map["missing_skills"]["value"] == "1", card_map
+        assert card_map["autonomy_gates"]["value"] == "0/1/1", card_map
+        assert card_map["policy_candidates"]["detail"].startswith("Simulation-only"), card_map
+        assert "observed-only" in card_map["broker_posture"]["value"], card_map
+        assert card_map["broker_posture"]["status"] == "ok", card_map
 PY
 
 printf 'company-os-snapshot: ok\n'

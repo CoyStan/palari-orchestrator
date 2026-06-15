@@ -614,18 +614,14 @@ snapshot_tickets_json() {
 	while IFS= read -r file; do
 		[[ -n "$file" ]] || continue
 		[[ "$first" == "true" ]] || printf ','
-		if [[ "$mode" == "full" ]]; then
-			snapshot_ticket_json "$file" "active" "$mode"
-		else
-			snapshot_ticket_fast_json "$file" "active"
-		fi
+		snapshot_ticket_fast_json "$file" "active"
 		first="false"
 	done < <(ticket_files)
 	if [[ "$mode" == "full" ]]; then
 		while IFS= read -r file; do
 			[[ -n "$file" ]] || continue
 			[[ "$first" == "true" ]] || printf ','
-			snapshot_ticket_json "$file" "accepted" "$mode"
+			snapshot_ticket_fast_json "$file" "accepted"
 			first="false"
 		done < <(closed_ticket_files)
 	fi
@@ -818,10 +814,10 @@ cmd_snapshot() {
 					missing_evidence=$((missing_evidence + 1))
 				fi
 			fi
-		done < <(ticket_files)
+			done < <(ticket_files)
 	fi
 	overlaps_json="$(snapshot_overlaps_json)"
-	overlap_count="$(awk -v text="$overlaps_json" 'BEGIN { print gsub(/"left"/, "", text) }')"
+	overlap_count="$(printf '%s' "$overlaps_json" | awk '{ count += gsub(/"left"/, "") } END { print count + 0 }')"
 
 	printf '{\n'
 	printf '  "project": '

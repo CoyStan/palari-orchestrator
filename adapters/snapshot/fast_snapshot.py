@@ -459,6 +459,141 @@ def inbox_category(status: str, actor: str, severity: str, label: str) -> str:
     return "monitor"
 
 
+def company_card(card_id: str, label_text: str, value: str, status: str, detail: str) -> dict:
+    return {
+        "id": card_id,
+        "label": label_text,
+        "value": value,
+        "status": status,
+        "detail": detail,
+    }
+
+
+def build_company_dashboard_cards(company_os: dict, gate: dict) -> list[dict]:
+    """Operator-facing company OS posture cards for the web dashboard."""
+    workflows = company_os.get("workflows", {})
+    governance = company_os.get("human_governance", {})
+    autonomy = company_os.get("autonomy", {})
+    policy = company_os.get("policy", {})
+    broker = company_os.get("broker", {})
+    outcomes = company_os.get("outcomes", {})
+
+    hgl = int(governance.get("open_hgl_estimate") or 0)
+    missing_skills = list(governance.get("missing_skills") or [])
+    bottlenecks = list(governance.get("bottlenecks") or [])
+    capacity_warnings = list(governance.get("capacity_warnings") or [])
+    r3 = int(governance.get("r3_decisions_open") or 0)
+    r4 = int(governance.get("r4_decisions_open") or 0)
+    r5 = int(governance.get("r5_decisions_open") or 0)
+    yellow = int(autonomy.get("yellow_workflows") or 0)
+    red = int(autonomy.get("red_workflows") or 0)
+    green = int(autonomy.get("green_workflows") or 0)
+    candidate_count = int(policy.get("candidates") or 0)
+    active_policies = int(policy.get("active_policies") or 0)
+    proposed_policies = int(policy.get("proposed_policies") or 0)
+    real_side_effects = bool(broker.get("real_side_effects_enabled"))
+    mock_observations = int(broker.get("mock_observations") or 0)
+    broker_tickets = list(broker.get("tickets_with_broker_evidence") or [])
+    open_outcomes = int(outcomes.get("open") or 0)
+    recorded_outcomes = int(outcomes.get("recorded") or 0)
+    invalidated_outcomes = int(outcomes.get("invalidated") or 0)
+    workflow_count = int(workflows.get("active") or 0)
+
+    hgl_status = "bad" if missing_skills or capacity_warnings else ("watch" if hgl else "ok")
+    decision_status = "bad" if r5 else ("watch" if r3 or r4 else "ok")
+    missing_status = "bad" if missing_skills else "ok"
+    bottleneck_status = "watch" if bottlenecks else "ok"
+    autonomy_status = "bad" if red else ("watch" if yellow else "ok")
+    policy_status = "watch" if candidate_count else "ok"
+    broker_status = "bad" if real_side_effects else "ok"
+    outcome_status = "bad" if invalidated_outcomes else ("watch" if open_outcomes else "ok")
+    if gate.get("enabled"):
+        secure_status = "ok" if gate.get("available") and gate.get("initialized") else "bad"
+        secure_value = "signed gate"
+        secure_detail = "ForgeGate is enabled; verify tickets against the signed gate section."
+    else:
+        secure_status = "watch"
+        secure_value = "honor-system"
+        secure_detail = "Signed acceptance is disabled; run doctor secure before relying on autonomous acceptance."
+
+    return [
+        company_card(
+            "human_governance_load",
+            "Human Governance Load",
+            f"{hgl} HGL",
+            hgl_status,
+            "Open estimate across active workflows; capacity and missing skills escalate this card.",
+        ),
+        company_card(
+            "high_risk_decisions",
+            "R3/R4/R5 Decisions",
+            f"{r3}/{r4}/{r5}",
+            decision_status,
+            "Open high-risk decisions stay visible; R5 requires explicit human authority.",
+        ),
+        company_card(
+            "missing_skills",
+            "Missing Skills",
+            str(len(missing_skills)),
+            missing_status,
+            ", ".join(missing_skills[:3]) if missing_skills else "All active workflow skills are covered.",
+        ),
+        company_card(
+            "bottlenecks",
+            "Bottlenecks",
+            str(len(bottlenecks)),
+            bottleneck_status,
+            ", ".join(bottlenecks[:3]) if bottlenecks else "No active human or role bottlenecks detected.",
+        ),
+        company_card(
+            "autonomy_gates",
+            "Autonomy Gates",
+            f"{green}/{yellow}/{red}",
+            autonomy_status,
+            "Green/yellow/red workflow gates; red and yellow states are never hidden.",
+        ),
+        company_card(
+            "policy_candidates",
+            "Policy Candidates",
+            str(candidate_count),
+            policy_status,
+            f"Simulation-only suggestions; {active_policies} active and {proposed_policies} proposed policy files.",
+        ),
+        company_card(
+            "broker_posture",
+            "Broker Posture",
+            "real side effects" if real_side_effects else "mock / observed-only",
+            broker_status,
+            (
+                "Real side effects are reported; confirm a sandbox boundary before trusting broker authority."
+                if real_side_effects
+                else f"Mock/observed-only broker evidence across {len(broker_tickets)} ticket(s) and {mock_observations} observation(s)."
+            ),
+        ),
+        company_card(
+            "outcomes",
+            "Outcomes",
+            f"{open_outcomes}/{recorded_outcomes}/{invalidated_outcomes}",
+            outcome_status,
+            "Open/recorded/invalidated outcomes; invalidated outcomes require review before policy learning.",
+        ),
+        company_card(
+            "secure_posture",
+            "Secure Posture",
+            secure_value,
+            secure_status,
+            secure_detail,
+        ),
+        company_card(
+            "active_workflows",
+            "Active Workflows",
+            str(workflow_count),
+            "ok" if workflow_count else "watch",
+            "Adopted workflows are the source for HGL, gates, and company OS governance cards.",
+        ),
+    ]
+
+
 # ---------------------------------------------------------------- snapshot
 
 def snapshot_dict(root: Path, *, full: bool = False) -> dict:
@@ -765,6 +900,8 @@ def snapshot_dict(root: Path, *, full: bool = False) -> dict:
                 "Fast snapshot could not run the gate kernel; run "
                 "./bin/palari gate status or ./bin/palari snapshot --json --full."
             )
+
+    company_os["dashboard_cards"] = build_company_dashboard_cards(company_os, gate)
 
     # Git + hygiene-classified dirtiness: the one subprocess.
     git_info = {"branch": "unknown", "status": "", "mode": "skipped-fast"}

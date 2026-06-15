@@ -1,20 +1,21 @@
 ---
 id: POS-0087
 title: Dashboard exposes company OS governance cards
-status: open
+status: in-review
 risk: R2
 priority: P2
 stream: process
 serves_goal: GOAL-0200
 model_hint: 
-claimed_by:
-claimed_at:
-claim_ref:
-claim_heartbeat_at:
-claim_expires_at:
+claimed_by: Codex
+claimed_at: 2026-06-15T15:16:01Z
+claim_ref: refs/palari/claims/POS-0087
+claim_heartbeat_at: 2026-06-15T15:16:01Z
+claim_expires_at: 2026-06-15T15:21:01Z
 allowed_paths:
   - adapters/web/**
   - adapters/snapshot/**
+  - lib/palari/adapters_snapshot.bash
   - lib/palari/dashboard_snapshot.bash
   - assets/readme/**
   - tests/run-dashboard-rubric.sh
