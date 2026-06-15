@@ -1,13 +1,13 @@
 # Palari CI Evidence
 
 - Ticket: POS-0066
-- Base ref: local working tree
-- Created: 2026-06-15T12:21:02Z
+- Base ref: HEAD
+- Created: 2026-06-15T21:42:20Z
 
 ## scope-check
 
 ```text
-scope-check: ok for POS-0066 (21 changed path(s))
+scope-check: ok for POS-0066 (0 changed path(s))
 ```
 
 ## lint
@@ -23,6 +23,7 @@ Command: `./tests/run-risks.sh`
 
 ```text
 lint: tickets/open/RSK-0003-r5-accept-gate.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/RSK-0004-r5-quorum-two-accept-gate.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
 risks: ok
 ```
 
@@ -41,8 +42,16 @@ Command: `./tests/run-gate-kernel.sh`
 ```text
 ...........................
 ----------------------------------------------------------------------
-Ran 27 tests in 0.097s
+Ran 27 tests in 0.092s
 
 OK
 run-gate-kernel: ok
+```
+
+## verification 4
+
+Command: `./tests/run-human-governance-load.sh`
+
+```text
+human-governance-load: ok
 ```
