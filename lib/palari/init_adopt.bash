@@ -273,10 +273,89 @@ doctor_check_dir() {
 	fi
 }
 
+secure_doctor_bool() {
+	local section="$1" key="$2" default="$3"
+	[[ "$(cfg_nested "$section" "$key" "$default")" == "true" ]]
+}
+
+secure_doctor_broker_observations_available() {
+	local found
+	found="$(find "$ROOT/$EVIDENCE_DIR" -path '*/broker/*/summary.json' -type f -print -quit 2>/dev/null || true)"
+	[[ -n "$found" ]]
+}
+
+cmd_secure_doctor() {
+	local gate_configured="false" gate_ready="false" broker_real="false"
+	local policy_acceptance="false" r5_dual_human="false" broker_observations="false"
+	local posture="weak"
+
+	secure_doctor_bool gate enabled false && gate_configured="true"
+	if [[ "$gate_configured" == "true" ]] && gate_available; then
+		gate_ready="true"
+	fi
+	secure_doctor_bool governance broker_real_side_effects_enabled false && broker_real="true"
+	secure_doctor_bool governance policy_acceptance_enabled false && policy_acceptance="true"
+	secure_doctor_bool governance r5_requires_dual_human false && r5_dual_human="true"
+	secure_doctor_broker_observations_available && broker_observations="true"
+
+	if [[ "$gate_ready" == "true" && "$broker_real" == "false" && "$policy_acceptance" == "false" && "$r5_dual_human" == "true" && "$broker_observations" == "true" ]]; then
+		posture="stronger"
+	fi
+
+	printf 'Palari secure governance doctor\n'
+	printf 'root: %s\n' "$ROOT"
+	printf 'Governance posture: %s\n' "$posture"
+	if [[ "$gate_ready" == "true" ]]; then
+		printf -- '- ForgeGate enabled for R2+\n'
+	elif [[ "$gate_configured" == "true" ]]; then
+		printf -- '- ForgeGate enabled but unavailable; acceptance fails closed\n'
+	else
+		printf -- '- ForgeGate disabled\n'
+	fi
+	if [[ "$broker_real" == "true" ]]; then
+		printf -- '- broker real side effects enabled\n'
+	else
+		printf -- '- broker side effects disabled/mock only\n'
+	fi
+	if [[ "$broker_observations" == "true" ]]; then
+		printf -- '- broker observations available\n'
+	else
+		printf -- '- broker observations not found\n'
+	fi
+	if [[ "$policy_acceptance" == "true" ]]; then
+		printf -- '- policy acceptance enabled\n'
+	else
+		printf -- '- policy acceptance simulation only\n'
+	fi
+	printf -- '- branch protection not verified locally\n'
+	if [[ "$r5_dual_human" == "true" ]]; then
+		printf -- '- R5 requires human approval\n'
+	else
+		printf -- '- R5 dual approval not configured\n'
+	fi
+	cat <<'DOCTOR'
+
+Recommended modes:
+- local/demo: ForgeGate optional
+- R2+ team work: require ForgeGate policy before acceptance
+- R5: mandatory before real autonomous governance
+
+Local verification limits:
+- This doctor does not verify hosted branch protection or remote rulesets.
+- Do not claim branch protection is active from this local output alone.
+DOCTOR
+}
+
 cmd_doctor() {
 	if [[ "${1:-}" == "lifecycle" ]]; then
 		shift
 		cmd_lifecycle_audit "$@"
+		return 0
+	fi
+	if [[ "${1:-}" == "secure" || "${1:-}" == "governance" ]]; then
+		shift
+		[[ -z "${1:-}" ]] || die "unknown doctor option: $1"
+		cmd_secure_doctor
 		return 0
 	fi
 	[[ -z "${1:-}" ]] || die "unknown doctor command: $1"

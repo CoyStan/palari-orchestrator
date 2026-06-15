@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Added the secure governance doctor (SEC-0001). `palari doctor secure` and
+  `palari doctor governance` classify weak vs stronger local governance
+  posture, report ForgeGate, broker, policy, R5, and branch-protection
+  boundaries, and avoid claiming hosted branch protection is active from local
+  state.
 - Added the outcome ledger (OUT-0001). Outcomes now live under
   `outcomes/open` and `outcomes/recorded`; `palari outcome
   create|list|show|lint|record` manages records without accepting work, and

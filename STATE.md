@@ -106,6 +106,18 @@ promise is visible, scoped, reviewable work with explicit human gates.
 - Policy candidates can cite recorded outcomes linked to their source tickets
   or decisions.
 
+### Secure Governance Doctor
+
+- `palari doctor secure` and `palari doctor governance` print the local
+  governance posture without mutating lifecycle state.
+- The doctor reports ForgeGate, broker side-effect posture, broker
+  observations, policy acceptance posture, branch-protection verification
+  limits, and R5 human approval configuration.
+- Hosted branch protection is not verified locally; the doctor says so instead
+  of claiming remote protections are active.
+- Conservative config defaults keep policy acceptance simulation-only and
+  broker real side effects disabled.
+
 ### Work Isolation
 
 - Ticket branches and worktrees for isolated work.

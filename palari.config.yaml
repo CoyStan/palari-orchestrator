@@ -195,6 +195,11 @@ required_reports: []
 acceptance:
   implementation_self_acceptance: forbidden
 
+governance:
+  r5_requires_dual_human: true
+  policy_acceptance_enabled: false
+  broker_real_side_effects_enabled: false
+
 # Forge-proof accept gate (vendored forgegate kernel in gate/).
 # When enabled, `palari accept` additionally requires a cryptographic
 # verdict: signed implement, test, and review attestations whose delegation
