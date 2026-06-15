@@ -10,7 +10,7 @@ No independent fresh-context findings have been recorded yet. Suggested review f
 
 - Confirm new tickets include `acceptance_mode: human`.
 - Confirm R0-R4 human acceptance records `acceptance_mode: human`.
-- Confirm R5 dual-human acceptance still records `acceptance_mode: human_dual`.
+- Confirm configured two-human acceptance records `acceptance_mode: human_dual`.
 - Confirm policy acceptance remains simulation-only and cannot close a ticket.
 - Confirm no broker behavior, runtime state, dependencies, secrets, or external integrations changed.
 

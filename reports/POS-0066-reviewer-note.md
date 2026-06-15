@@ -1,5 +1,10 @@
 # POS-0066 Reviewer Note
 
+Note: sections before "Design Amendment" preserve the historical review trail
+for the earlier hard-coded dual-human implementation. The current amended
+design is the configurable human approval quorum described under "Design
+Amendment" and any later re-review sections.
+
 ## Review Result
 
 Reopen
@@ -51,11 +56,11 @@ be self-accepted by an agent.
 - R5 R2 co-acceptor path fails.
 - R5 two-authorized-human path passes and records `co_accepted_by` plus `acceptance_mode: human_dual`.
 
-## Re-review Result
+## Historical Re-review Result
 
 Accept-ready after bounded repair.
 
-## Re-review Findings
+## Historical Re-review Findings
 
 - No blocking code findings remained after adding
   `adapters/snapshot/fast_snapshot.py` to the POS-0066 allowed paths.
@@ -69,7 +74,7 @@ Accept-ready after bounded repair.
   files currently exist under `humans/active`, so two R5-authorized active
   profiles must be created or adopted before POS-0066 can actually be accepted.
 
-## Re-review Verification
+## Historical Re-review Verification
 
 - Fresh-context re-review by Laplace subagent on 2026-06-15.
 - Inspected current stacked worktree
@@ -83,7 +88,7 @@ Accept-ready after bounded repair.
   - `bats tests/palari_acceptance.bats`
   - `find humans -maxdepth 3 -type f -name '*.md' -print | sort`
 
-## Re-review Recommendation
+## Historical Re-review Recommendation
 
 Do not reopen for code. Leave POS-0066 in-review until two authorized active
 R5 human profiles exist, then use exactly:
@@ -110,3 +115,44 @@ for POS-0066. The amended POS-0066 design is:
 
 A fresh-context re-review is required against the amended quorum design before
 POS-0066 can be considered accept-ready again.
+
+## Amended Quorum Re-review Result
+
+Reopen.
+
+## Amended Quorum Re-review Findings
+
+- P2: Code and evidence for the configurable quorum path looked sound, but
+  stale live ticket/report wording still described R5 as hard-coded
+  dual-human. The reviewer cited POS-0077 ticket/report wording and POS-0067
+  report wording.
+- Confirmed good: current config sets `R0` through `R4` to `0` required human
+  approvals and `R5` to `1`; status, snapshot, evidence score, and secure
+  doctor show the one-human R5 command and enforced quorum.
+- Confirmed good: tests cover R5 quorum `1`, R5 quorum `2`, distinct active
+  profile validation, R2 rejection, simulation-only policy acceptance, and
+  Human Governance Debt behavior under configured quorum.
+- Residual operational blocker: no active human profile markdown files exist
+  under `humans/active`, so eventual POS-0066 acceptance still needs one active
+  R5-authorized human profile.
+
+## Amended Quorum Re-review Verification
+
+- Fresh-context re-review by Lagrange subagent on 2026-06-15.
+- Ran/inspected:
+  - `./bin/palari status --next`
+  - `./bin/palari evidence score POS-0066 --strict`
+  - `./bin/palari doctor secure`
+  - `./bin/palari scope-check POS-0066`
+  - `./tests/run-risks.sh`
+  - `./tests/run-secure-doctor.sh`
+  - `./tests/run-human-governance-load.sh`
+  - `bats tests/palari_acceptance.bats`
+  - `find humans -maxdepth 3 -type f -name '*.md' -print | sort`
+
+## Amended Quorum Required Changes
+
+- Update stale POS-0067 and POS-0077 live ticket/report wording so it describes
+  configured human-quorum behavior rather than hard-coded R5 dual-human
+  acceptance.
+- Re-run focused checks and fresh-context review.

@@ -34,12 +34,20 @@ tickets/open/POS-0066-enforce-dual-human-r5-acceptance.md
 reports/POS-0066-technical-report.md
 reports/POS-0066-reviewer-note.md
 reports/human/POS-0066-human-report.md
+reports/POS-0067-technical-report.md
+reports/POS-0067-reviewer-note.md
+reports/human/POS-0067-human-report.md
+tickets/open/POS-0077-add-human-governance-debt-report.md
+reports/POS-0077-technical-report.md
+reports/POS-0077-reviewer-note.md
+reports/human/POS-0077-human-report.md
 reports/evidence/POS-0066/
 ```
 
 ## Outcome
 
 - What changed: `palari accept` now enforces a configurable human approval quorum by risk tier via `governance.required_human_approvals`. The current repo config sets R5 to one active authorized human for the solo-founder phase, while preserving support for R5 quorum 2+ through repeated `--co-by`. Legacy `governance.r5_requires_dual_human: true` remains a compatibility fallback.
+- Fresh re-review found stale live POS-0067/POS-0077 wording that still described hard-coded R5 dual-human behavior; those report/ticket phrases were corrected to configured human-quorum wording.
 - What did not change: R0-R4 acceptance remains compatible with `palari accept TICKET --by NAME` under the current config; policy acceptance remains simulation-only; ForgeGate does not replace human approval; no broker side effects, secrets, runtime state, dependencies, deployment behavior, or external integrations changed.
 - Blockers: none for implementation. POS-0066 itself is R5 and must not be self-accepted by an agent.
 - Next action: fresh-context review, then explicit founder/human acceptance if accept-ready.

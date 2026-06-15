@@ -8,7 +8,7 @@ Palari needs to make ticket acceptance intent visible before it can safely discu
 
 - New tickets now start with `acceptance_mode: human`.
 - Normal human acceptance records `acceptance_mode: human`.
-- R5 dual-human acceptance records `acceptance_mode: human_dual`.
+- Configured two-human acceptance records `acceptance_mode: human_dual`.
 - Policy acceptance attempts now fail with a plain simulation-only message.
 
 ## What I Should Know

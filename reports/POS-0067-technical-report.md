@@ -26,8 +26,8 @@ reports/evidence/POS-0067/
 
 ## Outcome
 
-- What changed: New tickets now include `acceptance_mode: human`. Human acceptance writes/preserves `acceptance_mode: human` for R0-R4 tickets, while R5 dual-human acceptance continues to write `acceptance_mode: human_dual`. `palari accept --by-policy`, `--policy`, and `--policy-id` now fail with the explicit simulation-only policy message.
-- What did not change: Policy simulation remains read-only; no command can close a ticket by policy. R5 dual-human acceptance from POS-0066 remains enforced. No broker behavior, secrets, runtime state, dependencies, deployment behavior, or external integrations changed.
+- What changed: New tickets now include `acceptance_mode: human`. Human acceptance writes/preserves `acceptance_mode: human` for one-human acceptance, while configured quorum acceptance can record `acceptance_mode: human_dual` or `acceptance_mode: human_quorum`. `palari accept --by-policy`, `--policy`, and `--policy-id` now fail with the explicit simulation-only policy message.
+- What did not change: Policy simulation remains read-only; no command can close a ticket by policy. Human acceptance from POS-0066 remains enforced according to the configured risk-tier quorum. No broker behavior, secrets, runtime state, dependencies, deployment behavior, or external integrations changed.
 - Blockers: none.
 - Next action: fresh-context review, then human acceptance if accept-ready.
 

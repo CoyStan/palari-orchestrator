@@ -12,7 +12,7 @@ No independent fresh-context findings have been recorded yet. Suggested review f
 - Confirm debt items are deterministic and grounded in active workflows/humans.
 - Confirm snapshot includes only a compact debt summary, not a heavy or mutating path.
 - Confirm the report does not introduce policy acceptance, broker side effects, external integrations, new dependencies, secrets, or runtime state.
-- Confirm tests cover missing privacy skill, R5 dual-human gap, weak evidence, and snapshot debt summary.
+- Confirm tests cover missing privacy skill, configured R5 human-quorum gap, weak evidence, and snapshot debt summary.
 
 ## Verification Reviewed
 

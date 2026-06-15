@@ -27,7 +27,7 @@ reports/evidence/POS-0077/
 ## Outcome
 
 - What changed: Added `palari burden debt [--json]`, backed by `adapters/planning/governance_debt.py`.
-- The debt report summarizes missing skill coverage, high-risk bottlenecks, capacity pressure, weak evidence, R5 dual-human coverage gaps, and low-risk policy-candidate opportunities from current repo-native artifacts.
+- The debt report summarizes missing skill coverage, high-risk bottlenecks, capacity pressure, weak evidence, configured R5 human-quorum coverage gaps, and low-risk policy-candidate opportunities from current repo-native artifacts.
 - Company OS snapshot now includes `company_os.human_governance.debt` with level, item count, and highest-leverage fix.
 - What did not change: HGL scoring, launch gates, authority semantics, policy acceptance, broker behavior, workflows, humans, outcomes, secrets, dependencies, runtime state, deployment, and side effects were not changed.
 - Blockers: none.

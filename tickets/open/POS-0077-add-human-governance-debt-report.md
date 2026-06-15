@@ -77,7 +77,7 @@ OS workflows.
   leverage fix.
 - `palari burden debt --json` returns deterministic structured data.
 - The report covers missing skills, high-risk bottlenecks, weak evidence,
-  R5 dual-human coverage gaps, capacity pressure, and policy-candidate
+  configured R5 human-quorum coverage gaps, capacity pressure, and policy-candidate
   opportunities where current repo artifacts expose them.
 - Snapshot includes a compact debt summary.
 - The report remains read-only and does not mutate workflows, humans, tickets,

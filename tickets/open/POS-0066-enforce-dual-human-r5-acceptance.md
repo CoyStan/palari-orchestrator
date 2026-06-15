@@ -38,6 +38,13 @@ allowed_paths:
   - reports/POS-0066-technical-report.md
   - reports/POS-0066-reviewer-note.md
   - reports/human/POS-0066-human-report.md
+  - reports/POS-0067-technical-report.md
+  - reports/POS-0067-reviewer-note.md
+  - reports/human/POS-0067-human-report.md
+  - tickets/open/POS-0077-add-human-governance-debt-report.md
+  - reports/POS-0077-technical-report.md
+  - reports/POS-0077-reviewer-note.md
+  - reports/human/POS-0077-human-report.md
   - reports/evidence/POS-0066/**
 forbidden_paths:
   - .env

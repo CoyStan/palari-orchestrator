@@ -9,7 +9,7 @@ Palari could show HGL for one workflow, but it did not yet answer the operator q
 - Added `palari burden debt`.
 - Added `palari burden debt --json`.
 - Snapshot now includes a small Human Governance Debt summary.
-- The report highlights missing skills, high-risk bottlenecks, weak evidence, capacity pressure, R5 dual-human coverage gaps, and low-risk policy-candidate opportunities.
+- The report highlights missing skills, high-risk bottlenecks, weak evidence, capacity pressure, configured R5 human-quorum coverage gaps, and low-risk policy-candidate opportunities.
 
 ## What I Should Know
 
