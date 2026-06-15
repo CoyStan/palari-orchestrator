@@ -90,6 +90,17 @@ grep -Fq "allowed: false" "$TMP_ROOT/check-outside.out" ||
 	fail "broker check should deny outside-scope resources"
 grep -Fq "resource is outside ticket allowed paths" "$TMP_ROOT/check-outside.out" ||
 	fail "broker check outside-scope reason missing"
+./bin/palari broker check BRK-0101 --tool filesystem --action write --resource 'adapters/broker/../deploy/foo' --json >"$TMP_ROOT/check-traversal.json"
+python3 - "$TMP_ROOT/check-traversal.json" <<'PY'
+import json
+import sys
+
+data = json.load(open(sys.argv[1]))
+assert data["allowed"] is False
+assert data["normalized_resource"] == "adapters/deploy/foo"
+assert data["reasons"] == ["resource is outside ticket allowed paths"]
+assert data["would_execute"] is False
+PY
 test ! -d reports/evidence/BRK-0101/broker ||
 	fail "broker check must not create broker evidence"
 
@@ -239,6 +250,7 @@ assert data["side_effects_enabled"] is False
 assert data["credentials_available_to_agents"] is False
 assert data["network_or_hosted_api_access"] is False
 assert data["network_isolation_enforced"] is False
+assert data["sandbox_command_policy"] == "simple_printf_redirect_only"
 assert data["decision"] == "observed_allowed"
 assert data["broker_exit_code"] == 0
 assert data["changed_paths"] == ["README.md"]
@@ -250,6 +262,30 @@ assert data["artifacts"]["patch"] == "patch.diff"
 PY
 grep -Fq "sandbox allowed" "$(dirname "$sandbox_summary")/patch.diff" ||
 	fail "sandbox patch artifact missing allowed change"
+
+host_escape="$TMP_ROOT/host-escape"
+if ./bin/palari broker sandbox BRK-0100 -- sh -c "printf \"host escape\n\" > $host_escape" >"$TMP_ROOT/sandbox-host-escape.out" 2>&1; then
+	fail "sandbox broker should refuse absolute host path writes"
+fi
+test ! -e "$host_escape" ||
+	fail "sandbox broker wrote to an absolute host path"
+grep -Fq "decision: denied" "$TMP_ROOT/sandbox-host-escape.out" ||
+	fail "sandbox host escape denial missing"
+grep -Fq "resource path must be relative" "$TMP_ROOT/sandbox-host-escape.out" ||
+	fail "sandbox host escape diagnostic missing"
+host_escape_summary="$(find reports/evidence/BRK-0100/broker -name summary.json | sort | tail -n 1)"
+python3 - "$host_escape_summary" <<'PY'
+import json
+import sys
+
+data = json.load(open(sys.argv[1]))
+assert data["broker_mode"] == "sandbox"
+assert data["executed"] is False
+assert data["decision"] == "denied"
+assert data["decision_reason"] == "sandbox_command_refused"
+assert data["sandbox_command_policy"] == "simple_printf_redirect_only"
+assert data["broker_exit_code"] == 126
+PY
 
 if ./bin/palari broker sandbox BRK-0100 -- sh -c 'printf "secret\n" > .env' >"$TMP_ROOT/sandbox-forbidden.out" 2>&1; then
 	fail "sandbox broker should return nonzero for forbidden path changes"

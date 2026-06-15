@@ -61,12 +61,12 @@ credential_access
 network_access
 ```
 
-For this version, only mock observation and local sandbox repo-copy execution
-are executable. Requests that imply external writes, credential access,
-production mutation, or resources outside ticket scope must fail closed until a
+For this version, only mock observation and a constrained local sandbox
+repo-copy write subset are executable. Requests that imply external writes,
+credential access, production mutation, network/tool authority, arbitrary host
+filesystem paths, or resources outside ticket scope must fail closed until a
 later R5-approved broker boundary authorizes and enforces them. Local sandbox
-mode scrubs obvious credential environment variables, but it is not a network
-isolation boundary.
+mode is not a general process sandbox and does not claim network isolation.
 
 The first result schema is:
 
@@ -148,6 +148,14 @@ patch artifact, and deletes the copy. It never copies changes back to the real
 repo. A scoped change records `decision: observed_allowed`. A forbidden or
 outside-scope change records `decision: denied_or_violation` and the broker
 returns nonzero.
+
+In this version, sandbox execution is intentionally narrow: only simple
+`sh -c 'printf ... > relative-repo-path'` file writes are allowed to execute.
+Absolute paths, path traversal, shell expansion, command chaining, pipes,
+redirects from files, and commands outside that subset fail closed before
+execution. This keeps `credentials_available_to_agents: false` and
+`network_or_hosted_api_access: false` honest for sandbox observations without
+claiming full OS isolation.
 
 ## Permission Check Without Execution
 

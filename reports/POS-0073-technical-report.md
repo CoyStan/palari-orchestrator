@@ -25,6 +25,7 @@ reports/evidence/POS-0073/
 ## Outcome
 
 - What changed: Added `palari broker check TICKET --tool TOOL --action ACTION --resource PATH [--json]`. The command checks the resource against ticket allowed/forbidden paths and returns allow/deny data without executing actions or writing broker evidence.
+- Review repair: broker check now normalizes `.` and `..` path segments before matching ticket scopes and fails closed for absolute or repository-escaping resource strings.
 - What did not change: Broker check does not mutate files, create evidence, run commands, enable side effects, load credentials, perform network access, accept tickets, push, merge, or deploy.
 - Blockers: none.
 - Next action: fresh-context review, then Phase 3 broker hardening is ready for phase-level checks before POS-0075.
@@ -35,6 +36,11 @@ reports/evidence/POS-0073/
   - `python3 -m py_compile adapters/broker/mock_broker.py`
   - `bash -n lib/palari/broker.bash tests/run-broker-mock.sh`
   - `./tests/run-broker-mock.sh`
+  - `./tests/run-sandbox.sh`
+  - `./tests/run-company-os-snapshot.sh`
+  - `./tests/run-risks.sh`
+  - `./tests/run-policy-simulation.sh`
+  - `bats tests/palari_acceptance.bats`
   - `./bin/palari lint POS-0073`
   - `./bin/palari report-lint POS-0073`
   - `./bin/palari scope-check POS-0073`
@@ -60,5 +66,5 @@ reports/evidence/POS-0073/
 ## Risks / Follow-Ups
 
 - Check output is advisory/gating data only; it is not a broker execution result.
-- The command checks path scope only. Future broker work can expand checks to resource classes, policy requirements, and side-effect-specific authority.
+- The command checks normalized path scope only. Future broker work can expand checks to resource classes, policy requirements, and side-effect-specific authority.
 - Denied checks return structured `allowed: false` data without making command failure the primary signal.

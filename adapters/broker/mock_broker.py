@@ -15,6 +15,7 @@ import hashlib
 import io
 import json
 import os
+import re
 import shutil
 import subprocess
 import tarfile
@@ -42,6 +43,20 @@ DANGEROUS_SNIPPETS = (
     "gh pr merge",
     "chmod 777",
     "chown ",
+)
+
+SANDBOX_SHELL_FORBIDDEN_TOKENS = (
+    "$",
+    "`",
+    "|",
+    "&",
+    ";",
+    "<",
+    "\n",
+)
+
+SANDBOX_PRINTF_REDIRECT = re.compile(
+    r"^\s*printf\s+(?P<quote>['\"])(?P<body>[^'\"]*)(?P=quote)\s*(?P<redir>>>?)\s*(?P<target>[A-Za-z0-9._/-]+)\s*$"
 )
 
 SECRET_ENV_EXACT = {
@@ -120,8 +135,29 @@ def ticket_frontmatter(root: Path, ticket: str) -> dict[str, Any]:
     return data
 
 
+def normalize_repo_path(path: str) -> tuple[str, str]:
+    clean = path.strip().strip('"').replace("\\", "/")
+    if not clean:
+        return "", "resource path is empty"
+    if clean.startswith("/") or re.match(r"^[A-Za-z]:", clean):
+        return "", "resource path must be relative to the repository"
+    parts: list[str] = []
+    for part in clean.split("/"):
+        if part in {"", "."}:
+            continue
+        if part == "..":
+            if not parts:
+                return "", "resource path escapes the repository"
+            parts.pop()
+            continue
+        parts.append(part)
+    return "/".join(parts) if parts else ".", ""
+
+
 def path_matches(path: str, pattern: str) -> bool:
-    clean_path = path.removeprefix("./")
+    clean_path, path_error = normalize_repo_path(path)
+    if path_error:
+        return False
     clean_pattern = pattern.removeprefix("./").strip('"')
     return fnmatch.fnmatchcase(clean_path, clean_pattern)
 
@@ -131,7 +167,11 @@ def changed_path_violations(paths: list[str], meta: dict[str, Any]) -> tuple[lis
     forbidden = [str(item) for item in meta.get("forbidden_paths", []) if str(item)]
     violations: list[str] = []
     outside_scope: list[str] = []
-    for path in paths:
+    for raw_path in paths:
+        path, path_error = normalize_repo_path(raw_path)
+        if path_error:
+            outside_scope.append(raw_path)
+            continue
         if any(path_matches(path, pattern) for pattern in forbidden):
             violations.append(path)
             continue
@@ -140,12 +180,15 @@ def changed_path_violations(paths: list[str], meta: dict[str, Any]) -> tuple[lis
     return sorted(violations), sorted(outside_scope)
 
 
-def scrubbed_environment() -> dict[str, str]:
-    clean: dict[str, str] = {}
-    for key, value in os.environ.items():
-        if key in SECRET_ENV_EXACT or key.startswith("AWS_") or key.endswith(SECRET_ENV_SUFFIXES):
-            continue
-        clean[key] = value
+def scrubbed_environment(*, home: Path | None = None, tmp: Path | None = None) -> dict[str, str]:
+    clean: dict[str, str] = {
+        "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+        "LANG": os.environ.get("LANG", "C.UTF-8"),
+    }
+    if home is not None:
+        clean["HOME"] = str(home)
+    if tmp is not None:
+        clean["TMPDIR"] = str(tmp)
     return clean
 
 
@@ -189,6 +232,25 @@ def refusal_reason(command: list[str]) -> str:
     for snippet in DANGEROUS_SNIPPETS:
         if snippet in joined:
             return f"refused dangerous command pattern: {snippet.strip()}"
+    return ""
+
+
+def sandbox_command_refusal(command: list[str]) -> str:
+    reason = refusal_reason(command)
+    if reason:
+        return reason
+    if len(command) != 3 or command[0] != "sh" or command[1] != "-c":
+        return "sandbox command refused: only `sh -c` simple printf redirection is supported"
+
+    script = command[2]
+    if any(token in script for token in SANDBOX_SHELL_FORBIDDEN_TOKENS):
+        return "sandbox command refused: shell expansion, pipelines, redirects-from, and command chaining are not supported"
+    match = SANDBOX_PRINTF_REDIRECT.match(script)
+    if not match:
+        return "sandbox command refused: only simple `printf ... > relative-repo-path` writes are supported"
+    _, path_error = normalize_repo_path(match.group("target"))
+    if path_error:
+        return f"sandbox command refused: {path_error}"
     return ""
 
 
@@ -397,7 +459,7 @@ def run_sandbox(args: argparse.Namespace) -> int:
     request["side_effect_class"] = "repo_file_write"
     request["allowed_by"] = ["local_sandbox_repo_copy", "ticket_scope"]
 
-    reason = refusal_reason(command)
+    reason = sandbox_command_refusal(command)
     stdout = b""
     stderr = b""
     exit_code = 126 if reason else 0
@@ -414,6 +476,10 @@ def run_sandbox(args: argparse.Namespace) -> int:
     try:
         if not reason:
             temp_root, sandbox = create_repo_copy(root)
+            sandbox_home = temp_root / "home"
+            sandbox_tmp = temp_root / "tmp"
+            sandbox_home.mkdir(parents=True, exist_ok=True)
+            sandbox_tmp.mkdir(parents=True, exist_ok=True)
             executed = True
             try:
                 result = subprocess.run(
@@ -423,7 +489,7 @@ def run_sandbox(args: argparse.Namespace) -> int:
                     stderr=subprocess.PIPE,
                     timeout=30,
                     check=False,
-                    env=scrubbed_environment(),
+                    env=scrubbed_environment(home=sandbox_home, tmp=sandbox_tmp),
                 )
                 stdout = result.stdout
                 stderr = result.stderr
@@ -441,7 +507,7 @@ def run_sandbox(args: argparse.Namespace) -> int:
 
         if reason:
             decision = "denied"
-            decision_reason = "dangerous_command_refused"
+            decision_reason = "sandbox_command_refused"
             decision_reasons = [reason]
             broker_exit_code = 126
         elif forbidden_path_changes:
@@ -493,6 +559,7 @@ def run_sandbox(args: argparse.Namespace) -> int:
             "credentials_available_to_agents": False,
             "network_or_hosted_api_access": False,
             "network_isolation_enforced": False,
+            "sandbox_command_policy": "simple_printf_redirect_only",
             "cwd": str(sandbox or root),
             "command": command,
         }
@@ -510,6 +577,7 @@ def run_sandbox(args: argparse.Namespace) -> int:
             "run_id": run_id,
             "broker_mode": "sandbox",
             "boundary_type": "local_sandbox_repo_copy",
+            "sandbox_command_policy": "simple_printf_redirect_only",
             "working_directory": str(sandbox or root),
             "started_at": started_at,
             "ended_at": ended_at,
@@ -556,6 +624,8 @@ def run_sandbox(args: argparse.Namespace) -> int:
         print(f"broker_exit_code: {broker_exit_code}")
         print("side_effects_enabled: false")
         print("boundary_type: local_sandbox_repo_copy")
+        if reason:
+            print(f"refused: {reason}")
         if forbidden_path_changes:
             print(f"forbidden_path_changes: {len(forbidden_path_changes)}")
         print(f"evidence: {rel}")
@@ -571,9 +641,12 @@ def check_permission(args: argparse.Namespace) -> int:
     if not meta:
         raise SystemExit(f"ticket not found: {args.ticket}")
     risk = str(meta.get("risk") or "R0")
+    normalized_resource, resource_error = normalize_repo_path(args.resource)
     forbidden_changes, outside_scope_changes = changed_path_violations([args.resource], meta)
     allowed = not forbidden_changes and not outside_scope_changes
     reasons: list[str] = []
+    if resource_error:
+        reasons.append(resource_error)
     if forbidden_changes:
         reasons.append("resource matches ticket forbidden paths")
     if outside_scope_changes:
@@ -591,6 +664,7 @@ def check_permission(args: argparse.Namespace) -> int:
         "tool": args.tool,
         "action": args.action,
         "resource": args.resource,
+        "normalized_resource": normalized_resource or args.resource,
         "boundary_type": "permission_check_only",
     }
     if args.json:

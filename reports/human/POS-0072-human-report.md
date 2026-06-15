@@ -15,6 +15,8 @@ Palari needs a safer way to observe repo-file work before any real broker author
 
 - The real repo is not changed by sandbox broker runs.
 - This is not a hardened security sandbox and does not enforce network isolation.
+- Sandbox commands are intentionally narrow for now: only simple printf-style
+  writes to relative repo paths are allowed to execute.
 - No credentials, external writes, policy acceptance, push, merge, or deploy behavior was enabled.
 
 ## What To Check

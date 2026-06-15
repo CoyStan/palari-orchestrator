@@ -9,6 +9,8 @@ Before the broker runs anything, Palari should be able to answer whether a reque
 - Added `palari broker check`.
 - The command can return JSON or readable text.
 - It allows resources inside ticket scope and denies forbidden or outside-scope resources.
+- Resource paths are normalized before checking, so traversal strings such as
+  `allowed/../outside` fail closed instead of matching the raw allowed prefix.
 
 ## What I Should Know
 

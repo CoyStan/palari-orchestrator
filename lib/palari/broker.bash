@@ -137,6 +137,7 @@ credentials_available_to_agents: false
 network_or_hosted_api_access: false
 network_isolation_enforced: false
 note: broker run requires --mock or --sandbox and records evidence under reports/evidence/TICKET/broker/.
+sandbox_command_policy: simple_printf_redirect_only
 STATUS
 }
 
@@ -159,8 +160,8 @@ usage: palari broker run TICKET-ID --mock -- COMMAND [ARGS...]
        palari broker status
 
 Broker support is mock/local-sandbox only. It captures evidence and keeps
-real_side_effects_enabled: false. Local sandbox mode runs in a disposable repo
-copy and does not copy changes back.
+real_side_effects_enabled: false. Local sandbox mode runs a constrained
+repo-file write subset in a disposable repo copy and does not copy changes back.
 USAGE
 		;;
 	*) die "unknown broker command: $sub" ;;
