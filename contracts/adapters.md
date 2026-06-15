@@ -106,6 +106,59 @@ yet and may only arrive as a later adapter. A local sandbox is not a security
 boundary, and adapters must not describe it as one. Containment of untrusted
 executors comes from scope-check, evidence, review, and human acceptance.
 
+## Company OS Worker Adapter Contract
+
+Company OS worker adapters connect Palari-governed work to replaceable
+workers. This contract covers future Hermes, GBrain, OpenRouter, Codex, local
+agents, and human delegates before any one of them receives special authority.
+
+Worker types may include:
+
+- `coding_agent`
+- `research_agent`
+- `review_agent`
+- `memory_provider`
+- `model_provider`
+- `workflow_executor`
+- `human_delegate`
+
+External workers may:
+
+- receive scoped work packets created by Palari
+- produce outputs, logs, reports, patches, and evidence
+- request broker actions using explicit ticket, risk, tool, action, and
+  resource context
+- return structured status that Palari can attach to tickets, workflows,
+  broker evidence, or outcome records
+
+External workers must:
+
+- declare their worker type, provider, model, runtime, version, and execution
+  environment
+- make their inputs, outputs, logs, and evidence auditable by Palari
+- run inside a ticket, workflow, broker, or human-delegation boundary that
+  Palari can inspect
+- treat Palari repo-native artifacts as the authority source for scope,
+  evidence, review, and acceptance
+
+External workers must not:
+
+- hold company credentials directly
+- accept work, close tickets, or satisfy human acceptance gates
+- merge, deploy, send, charge, refund, or mutate production/customer systems
+  unless a broker permits and records the action
+- bypass path scope, risk tier, R5, policy simulation, broker, or review gates
+- convert policy simulation into real acceptance authority
+- hide network access, hosted API calls, tool permissions, prompts, model
+  identity, or runtime identity from Palari evidence
+
+Broker requests are not permission grants. A worker may ask for a broker
+action, but the broker boundary decides whether the action is observed, denied,
+or eventually performed under a later R5-approved real-side-effect design. In
+this repo version, company OS worker adapters are contract-only and must not add
+real network dependencies, credentials, hosted services, or side-effecting
+connectors.
+
 ## Lead Planner Adapters
 
 Lead planner adapters turn founder intent into proposals, not implementation.

@@ -1,17 +1,17 @@
 ---
 id: POS-0095
 title: Define company OS worker adapter contract
-status: open
+status: in-review
 risk: R3
 priority: P3
 stream: process
 serves_goal: GOAL-0200
 model_hint: 
-claimed_by:
-claimed_at:
-claim_ref:
-claim_heartbeat_at:
-claim_expires_at:
+claimed_by: Codex
+claimed_at: 2026-06-15T16:40:27Z
+claim_ref: refs/palari/claims/POS-0095
+claim_heartbeat_at: 2026-06-15T16:43:20Z
+claim_expires_at: 2026-06-15T16:48:20Z
 allowed_paths:
   - contracts/**
   - docs/integration/**

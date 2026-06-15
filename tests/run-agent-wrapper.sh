@@ -79,6 +79,24 @@ if grep -Fq "palari_accept" adapters/mcp/tools.json; then
 	exit 1
 fi
 
+CONTRACT="contracts/adapters.md"
+grep -Fq "## Company OS Worker Adapter Contract" "$CONTRACT"
+grep -Fq "future Hermes, GBrain, OpenRouter, Codex, local" "$CONTRACT"
+grep -Fq "\`coding_agent\`" "$CONTRACT"
+grep -Fq "\`memory_provider\`" "$CONTRACT"
+grep -Fq "\`human_delegate\`" "$CONTRACT"
+grep -Fq "receive scoped work packets created by Palari" "$CONTRACT"
+grep -Fq "produce outputs, logs, reports, patches, and evidence" "$CONTRACT"
+grep -Fq "request broker actions using explicit ticket, risk, tool, action, and" "$CONTRACT"
+grep -Fq "declare their worker type, provider, model, runtime, version" "$CONTRACT"
+grep -Fq "make their inputs, outputs, logs, and evidence auditable by Palari" "$CONTRACT"
+grep -Fq "hold company credentials directly" "$CONTRACT"
+grep -Fq "accept work, close tickets, or satisfy human acceptance gates" "$CONTRACT"
+grep -Fq "merge, deploy, send, charge, refund" "$CONTRACT"
+grep -Fq "Broker requests are not permission grants" "$CONTRACT"
+grep -Fq "must not add" "$CONTRACT"
+grep -Fq "real network dependencies, credentials, hosted services" "$CONTRACT"
+
 # --- report-lint missing-heading diagnostic ---
 ./bin/palari ticket create LAB-0202 "Report heading test" \
 	--stream lab \
