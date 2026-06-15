@@ -83,6 +83,24 @@ grep -Fq "[model class:" "$TMP_ROOT/plan.out" || fail "dry-run missing model cla
 grep -Eq "model: .+ \((routed|executor-default)\)" "$TMP_ROOT/agent.out" ||
 	fail "agent dry-run missing routed model line"
 
+# Governed model provider contract keeps routing subordinate to Palari authority.
+grep -Fq "## Governed Model Provider Contract" contracts/adapters.md ||
+	fail "missing governed model provider contract"
+grep -Fq "Model providers are model capability suppliers, not authority layers." contracts/adapters.md ||
+	fail "model providers must remain suppliers, not authority layers"
+grep -Fq "Routing policy is subordinate to Palari" contracts/adapters.md ||
+	fail "routing policy must be subordinate to Palari authority"
+grep -Fq "authority: ticket scope" contracts/adapters.md ||
+	fail "routing policy must name Palari authority controls"
+grep -Fq "Model providers must not decide authority." contracts/adapters.md ||
+	fail "model providers must not decide authority"
+for factor in "risk" "data sensitivity" "cost" "latency" "task type" \
+	"historical success" "allowed providers" "customer data restrictions" \
+	"evaluation score" "fallback availability"; do
+	grep -Fq "$factor" contracts/adapters.md ||
+		fail "model provider contract missing routing factor: $factor"
+done
+
 # Disabling routing falls back to executor default.
 sed -i 's/^model_routing_enabled: true$/model_routing_enabled: false/' palari.config.yaml
 ./bin/palari model show MRT-0002 --executor opencode >"$TMP_ROOT/show5.out"

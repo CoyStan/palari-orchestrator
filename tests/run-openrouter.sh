@@ -47,6 +47,16 @@ git add -A >/dev/null && git commit -qm claim >/dev/null
 grep -Fq "resolved model: deepseek/deepseek-chat" "$TMP_ROOT/show.out" ||
 	fail "routing did not resolve the openrouter fast model"
 
+# OpenRouter is model supply only; Palari keeps authority and routing governance.
+grep -Fq "OpenRouter remains model supply, not governance." contracts/adapters.md ||
+	fail "OpenRouter must remain model supply, not governance"
+grep -Fq "but it must not own" contracts/adapters.md ||
+	fail "OpenRouter must not own Palari routing authority"
+grep -Fq "Palari's routing authority" contracts/adapters.md ||
+	fail "OpenRouter contract must name Palari routing authority"
+grep -Fq "side-effecting model integration" contracts/adapters.md ||
+	fail "contract must not add side-effecting model integration"
+
 # Dry-run prints executor, routed model, and redacted command; no network.
 ./bin/palari agent run ORT-0001 --executor openrouter --dry-run >"$TMP_ROOT/dry.out"
 grep -Fq "executor: openrouter" "$TMP_ROOT/dry.out" || fail "dry-run missing executor"

@@ -211,6 +211,70 @@ provider. It must not become Palari's source of truth, authority layer, or
 hidden acceptance path. This repo version adds no live GBrain dependency, hosted
 call, credential path, or side-effecting memory integration.
 
+## Governed Model Provider Contract
+
+Model providers are model capability suppliers, not authority layers. This
+contract covers OpenRouter and any later direct or routed model supplier that
+may help Palari-governed workers draft, classify, review, summarize, or plan.
+
+Model provider operations may include:
+
+- `model.complete`
+- `model.chat`
+- `model.summarize`
+- `model.classify`
+- `model.review_draft`
+- `model.estimate_risk`
+
+Palari controls model routing policy. Routing policy is subordinate to Palari
+authority: ticket scope, risk tier, policy simulation posture, broker boundary,
+data classification, human governance, R5 controls, evidence requirements, and
+review/acceptance gates. Model providers must not decide authority.
+
+Routing may consider:
+
+- risk
+- data sensitivity
+- cost
+- latency
+- task type
+- historical success
+- allowed providers
+- customer data restrictions
+- evaluation score
+- fallback availability
+
+Model providers must:
+
+- declare provider, model identifier, version or dated release when available,
+  runtime surface, and whether tool use is enabled
+- expose cost, latency, context-window, and reliability signals when Palari can
+  observe them
+- respect Palari allowlists, data-class restrictions, customer-data
+  restrictions, and fallback rules
+- make routing inputs, model identity, and returned content auditable through
+  Palari evidence when used inside governed work
+
+Model providers must not:
+
+- accept work, approve work, close tickets, satisfy human gates, or grant
+  authority
+- decide policy, mutate policy acceptance posture, or convert policy simulation
+  into real acceptance
+- bypass ticket scope, data restrictions, R5 controls, broker boundaries,
+  reviewer requirements, or human governance
+- hold company credentials directly or hide network access, hosted calls, tool
+  permissions, prompts, model identity, or runtime identity from Palari evidence
+- replace scoped evidence, reviewer judgment, R5 dual-human controls, or human
+  acceptance gates
+
+OpenRouter remains model supply, not governance. It may provide routed model
+capability through an allowlisted, auditable adapter, but it must not own
+Palari's routing authority, acceptance authority, policy authority, broker
+authority, or evidence requirements. This repo version adds no new live
+provider behavior, credential path, hosted call, dependency, lockfile, or
+side-effecting model integration.
+
 ## Lead Planner Adapters
 
 Lead planner adapters turn founder intent into proposals, not implementation.
