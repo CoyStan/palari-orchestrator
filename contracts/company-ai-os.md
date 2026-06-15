@@ -106,6 +106,13 @@ Until later tickets add explicit R5 enforcement, all Company OS work must stay
 conservative: simulation before mutation, mock broker before real side
 effects, and human acceptance before any authority expansion.
 
+Secure posture reporting must distinguish configuration from enforcement.
+For example, `governance.r5_requires_dual_human: true` records the desired R5
+approval policy, but it is not proof that `palari accept` enforces a second
+distinct human approval. `palari doctor secure` must report configured controls
+and enforced controls separately, and must keep the posture weak whenever a
+serious control is configured but not actually enforced.
+
 ## Human Governance Load
 
 Human Governance Load is Palari's estimate of the human judgment required by a

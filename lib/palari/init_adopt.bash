@@ -284,9 +284,16 @@ secure_doctor_broker_observations_available() {
 	[[ -n "$found" ]]
 }
 
+secure_doctor_accept_enforces_r5_dual_human() {
+	# POS-0066 should replace this fail-closed probe when `palari accept`
+	# performs an R5-specific dual-human enforcement check.
+	return 1
+}
+
 cmd_secure_doctor() {
-	local gate_configured="false" gate_ready="false" broker_real="false"
-	local policy_acceptance="false" r5_dual_human="false" broker_observations="false"
+	local gate_configured="false" gate_ready="false" broker_real="false" broker_boundary="false"
+	local policy_acceptance="false" r5_dual_human_configured="false" r5_dual_human_enforced="false" broker_observations="false"
+	local policy_simulation_only="true"
 	local posture="weak"
 
 	secure_doctor_bool gate enabled false && gate_configured="true"
@@ -294,51 +301,36 @@ cmd_secure_doctor() {
 		gate_ready="true"
 	fi
 	secure_doctor_bool governance broker_real_side_effects_enabled false && broker_real="true"
+	secure_doctor_bool governance broker_security_boundary_enabled false && broker_boundary="true"
 	secure_doctor_bool governance policy_acceptance_enabled false && policy_acceptance="true"
-	secure_doctor_bool governance r5_requires_dual_human false && r5_dual_human="true"
+	[[ "$policy_acceptance" == "true" ]] && policy_simulation_only="false"
+	secure_doctor_bool governance r5_requires_dual_human false && r5_dual_human_configured="true"
+	secure_doctor_accept_enforces_r5_dual_human && r5_dual_human_enforced="true"
 	secure_doctor_broker_observations_available && broker_observations="true"
 
-	if [[ "$gate_ready" == "true" && "$broker_real" == "false" && "$policy_acceptance" == "false" && "$r5_dual_human" == "true" && "$broker_observations" == "true" ]]; then
+	if [[ "$gate_ready" == "true" && "$broker_real" == "false" && "$policy_acceptance" == "false" && "$r5_dual_human_configured" == "true" && "$r5_dual_human_enforced" == "true" && "$broker_observations" == "true" ]]; then
 		posture="stronger"
 	fi
 
 	printf 'Palari secure governance doctor\n'
 	printf 'root: %s\n' "$ROOT"
-	printf 'Governance posture: %s\n' "$posture"
-	if [[ "$gate_ready" == "true" ]]; then
-		printf -- '- ForgeGate enabled for R2+\n'
-	elif [[ "$gate_configured" == "true" ]]; then
-		printf -- '- ForgeGate enabled but unavailable; acceptance fails closed\n'
-	else
-		printf -- '- ForgeGate disabled\n'
-	fi
-	if [[ "$broker_real" == "true" ]]; then
-		printf -- '- broker real side effects enabled\n'
-	else
-		printf -- '- broker side effects disabled/mock only\n'
-	fi
-	if [[ "$broker_observations" == "true" ]]; then
-		printf -- '- broker observations available\n'
-	else
-		printf -- '- broker observations not found\n'
-	fi
-	if [[ "$policy_acceptance" == "true" ]]; then
-		printf -- '- policy acceptance enabled\n'
-	else
-		printf -- '- policy acceptance simulation only\n'
-	fi
-	printf -- '- branch protection not verified locally\n'
-	if [[ "$r5_dual_human" == "true" ]]; then
-		printf -- '- R5 requires human approval\n'
-	else
-		printf -- '- R5 dual approval not configured\n'
-	fi
+	printf 'R5 dual-human approval configured: %s\n' "$r5_dual_human_configured"
+	printf 'R5 dual-human approval enforced by accept: %s\n' "$r5_dual_human_enforced"
+	printf 'Policy acceptance real mode enabled: %s\n' "$policy_acceptance"
+	printf 'Policy acceptance simulation-only: %s\n' "$policy_simulation_only"
+	printf 'Broker real side effects enabled: %s\n' "$broker_real"
+	printf 'Broker is a security boundary: %s\n' "$broker_boundary"
+	printf 'Broker observations available: %s\n' "$broker_observations"
+	printf 'ForgeGate enabled: %s\n' "$gate_configured"
+	printf 'ForgeGate enforcement available: %s\n' "$gate_ready"
+	printf 'Branch protection verified locally: false\n'
+	printf 'Posture: %s\n' "$posture"
 	cat <<'DOCTOR'
 
 Recommended modes:
 - local/demo: ForgeGate optional
 - R2+ team work: require ForgeGate policy before acceptance
-- R5: mandatory before real autonomous governance
+- R5: require configured and enforced dual-human acceptance before real autonomous governance
 
 Local verification limits:
 - This doctor does not verify hosted branch protection or remote rulesets.

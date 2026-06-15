@@ -1,0 +1,55 @@
+# Palari CI Evidence
+
+- Ticket: POS-0065
+- Base ref: local working tree
+- Created: 2026-06-15T12:00:51Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0065 (14 changed path(s))
+```
+
+## lint
+
+```text
+report-lint: ok for POS-0065
+lint: ok for POS-0065
+```
+
+## verification 1
+
+Command: `./bin/palari doctor secure`
+
+```text
+Palari secure governance doctor
+root: /home/quetza/palari-orchestrator-worktrees/POS-0065
+R5 dual-human approval configured: true
+R5 dual-human approval enforced by accept: false
+Policy acceptance real mode enabled: false
+Policy acceptance simulation-only: true
+Broker real side effects enabled: false
+Broker is a security boundary: false
+Broker observations available: false
+ForgeGate enabled: false
+ForgeGate enforcement available: false
+Branch protection verified locally: false
+Posture: weak
+
+Recommended modes:
+- local/demo: ForgeGate optional
+- R2+ team work: require ForgeGate policy before acceptance
+- R5: require configured and enforced dual-human acceptance before real autonomous governance
+
+Local verification limits:
+- This doctor does not verify hosted branch protection or remote rulesets.
+- Do not claim branch protection is active from this local output alone.
+```
+
+## verification 2
+
+Command: `./tests/run-secure-doctor.sh`
+
+```text
+secure-doctor: ok
+```

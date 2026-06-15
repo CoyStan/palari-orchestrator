@@ -12,6 +12,21 @@ answers the question that matters: who had the authority to create it.
 The forge-proof gate, vendored from the forgegate kernel at `gate/`, answers
 that question with cryptography instead of convention.
 
+## Configured is not enforced
+
+Repository configuration may declare future governance requirements before the
+acceptance command can enforce them. `governance.r5_requires_dual_human: true`
+means the repo wants dual-human R5 approval. It does not, by itself, prove that
+`palari accept` requires two distinct human approvals for R5 tickets.
+`palari doctor secure` must therefore report both:
+
+- whether R5 dual-human approval is configured
+- whether `palari accept` currently enforces that configured requirement
+
+Until the accept path performs the R5-specific check, secure doctor must report
+the enforced value as false and must not present the repository posture as
+strong because of configuration alone.
+
 ## The boundary
 
 When `gate.enabled: true` in `palari.config.yaml`, `palari accept` refuses a
