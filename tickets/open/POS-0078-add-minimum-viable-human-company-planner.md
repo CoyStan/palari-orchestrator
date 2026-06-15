@@ -1,17 +1,17 @@
 ---
 id: POS-0078
 title: Add minimum viable human company planner
-status: open
+status: in-review
 risk: R2
 priority: P2
 stream: process
 serves_goal: GOAL-0200
 model_hint: 
-claimed_by:
-claimed_at:
-claim_ref:
-claim_heartbeat_at:
-claim_expires_at:
+claimed_by: Codex
+claimed_at: 2026-06-15T14:07:13Z
+claim_ref: refs/palari/claims/POS-0078
+claim_heartbeat_at: 2026-06-15T14:07:13Z
+claim_expires_at: 2026-06-15T14:12:13Z
 allowed_paths:
   - adapters/planning/**
   - lib/palari/**
@@ -61,15 +61,28 @@ updated: 2026-06-15
 
 ## Goal
 
-State the result this ticket should produce.
+Add a deterministic, read-only minimum viable human company planner for active
+workflows.
 
 ## Scope
 
-List what may change.
+- `palari human org-plan [--json]` command wiring.
+- Planning adapter logic for deriving required roles/skills from active
+  workflow expected decisions.
+- Human/company OS contracts and focused tests.
+- Ticket reports and evidence.
 
 ## Acceptance
 
-- The scoped result exists.
+- `palari human org-plan` prints required governance roles/skills for active
+  workflows.
+- `palari human org-plan --json` returns deterministic structured data.
+- The planner identifies missing coverage, thin single-human coverage, and
+  concentration risk.
+- Recommendations are derived from active workflow decisions, not generic
+  headcount.
+- The planner is read-only and does not create profiles, adopt humans, mutate
+  workflows, change capacity, accept work, or grant authority.
 - Path and risk rules are respected.
 
 ## Verification
@@ -81,19 +94,25 @@ List what may change.
 
 ### Non-Goals
 
-- Nearby work this ticket must not absorb.
+- Do not create or adopt human profiles.
+- Do not change HGL scoring, capacity, authority, acceptance, policies, broker
+  behavior, external integrations, runtime state, secrets, dependencies, or
+  deployment.
 
 ### Definition Of Done
 
-- Concrete done condition.
+- Operators can inspect the minimum viable human company shape needed by active
+  workflows without changing repo-native state.
 
 ### Evidence Required
 
-- Report, command, review, screenshot, or manual check to inspect.
+- Technical report, reviewer note, human report, verification log, CI manifest,
+  JUnit, SARIF, and evidence score.
 
 ### Expansion Rules
 
-- Stop if scope, risk, or authority changes.
+- Stop if implementation requires human-profile mutation, new authority
+  semantics, employee productivity metrics, or non-read-only behavior.
 
 ### Final Review Gate
 

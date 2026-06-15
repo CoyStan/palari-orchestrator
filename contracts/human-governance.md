@@ -71,7 +71,16 @@ palari human show HUMAN-ALICE
 palari human lint
 palari human adopt HUMAN-ALICE --by founder
 palari human revoke HUMAN-ALICE --by founder
+palari human org-plan
+palari human org-plan --json
 ```
+
+`human org-plan` is a read-only planner for the minimum viable human company
+needed by active workflows. It derives required roles and skills from workflow
+expected decisions, reports missing or thin coverage, and calls out
+concentration risk when one human covers too much high-risk governance. It
+does not create profiles, adopt humans, change capacity, accept work, or grant
+agent authority.
 
 ## Non-Authority
 

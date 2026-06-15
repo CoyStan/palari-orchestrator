@@ -147,6 +147,12 @@ The goal is not mathematical sophistication. The goal is to make scarce human
 judgment visible, planned, reducible, and reserved for the decisions that
 actually need it.
 
+The minimum viable human company planner derives the roles and skills required
+by active workflows. It should recommend governance coverage such as privacy,
+technical, product, operations, analytics, or customer/brand governors from the
+actual workflow decisions, not generic headcount. The planner is read-only and
+does not create human profiles or grant authority.
+
 ## Policy Simulation
 
 Policy is how repeated human judgment becomes a rule. Policy acceptance must

@@ -32,6 +32,16 @@ all_human_files() {
 	done
 }
 
+human_org_plan_adapter_args() {
+	python3 "$ROOT/adapters/planning/human_company_plan.py" \
+		--root "$ROOT" \
+		--workflows-proposed-dir "$WORKFLOWS_PROPOSED_DIR" \
+		--workflows-active-dir "$WORKFLOWS_ACTIVE_DIR" \
+		--workflows-closed-dir "$WORKFLOWS_CLOSED_DIR" \
+		--humans-active-dir "$HUMANS_ACTIVE_DIR" \
+		"$@"
+}
+
 find_human_file() {
 	local id="$1" state="${2:-any}"
 	local states file s
@@ -352,6 +362,25 @@ cmd_human_revoke() {
 	printf 'human revoke: %s -> %s (by %s)\n' "$id" "${target#"$ROOT"/}" "$by"
 }
 
+cmd_human_org_plan() {
+	local json="false" arg
+	while (($# > 0)); do
+		arg="$1"
+		case "$arg" in
+		--json)
+			json="true"
+			shift
+			;;
+		*) die "unknown human org-plan option: $arg" ;;
+		esac
+	done
+	if [[ "$json" == "true" ]]; then
+		human_org_plan_adapter_args --json
+	else
+		human_org_plan_adapter_args
+	fi
+}
+
 cmd_human() {
 	local sub="${1:-list}"
 	shift || true
@@ -361,6 +390,7 @@ cmd_human() {
 	show) cmd_human_show "$@" ;;
 	lint) cmd_human_lint "$@" ;;
 	coverage) cmd_human_coverage "$@" ;;
+	org-plan) cmd_human_org_plan "$@" ;;
 	adopt) cmd_human_adopt "$@" ;;
 	revoke) cmd_human_revoke "$@" ;;
 	help | -h | --help)
@@ -370,6 +400,7 @@ usage: palari human create HUMAN-ID NAME --skill skill:Lx --role ROLE --capacity
        palari human show HUMAN-ID
        palari human lint [HUMAN-ID]
        palari human coverage WF-ID [--json]
+       palari human org-plan [--json]
        palari human adopt HUMAN-ID --by NAME
        palari human revoke HUMAN-ID --by NAME
 USAGE

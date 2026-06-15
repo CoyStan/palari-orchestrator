@@ -17,7 +17,7 @@ mkdir -p "$WORK"
 cd "$WORK"
 chmod +x bin/palari scripts/palari tests/run-human-governance.sh
 rm -f tickets/open/*.md tickets/closed/*.md reports/*.md reports/human/*.md handoffs/*.md
-rm -rf reports/evidence/* .palari humans/proposed/*.md humans/active/*.md humans/revoked/*.md
+rm -rf reports/evidence/* .palari humans/proposed/*.md humans/active/*.md humans/revoked/*.md workflows/proposed/*.md workflows/active/*.md workflows/closed/*.md
 
 git init -b main >/dev/null
 git config user.email "humans@example.invalid"
@@ -211,5 +211,70 @@ rm -f humans/active/HUMAN-FRANK-frank.md
 ./bin/palari human lint >"$TMP_ROOT/final-lint.out"
 grep -Fq "human lint: ok" "$TMP_ROOT/final-lint.out" ||
 	fail "final human lint should pass"
+
+./bin/palari human create HUMAN-FOUNDER Founder \
+	--skill product_strategy:L5 \
+	--skill analytics:L3 \
+	--skill operations:L3 \
+	--role product_governor \
+	--role analytics_reviewer \
+	--role operations_governor \
+	--capacity-hgl 80 \
+	--authority-max-risk R5 \
+	--may-approve-policy-changes >/dev/null
+./bin/palari human adopt HUMAN-FOUNDER --by founder >/dev/null
+
+./bin/palari workflow create WF-0100 "Launch governed beta" \
+	--goal GOAL-0100 \
+	--owner founder \
+	--risk-ceiling R5 >/dev/null
+python3 - <<'PY'
+from pathlib import Path
+
+path = Path("workflows/proposed/WF-0100-launch-governed-beta.md")
+text = path.read_text()
+text = text.replace(
+    "expected_decisions:\n",
+    "expected_decisions:\n"
+    "  - R5|approve|privacy:L5|Approve privacy boundary\n"
+    "  - R4|approve|technical_governance:L4|Approve production controls\n"
+    "  - R3|choose|product_strategy:L4,analytics:L3,operations:L3|Choose launch operating plan\n",
+)
+path.write_text(text)
+PY
+./bin/palari workflow adopt WF-0100 --by founder >/dev/null
+
+./bin/palari human org-plan >"$TMP_ROOT/org-plan.out"
+grep -Fq "Minimum viable human company for active workflows:" "$TMP_ROOT/org-plan.out" ||
+	fail "org-plan title missing"
+grep -Fq "privacy_governor L5: privacy for R5 (missing; missing)" "$TMP_ROOT/org-plan.out" ||
+	fail "org-plan privacy missing row missing"
+grep -Fq "technical_governor L4: technical_governance for R4 (missing; missing)" "$TMP_ROOT/org-plan.out" ||
+	fail "org-plan technical missing row missing"
+grep -Fq "product_governor L4: product_strategy for R3 (thin; HUMAN-FOUNDER)" "$TMP_ROOT/org-plan.out" ||
+	fail "org-plan product thin row missing"
+grep -Fq "HUMAN-FOUNDER covers 3 required governance role(s)" "$TMP_ROOT/org-plan.out" ||
+	fail "org-plan concentration risk missing"
+grep -Fq "Recommendation:" "$TMP_ROOT/org-plan.out" ||
+	fail "org-plan recommendation missing"
+
+./bin/palari human org-plan --json >"$TMP_ROOT/org-plan.json"
+python3 - "$TMP_ROOT/org-plan.json" <<'PY'
+import json
+import sys
+
+data = json.load(open(sys.argv[1]))
+assert data["active_workflow_count"] == 1, data
+requirements = {(item["role"], item["skill"]): item for item in data["requirements"]}
+assert requirements[("privacy_governor", "privacy")]["status"] == "missing", requirements
+assert requirements[("technical_governor", "technical_governance")]["status"] == "missing", requirements
+assert requirements[("product_governor", "product_strategy")]["covered_by"] == ["HUMAN-FOUNDER"], requirements
+assert requirements[("analytics_reviewer", "analytics")]["status"] == "thin", requirements
+assert requirements[("operations_governor", "operations")]["status"] == "thin", requirements
+assert data["missing_requirements"] == 2, data
+assert data["thin_requirements"] == 3, data
+assert data["concentration_risks"][0]["human"] == "HUMAN-FOUNDER", data
+assert "privacy_governor" in data["recommendation"], data
+PY
 
 printf 'human-governance: ok\n'
