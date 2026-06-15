@@ -245,8 +245,8 @@ DOC
 ./bin/palari ci RSK-0003 >/dev/null
 ./bin/palari ticket ready RSK-0003 >/dev/null
 ./bin/palari evidence score RSK-0003 >"$TMP_ROOT/r5-evidence-score.out"
-grep -Fq "next_action: human gate: ./bin/palari accept RSK-0003 --by HUMAN-ONE" "$TMP_ROOT/r5-evidence-score.out" ||
-	fail "R5 evidence score should recommend the configured one-human accept command"
+grep -Fq "next_action: human gate: ./bin/palari accept RSK-0003 --by HUMAN-ADMIN" "$TMP_ROOT/r5-evidence-score.out" ||
+	fail "R5 evidence score should recommend the configured default one-human accept command"
 ./bin/palari snapshot --json >"$TMP_ROOT/r5-snapshot.json"
 python3 - "$TMP_ROOT/r5-snapshot.json" <<'PY'
 import json
@@ -255,7 +255,7 @@ import sys
 snapshot = json.load(open(sys.argv[1]))
 tickets = {ticket["id"]: ticket for ticket in snapshot["tickets"]}
 command = tickets["RSK-0003"]["next_action"]["command"]
-assert command == "./bin/palari accept RSK-0003 --by HUMAN-ONE", command
+assert command == "./bin/palari accept RSK-0003 --by HUMAN-ADMIN", command
 PY
 
 if ./bin/palari accept RSK-0003 --by HUMAN-R2A >"$TMP_ROOT/r5-r2-one.out" 2>&1; then
@@ -354,7 +354,7 @@ DOC
 ./bin/palari ci RSK-0004 >/dev/null
 ./bin/palari ticket ready RSK-0004 >/dev/null
 ./bin/palari evidence score RSK-0004 >"$TMP_ROOT/r5-two-evidence-score.out"
-grep -Fq "next_action: human gate: ./bin/palari accept RSK-0004 --by HUMAN-ONE --co-by HUMAN-TWO" "$TMP_ROOT/r5-two-evidence-score.out" ||
+grep -Fq "next_action: human gate: ./bin/palari accept RSK-0004 --by HUMAN-ADMIN --co-by HUMAN-TWO" "$TMP_ROOT/r5-two-evidence-score.out" ||
 	fail "R5 quorum-two evidence score should recommend the two-human accept command"
 ./bin/palari snapshot --json >"$TMP_ROOT/r5-two-snapshot.json"
 python3 - "$TMP_ROOT/r5-two-snapshot.json" <<'PY'
@@ -364,7 +364,7 @@ import sys
 snapshot = json.load(open(sys.argv[1]))
 tickets = {ticket["id"]: ticket for ticket in snapshot["tickets"]}
 command = tickets["RSK-0004"]["next_action"]["command"]
-assert command == "./bin/palari accept RSK-0004 --by HUMAN-ONE --co-by HUMAN-TWO", command
+assert command == "./bin/palari accept RSK-0004 --by HUMAN-ADMIN --co-by HUMAN-TWO", command
 PY
 
 if ./bin/palari accept RSK-0004 --by HUMAN-R5A >"$TMP_ROOT/r5-two-one.out" 2>&1; then

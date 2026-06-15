@@ -196,6 +196,7 @@ acceptance:
   implementation_self_acceptance: forbidden
 
 governance:
+  default_human_approver: HUMAN-ADMIN
   required_human_approvals:
     R0: 0
     R1: 0

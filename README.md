@@ -307,6 +307,7 @@ path.
 
 ```yaml
 governance:
+  default_human_approver: HUMAN-ADMIN
   required_human_approvals:
     R0: 0
     R1: 0
@@ -315,6 +316,9 @@ governance:
     R4: 0
     R5: 1
 ```
+
+`default_human_approver` is the active profile ID shown as the first suggested
+`--by` value in status and evidence next actions.
 
 When a risk tier requires two or more humans, pass one or more `--co-by`
 values. Each required human must be a distinct active profile authorized for

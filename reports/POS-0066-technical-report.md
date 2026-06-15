@@ -18,6 +18,7 @@ contracts/human-governance.md
 contracts/human-governance-load.md
 contracts/policy-acceptance.md
 contracts/signed-acceptance.md
+humans/active/HUMAN-ADMIN-admin.md
 palari.config.yaml
 schemas/palari.config.schema.json
 adapters/planning/governance_debt.py
@@ -47,6 +48,7 @@ reports/evidence/POS-0066/
 ## Outcome
 
 - What changed: `palari accept` now enforces a configurable human approval quorum by risk tier via `governance.required_human_approvals`. The current repo config sets R5 to one active authorized human for the solo-founder phase, while preserving support for R5 quorum 2+ through repeated `--co-by`. Legacy `governance.r5_requires_dual_human: true` remains a compatibility fallback.
+- `HUMAN-ADMIN` is now an active R5-authorized human profile and `governance.default_human_approver` points status/evidence next actions to that profile.
 - Fresh re-review found stale live POS-0067/POS-0077 wording that still described hard-coded R5 dual-human behavior; those report/ticket phrases were corrected to configured human-quorum wording.
 - What did not change: R0-R4 acceptance remains compatible with `palari accept TICKET --by NAME` under the current config; policy acceptance remains simulation-only; ForgeGate does not replace human approval; no broker side effects, secrets, runtime state, dependencies, deployment behavior, or external integrations changed.
 - Blockers: none for implementation. POS-0066 itself is R5 and must not be self-accepted by an agent.
@@ -92,4 +94,5 @@ reports/evidence/POS-0066/
 ## Risks / Follow-Ups
 
 - Current repo R5 acceptance still requires one active R5-authorized human profile; a bare founder string is no longer enough when R5 quorum is nonzero.
+- `HUMAN-ADMIN` now satisfies that configured one-human R5 quorum.
 - Teams can raise `governance.required_human_approvals.R5` to `2` or higher later without changing the accept path.

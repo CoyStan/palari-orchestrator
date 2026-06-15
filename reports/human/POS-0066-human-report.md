@@ -11,6 +11,7 @@ approval without forcing a solo founder to create fake second-human profiles.
   `governance.required_human_approvals`.
 - The current repo sets R5 to one active authorized human for the solo-founder
   phase.
+- `HUMAN-ADMIN` is now the active default R5-authorized human approver.
 - `palari accept` still supports `--co-by`, including repeated `--co-by`, for
   team quorums of two or more.
 - Secure doctor now reports the configured R5 human approval quorum and whether
@@ -22,6 +23,7 @@ approval without forcing a solo founder to create fake second-human profiles.
 - This does not make ForgeGate reviewer keys a substitute for human approval.
 - Real R5 acceptance now requires the configured number of active human profiles
   with `authority_max_risk: R5` and `may_approve_policy_changes: true`.
+  `HUMAN-ADMIN` currently satisfies the solo-founder `R5: 1` quorum.
 
 ## What To Check
 

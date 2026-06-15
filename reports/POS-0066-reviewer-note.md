@@ -191,3 +191,15 @@ Accept-ready.
 Leave POS-0066 accept-ready and in-review. Do not reopen for code. After one
 active R5-authorized human profile exists, acceptance can proceed with:
 `./bin/palari accept POS-0066 --by HUMAN-ONE`.
+
+## Default Admin Activation
+
+Founder requested activation of a default solo-founder human approver after the
+accept-ready re-review.
+
+- `HUMAN-ADMIN` is now an active R5-authorized profile with
+  `may_approve_policy_changes: true`.
+- `governance.default_human_approver: HUMAN-ADMIN` makes status and evidence
+  next actions show `./bin/palari accept POS-0066 --by HUMAN-ADMIN`.
+- This clears the prior operational blocker that no active human profile
+  existed. POS-0066 remains in-review and is not accepted by this change.

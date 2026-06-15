@@ -629,6 +629,12 @@ accept_enforces_r5_dual_human() {
 }
 
 accept_placeholder_human() {
+	local default_human
+	default_human="$(cfg_nested governance default_human_approver "")"
+	if [[ "$1" == "1" && -n "$default_human" ]]; then
+		printf '%s\n' "$default_human"
+		return 0
+	fi
 	case "$1" in
 	1) printf 'HUMAN-ONE\n' ;;
 	2) printf 'HUMAN-TWO\n' ;;

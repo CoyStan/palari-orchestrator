@@ -20,6 +20,7 @@ allowed_paths:
   - lib/palari/humans.bash
   - adapters/snapshot/fast_snapshot.py
   - adapters/planning/governance_debt.py
+  - humans/active/HUMAN-ADMIN-admin.md
   - palari.config.yaml
   - schemas/palari.config.schema.json
   - contracts/adapters.md
@@ -105,6 +106,8 @@ raise R5 or other risks to two or more human approvals.
   `--by` and `--co-by`.
 - Status, snapshot, evidence score, secure doctor, docs, and tests describe
   the same rule.
+- `HUMAN-ADMIN` exists as the default active R5-authorized human approver for
+  the solo-founder phase.
 - Path and risk rules are respected.
 
 ## Verification

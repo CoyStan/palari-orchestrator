@@ -190,7 +190,10 @@ def approval_quorum_for_risk(config: dict, risk: str) -> int:
         return 1 if risk == "R5" else 0
 
 
-def human_placeholder(index: int) -> str:
+def human_placeholder(config: dict, index: int) -> str:
+    default_human = cfg_nested(config, "governance", "default_human_approver", "")
+    if index == 1 and default_human:
+        return default_human
     if index == 1:
         return "HUMAN-ONE"
     if index == 2:
@@ -204,9 +207,9 @@ def accept_command_for_ticket(fm: dict, ticket_id: str, config: dict, by: str, p
     quorum = approval_quorum_for_risk(config, scalar(fm, "risk"))
     if quorum <= 0:
         return f"{prefix} accept {ticket_id} --by {by}"
-    command = f"{prefix} accept {ticket_id} --by {human_placeholder(1)}"
+    command = f"{prefix} accept {ticket_id} --by {human_placeholder(config, 1)}"
     for index in range(2, quorum + 1):
-        command += f" --co-by {human_placeholder(index)}"
+        command += f" --co-by {human_placeholder(config, index)}"
     return command
 
 

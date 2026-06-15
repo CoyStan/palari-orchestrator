@@ -259,6 +259,11 @@
             }
           }
         },
+        "default_human_approver": {
+          "type": "string",
+          "pattern": "^HUMAN-[A-Z0-9][A-Z0-9-]*$",
+          "description": "Optional active human profile ID shown as the first suggested --by value in status and evidence next actions."
+        },
         "r5_requires_dual_human": {
           "type": "boolean",
           "description": "Legacy compatibility fallback. Prefer governance.required_human_approvals.R5."
