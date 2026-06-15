@@ -1,13 +1,13 @@
 # Palari CI Evidence
 
 - Ticket: POS-0070
-- Base ref: local working tree
-- Created: 2026-06-15T12:55:41Z
+- Base ref: HEAD
+- Created: 2026-06-15T22:44:36Z
 
 ## scope-check
 
 ```text
-scope-check: ok for POS-0070 (16 changed path(s))
+scope-check: ok for POS-0070 (0 changed path(s))
 ```
 
 ## lint
@@ -31,9 +31,10 @@ Command: `./bin/palari broker status`
 
 ```text
 Broker status
-mode: mock-only
+mode: mock-and-local-sandbox
 real_side_effects_enabled: false
 credentials_available_to_agents: false
 network_or_hosted_api_access: false
-note: broker run requires --mock and records evidence under reports/evidence/TICKET/broker/.
+network_isolation_enforced: false
+note: broker run requires --mock or --sandbox and records evidence under reports/evidence/TICKET/broker/.
 ```
