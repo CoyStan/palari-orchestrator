@@ -85,6 +85,16 @@ grep -Fq -- "- production_write_without_human" "$TMP_ROOT/plan.out" ||
 grep -Fq "Human Governance Load: 15" "$TMP_ROOT/plan.out" || fail "HGL total missing"
 grep -Fq "R3 decisions: 1" "$TMP_ROOT/plan.out" || fail "R3 count missing"
 grep -Fq "R4 decisions: 1" "$TMP_ROOT/plan.out" || fail "R4 count missing"
+grep -Fq "Human decision map:" "$TMP_ROOT/plan.out" ||
+	fail "human decision map section missing"
+grep -Fq -- "- R4 approve: Approve production rollout" "$TMP_ROOT/plan.out" ||
+	fail "R4 decision map row missing"
+grep -Fq "status: covered by one" "$TMP_ROOT/plan.out" ||
+	fail "decision map coverage status missing"
+grep -Fq "HGL: 12" "$TMP_ROOT/plan.out" ||
+	fail "decision map HGL score missing"
+grep -Fq "eligible: HUMAN-ALICE" "$TMP_ROOT/plan.out" ||
+	fail "decision map eligible human missing"
 grep -Fq "product_strategy L4: covered by HUMAN-ALICE" "$TMP_ROOT/plan.out" ||
 	fail "product strategy coverage missing"
 grep -Fq "analytics L3: covered by HUMAN-BOB" "$TMP_ROOT/plan.out" ||
@@ -109,6 +119,20 @@ assert "production_write_without_human" in data["ai_must_not_proceed"]
 assert data["human_governance_load"] == 15
 assert data["expected_decisions"]["R3"] == 1
 assert data["expected_decisions"]["R4"] == 1
+assert [item["risk"] for item in data["human_decision_map"]] == ["R4", "R3"]
+assert data["human_decision_map"][0] == {
+    "risk": "R4",
+    "kind": "approve",
+    "title": "Approve production rollout",
+    "hgl_score": 12,
+    "required_skills": {"technical_governance": "L4"},
+    "eligible_humans": ["HUMAN-ALICE"],
+    "coverage_status": "covered_by_one",
+    "why_human_needed": [
+        "R4 company-impact decision",
+        "required skill: technical_governance L4",
+    ],
+}
 assert data["risk_sources"] == {
     "workflow_risk_ceiling": "R4",
     "max_work_unit_risk": "R4",
@@ -153,6 +177,13 @@ data = json.load(open(sys.argv[1]))
 assert data["launch_gate"] == "red"
 assert data["autonomy_ceiling"] == "simulation_only"
 assert data["missing_skills"] == ["privacy:L5"]
+assert data["human_decision_map"][0]["risk"] == "R5"
+assert data["human_decision_map"][0]["kind"] == "approve"
+assert data["human_decision_map"][0]["required_skills"] == {"privacy": "L5"}
+assert data["human_decision_map"][0]["eligible_humans"] == []
+assert data["human_decision_map"][0]["coverage_status"] == "missing_skill"
+assert "R5 governance decision" in data["human_decision_map"][0]["why_human_needed"]
+assert "no policy acceptance allowed" in data["human_decision_map"][0]["why_human_needed"]
 assert data["ai_can_proceed"] == ["research"]
 assert "draft" in data["ai_must_not_proceed"]
 assert "keep the workflow in research or simulation" in " ".join(data["recommended_next_actions"])
@@ -176,6 +207,7 @@ assert data["autonomy_ceiling"] == "simulation_only", data
 assert data["risk_coverage_gaps"] == [
     "workflow risk ceiling R5 has no expected decision at or above that risk"
 ], data["risk_coverage_gaps"]
+assert data["human_decision_map"] == []
 assert "full_autonomy" not in data["autonomy_ceiling"]
 assert "high_autonomy" not in data["autonomy_ceiling"]
 PY

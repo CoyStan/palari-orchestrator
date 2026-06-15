@@ -45,6 +45,88 @@ def covered_skill_rows(hgl_data: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return dict(sorted(rows.items()))
 
 
+def coverage_status(coverage_rows: list[dict[str, Any]]) -> str:
+    if not coverage_rows:
+        return "missing_skill"
+    covered_counts = [len(row.get("covered_by", [])) for row in coverage_rows]
+    if all(count > 0 for count in covered_counts):
+        if any(count == 1 for count in covered_counts):
+            return "covered_by_one"
+        return "covered_by_two_or_more"
+    if any(row.get("at_capacity", []) for row in coverage_rows):
+        return "at_capacity"
+    if any(row.get("under_authorized", []) for row in coverage_rows):
+        return "missing_authorized_human"
+    if any(row.get("underleveled", []) for row in coverage_rows):
+        return "underleveled"
+    return "missing_skill"
+
+
+def why_human_needed(
+    risk: str, required_skills: dict[str, str], status: str
+) -> list[str]:
+    reasons: list[str] = []
+    if risk == "R5":
+        reasons.extend(["R5 governance decision", "no policy acceptance allowed"])
+    elif risk == "R4":
+        reasons.append("R4 company-impact decision")
+    elif risk == "R3":
+        reasons.append("R3 human judgment decision")
+    else:
+        reasons.append("declared expected human decision")
+    for skill, level in sorted(required_skills.items()):
+        reasons.append(f"required skill: {skill} {level}")
+    if status == "missing_authorized_human":
+        reasons.append("authorized human coverage missing")
+    elif status == "at_capacity":
+        reasons.append("qualified human coverage is at capacity")
+    elif status == "underleveled":
+        reasons.append("available human skill is below required level")
+    elif status == "missing_skill":
+        reasons.append("active human skill coverage missing")
+    return reasons
+
+
+def human_decision_map(hgl_data: dict[str, Any]) -> list[dict[str, Any]]:
+    decisions: list[dict[str, Any]] = []
+    for decision in hgl_data["decisions"]:
+        coverage_rows = list(decision.get("coverage", []))
+        required_skills = {
+            str(row["skill"]): str(row["level"])
+            for row in coverage_rows
+            if row.get("skill") and row.get("level")
+        }
+        eligible_humans = sorted(
+            {
+                str(human)
+                for row in coverage_rows
+                for human in row.get("covered_by", [])
+            }
+        )
+        status = coverage_status(coverage_rows)
+        risk = str(decision["risk"])
+        decisions.append(
+            {
+                "risk": risk,
+                "kind": decision["kind"],
+                "title": decision["title"],
+                "hgl_score": decision["score"],
+                "required_skills": dict(sorted(required_skills.items())),
+                "eligible_humans": eligible_humans,
+                "coverage_status": status,
+                "why_human_needed": why_human_needed(risk, required_skills, status),
+            }
+        )
+    return sorted(
+        decisions,
+        key=lambda item: (
+            -hgl.risk_number(str(item["risk"])),
+            -int(item["hgl_score"]),
+            str(item["title"]),
+        ),
+    )
+
+
 def allowed_modes_for_gate(allowed_modes: list[str], gate: str) -> list[str]:
     if gate == "red":
         return [mode for mode in allowed_modes if mode in RED_SAFE_MODES]
@@ -109,6 +191,7 @@ def build_plan(root: pathlib.Path, args: argparse.Namespace) -> dict[str, Any]:
         "ai_must_not_proceed": blocked_modes_for_gate(allowed_modes, forbidden_modes, gate),
         "human_governance_load": hgl_data["human_governance_load"],
         "expected_decisions": hgl_data["expected_decisions"],
+        "human_decision_map": human_decision_map(hgl_data),
         "required_skills": covered_skill_rows(hgl_data),
         "missing_skills": hgl_data["missing_skills"],
         "bottlenecks": hgl_data["bottlenecks"],
@@ -131,6 +214,27 @@ def print_list(title: str, items: list[str]) -> None:
         print(f"- {item}")
 
 
+def print_human_decision_map(items: list[dict[str, Any]]) -> None:
+    print("Human decision map:")
+    if not items:
+        print("- (none)")
+        return
+    for item in items:
+        print(f"- {item['risk']} {item['kind']}: {item['title']}")
+        skills = item["required_skills"]
+        skill_label = "skills" if len(skills) != 1 else "skill"
+        if skills:
+            skill_text = ", ".join(f"{skill} {level}" for skill, level in skills.items())
+        else:
+            skill_text = "(none)"
+        print(f"  {skill_label}: {skill_text}")
+        print(f"  status: {str(item['coverage_status']).replace('_', ' ')}")
+        print(f"  HGL: {item['hgl_score']}")
+        eligible = item["eligible_humans"] or ["(none)"]
+        print(f"  eligible: {', '.join(eligible)}")
+        print(f"  why: {'; '.join(item['why_human_needed'])}")
+
+
 def print_text(plan: dict[str, Any]) -> None:
     print(f"Workflow: {plan['workflow']} {plan['title']}")
     print(f"Goal: {plan['goal']}")
@@ -144,6 +248,8 @@ def print_text(plan: dict[str, Any]) -> None:
     print(f"Human Governance Load: {plan['human_governance_load']}")
     for risk, count in plan["expected_decisions"].items():
         print(f"{risk} decisions: {count}")
+    print()
+    print_human_decision_map(plan["human_decision_map"])
     print()
     print("Required skills:")
     if plan["required_skills"]:

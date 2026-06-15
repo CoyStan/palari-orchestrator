@@ -115,6 +115,12 @@ Coverage output should show:
 - bottleneck roles when only one covering human is available
 - coverage failure reasons in text output and JSON
 
+Workflow planning derives a human decision map from this coverage data. Each
+decision-map entry should expose the decision risk, kind, title, per-decision
+HGL score, required skills, eligible humans, coverage status, and a short list
+of reasons human judgment is required. R5 entries must explicitly remain
+human-governed and must not imply policy acceptance can satisfy the decision.
+
 Human profiles model governance coverage. They are not employee productivity
 records and do not grant agent execution authority.
 

@@ -71,6 +71,12 @@ gate, autonomy ceiling, allowed modes, blocked modes, required skills, missing
 skills, bottlenecks, and recommended next actions before tickets are created or
 executed.
 
+Workflow plans also include a human decision map. The map lists each expected
+human decision with its risk, kind, title, HGL score, required skills, eligible
+humans, coverage status, and reason human judgment remains required. Decision
+map rows are ordered by highest risk and then highest HGL so R5/R4 decisions
+are visible before lower-risk work.
+
 ## Lint Rules
 
 Workflow lint checks:
