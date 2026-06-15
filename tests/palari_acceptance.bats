@@ -57,6 +57,48 @@ teardown() {
   grep -Fq '"sha256":' reports/evidence/POS-0101/manifest.json
 }
 
+@test "human acceptance mode is explicit and policy mode cannot close tickets" {
+  ./bin/palari ticket create POS-0103 "Human acceptance mode" \
+    --stream docs \
+    --risk R1 \
+    --allowed "tickets/**" \
+    --allowed "reports/**" \
+    --verify "true" >/dev/null
+  grep -Fq "acceptance_mode: human" tickets/open/POS-0103-human-acceptance-mode.md
+  ./bin/palari ticket claim POS-0103 implementer >/dev/null
+  cat >reports/POS-0103-technical-report.md <<'DOC'
+# POS-0103 Technical Report
+
+## Files Changed
+
+- `tickets/open/POS-0103-human-acceptance-mode.md`
+
+## Verification
+
+- `true`
+
+## CI Evidence
+
+- `palari ci POS-0103`
+
+## Risks / Follow-Ups
+
+- Test fixture only.
+DOC
+  ./bin/palari ci POS-0103 >/dev/null
+  ./bin/palari ticket ready POS-0103 >/dev/null
+
+  perl -0pi -e 's/acceptance_mode: human/acceptance_mode: policy_simulation_only/' tickets/open/POS-0103-human-acceptance-mode.md
+  run ./bin/palari accept POS-0103 --by reviewer
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"policy acceptance is simulation-only in this Palari version"* ]]
+
+  perl -0pi -e 's/acceptance_mode: policy_simulation_only/acceptance_mode: human/' tickets/open/POS-0103-human-acceptance-mode.md
+  run ./bin/palari accept POS-0103 --by reviewer
+  [ "$status" -eq 0 ]
+  grep -Fq "acceptance_mode: human" tickets/closed/POS-0103-human-acceptance-mode.md
+}
+
 @test "R5 acceptance requires two authorized human profiles" {
   ./bin/palari human create HUMAN-R5A "R5 Approver A" \
     --skill governance:L5 \

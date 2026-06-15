@@ -180,7 +180,7 @@ grep -Fq "unknown condition: future_signal_ready" "$TMP_ROOT/unknown-sim.out" ||
 if ./bin/palari accept SIM-0001 --by-policy POL-DOCS-R1-AUTO >"$TMP_ROOT/no-by-policy.out" 2>&1; then
 	fail "accept by policy must not exist yet"
 fi
-grep -Eq "accept requires --by NAME|unknown" "$TMP_ROOT/no-by-policy.out" ||
-	fail "policy acceptance should remain unsupported"
+grep -Fq "policy acceptance is simulation-only in this Palari version" "$TMP_ROOT/no-by-policy.out" ||
+	fail "policy acceptance should remain simulation-only"
 
 printf 'policy-simulation: ok\n'

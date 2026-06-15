@@ -27,6 +27,22 @@ mode: simulation
 
 No command in this contract activates real policy acceptance.
 
+Tickets may carry an `acceptance_mode` field so acceptance intent is explicit.
+The allowed values in this version are:
+
+- `human`
+- `human_dual`
+- `policy_simulation_only`
+- `deny`
+
+Only `human` and `human_dual` may close tickets. `policy_simulation_only`
+preserves policy evaluation as a read-only signal, and any attempt to accept by
+policy must fail with:
+
+```text
+policy acceptance is simulation-only in this Palari version
+```
+
 ## Simulation Rules
 
 `palari policy simulate TICKET-ID` reads ticket, policy, decision, report, and

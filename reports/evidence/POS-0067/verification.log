@@ -1,0 +1,35 @@
+# Palari CI Evidence
+
+- Ticket: POS-0067
+- Base ref: local working tree
+- Created: 2026-06-15T12:30:59Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0067 (16 changed path(s))
+```
+
+## lint
+
+```text
+report-lint: ok for POS-0067
+lint: ok for POS-0067
+```
+
+## verification 1
+
+Command: `./tests/run-policy-simulation.sh`
+
+```text
+policy-simulation: ok
+```
+
+## verification 2
+
+Command: `./tests/run-risks.sh`
+
+```text
+lint: tickets/open/RSK-0003-r5-accept-gate.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+risks: ok
+```

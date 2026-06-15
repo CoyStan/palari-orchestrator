@@ -124,6 +124,12 @@ Both humans must have `authority_max_risk: R5` and
 `may_approve_policy_changes: true`. Policy simulation, ForgeGate reviewer keys,
 ticket text, or agent identity cannot replace either human approval.
 
+Ticket acceptance mode is explicit repo state. New tickets default to
+`acceptance_mode: human`; R5 dual-human acceptance records
+`acceptance_mode: human_dual`. Policy simulation may set or inspect
+`policy_simulation_only` in future planning flows, but it must not close
+tickets in this version.
+
 ## Human Governance Load
 
 Human Governance Load is Palari's estimate of the human judgment required by a

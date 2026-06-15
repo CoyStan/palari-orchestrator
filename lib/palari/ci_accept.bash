@@ -575,6 +575,32 @@ accept_ensure_frontmatter_key() {
 	mv "$tmp" "$file"
 }
 
+accept_mode_for_ticket() {
+	local file="$1"
+	local mode
+	mode="$(frontmatter_value "$file" acceptance_mode)"
+	[[ -n "$mode" ]] && printf '%s\n' "$mode" || printf 'human\n'
+}
+
+accept_require_supported_mode() {
+	local mode="$1"
+	case "$mode" in
+	human | human_dual) return 0 ;;
+	policy_simulation_only)
+		die "policy acceptance is simulation-only in this Palari version"
+		;;
+	deny)
+		die "accept refused: acceptance_mode deny"
+		;;
+	"")
+		return 0
+		;;
+	*)
+		die "accept refused: invalid acceptance_mode: $mode"
+		;;
+	esac
+}
+
 accept_require_r5_human() {
 	local actor="$1"
 	local ticket_id="$2"
@@ -618,19 +644,24 @@ cmd_accept() {
 			co_by="$2"
 			shift 2
 			;;
+		--by-policy | --policy | --policy-id)
+			die "policy acceptance is simulation-only in this Palari version"
+			;;
 		*) die "unknown accept option: $1" ;;
 		esac
 	done
 	[[ -n "$ticket" ]] || die "accept requires ticket ID"
 	[[ -n "$by" ]] || die "accept requires --by NAME; acceptance must name the human or authorized reviewer"
-	local file status id risk dest claim_ref claimed_by implemented_by self_policy r5_dual_required="false"
+	local file status id risk mode dest claim_ref claimed_by implemented_by self_policy r5_dual_required="false"
 	file="$(find_ticket_file "$ticket")" || die "ticket not found: $ticket"
 	status="$(frontmatter_value "$file" status)"
 	id="$(frontmatter_value "$file" id)"
 	risk="$(frontmatter_value "$file" risk)"
+	mode="$(accept_mode_for_ticket "$file")"
 	[[ -n "$id" ]] || id="$ticket"
 	[[ "${file#"$ROOT"/}" == "$OPEN_DIR/"* ]] || die "ticket is already closed: $ticket"
 	[[ "$status" == "in-review" ]] || die "accept requires in-review status; current: ${status:-missing}"
+	accept_require_supported_mode "$mode"
 	claim_ref="$(frontmatter_value "$file" claim_ref)"
 	if [[ -n "$claim_ref" || -n "$(frontmatter_value "$file" claim_expires_at)" ]]; then
 		ticket_claim_expired "$file" && die "accept refused: claim lease is expired for $id; renew with \`palari ticket heartbeat $id\`"
@@ -676,9 +707,11 @@ cmd_accept() {
 			"accepted_at"$'\035'"$(now_utc)"$'\034' \
 			"updated"$'\035'"$(today_utc)"$'\034'
 	else
+		accept_ensure_frontmatter_key "$file" acceptance_mode
 		update_frontmatter_scalars "$file" \
 			"status"$'\035'"accepted"$'\034' \
 			"accepted_by"$'\035'"$by"$'\034' \
+			"acceptance_mode"$'\035'"human"$'\034' \
 			"accepted_at"$'\035'"$(now_utc)"$'\034' \
 			"updated"$'\035'"$(today_utc)"$'\034'
 	fi

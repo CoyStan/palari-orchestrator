@@ -226,6 +226,7 @@ cmd_ticket_create() {
 			printf 'delegated_to_role: %s\n' "$delegate_to_role"
 		fi
 		printf 'accepted_by:\n'
+		printf 'acceptance_mode: human\n'
 		printf 'accepted_at:\n'
 		printf 'created: %s\n' "$created"
 		printf 'updated: %s\n' "$created"

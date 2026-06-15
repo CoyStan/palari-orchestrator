@@ -1,17 +1,17 @@
 ---
 id: POS-0067
 title: Add explicit acceptance modes while keeping policy acceptance disabled
-status: open
+status: in-review
 risk: R3
 priority: P1
 stream: process
 serves_goal: GOAL-0200
 model_hint: 
-claimed_by:
-claimed_at:
-claim_ref:
-claim_heartbeat_at:
-claim_expires_at:
+claimed_by: codex
+claimed_at: 2026-06-15T12:24:30Z
+claim_ref: refs/palari/claims/POS-0067
+claim_heartbeat_at: 2026-06-15T12:30:49Z
+claim_expires_at: 2026-06-15T12:35:49Z
 allowed_paths:
   - lib/palari/ci_accept.bash
   - lib/palari/tickets_workspace.bash
@@ -51,6 +51,7 @@ target_branch: ticket/POS-0066
 branch: ticket/POS-0067
 worktree: 
 accepted_by:
+acceptance_mode: human
 accepted_at:
 created: 2026-06-15
 updated: 2026-06-15
