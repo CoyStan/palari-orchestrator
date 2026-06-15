@@ -116,6 +116,12 @@ assert data["risk_sources"] == {
     "max_declared_risk": "R4",
 }
 assert data["risk_coverage_gaps"] == []
+assert data["capacity"] == {
+    "weekly_hgl_budget": 80,
+    "current_weekly_hgl": 0,
+    "available_weekly_hgl": 80,
+    "risk_capacity_failures": [],
+}
 assert data["required_skills"]["product_strategy"]["covered_by"] == ["HUMAN-ALICE"]
 assert data["required_skills"]["analytics"]["covered_by"] == ["HUMAN-BOB"]
 assert any("product_governor" in item for item in data["recommended_next_actions"])

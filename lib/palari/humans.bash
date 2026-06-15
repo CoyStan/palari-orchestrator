@@ -199,7 +199,7 @@ cmd_human_show() {
 }
 
 cmd_human_lint() {
-	local only="${1:-}" errors=0 file state id status risk item value
+	local only="${1:-}" errors=0 file state id status risk item value current max budget
 	local -a files=()
 	if [[ -n "$only" ]]; then
 		file="$(find_human_file "$only")" || die "human not found: $only"
@@ -264,6 +264,21 @@ cmd_human_lint() {
 			item="$(frontmatter_value "$file" "$value")"
 			if [[ -n "$item" && ! "$item" =~ ^[0-9]+$ ]]; then
 				printf 'human lint: %s %s must be a non-negative integer\n' "$id" "$value"
+				errors=$((errors + 1))
+			fi
+		done
+		budget="$(frontmatter_value "$file" weekly_hgl_budget)"
+		[[ -n "$budget" ]] || budget="$(frontmatter_value "$file" capacity_weekly_hgl)"
+		current="$(frontmatter_value "$file" current_weekly_hgl)"
+		if [[ -n "$budget" && -n "$current" && "$budget" =~ ^[0-9]+$ && "$current" =~ ^[0-9]+$ && "$current" -gt "$budget" ]]; then
+			printf 'human lint: %s current_weekly_hgl exceeds weekly_hgl_budget\n' "$id"
+			errors=$((errors + 1))
+		fi
+		for value in r3 r4 r5; do
+			current="$(frontmatter_value "$file" "current_open_$value")"
+			max="$(frontmatter_value "$file" "max_concurrent_$value")"
+			if [[ -n "$current" && -n "$max" && "$current" =~ ^[0-9]+$ && "$max" =~ ^[0-9]+$ && "$current" -gt "$max" ]]; then
+				printf 'human lint: %s current_open_%s exceeds max_concurrent_%s\n' "$id" "$value" "$value"
 				errors=$((errors + 1))
 			fi
 		done

@@ -67,6 +67,10 @@ def recommendations(plan: dict[str, Any]) -> list[str]:
         actions.append(f"add backup coverage for bottleneck role {role}")
     for gap in plan.get("risk_coverage_gaps", []):
         actions.append(f"add expected human decision coverage: {gap}")
+    for failure in plan.get("capacity", {}).get("risk_capacity_failures", []):
+        actions.append(f"reduce or reassign capacity bottleneck: {failure}")
+    if plan.get("capacity", {}).get("available_weekly_hgl", 0) < plan["human_governance_load"]:
+        actions.append("reduce scope or add weekly HGL capacity before launch")
     if plan["launch_gate"] == "red":
         actions.append("keep the workflow in research or simulation until coverage improves")
     if plan["expected_decisions"].get("R4", 0) or plan["expected_decisions"].get("R5", 0):
@@ -110,6 +114,7 @@ def build_plan(root: pathlib.Path, args: argparse.Namespace) -> dict[str, Any]:
         "bottlenecks": hgl_data["bottlenecks"],
         "risk_sources": hgl_data["risk_sources"],
         "risk_coverage_gaps": hgl_data["risk_coverage_gaps"],
+        "capacity": hgl_data["capacity"],
         "work_units": workflow.lists.get("work_units", []),
         "guardrails": workflow.lists.get("guardrails", []),
     }
@@ -157,6 +162,16 @@ def print_text(plan: dict[str, Any]) -> None:
         print(f"- {key}: {value}")
     print()
     print_list("Risk coverage gaps", plan["risk_coverage_gaps"])
+    print()
+    print("Capacity:")
+    capacity = plan["capacity"]
+    print(f"- weekly_hgl_budget: {capacity['weekly_hgl_budget']}")
+    print(f"- current_weekly_hgl: {capacity['current_weekly_hgl']}")
+    print(f"- available_weekly_hgl: {capacity['available_weekly_hgl']}")
+    print("- risk_capacity_failures:")
+    failures = capacity["risk_capacity_failures"] or ["(none)"]
+    for item in failures:
+        print(f"  - {item}")
     print()
     print_list("Recommended next actions", plan["recommended_next_actions"])
     print()

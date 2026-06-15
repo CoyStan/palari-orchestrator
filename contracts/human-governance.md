@@ -33,7 +33,8 @@ Important fields:
 - `current_open_r3`, `current_open_r4`, `current_open_r5`: currently open
   high-risk decision counts by risk tier
 - `capacity_weekly_hgl`, `capacity_open_r3`, `capacity_open_r4`,
-  `capacity_open_r5`: legacy compatibility fields from early profile versions
+  `capacity_open_r5`: legacy compatibility fields from early profile versions;
+  new profiles should prefer the operational fields above
 - `constraints`: free-form limits such as `cannot_self_review_own_work`
 
 R5 authority requires `may_approve_policy_changes: true`. That flag only makes
@@ -43,6 +44,17 @@ acceptance gates.
 Human Governance Load coverage requires skill, authority, and available
 risk-specific capacity. Skill alone is insufficient: a human with
 `privacy:L5` and `authority_max_risk: R2` cannot cover an R5 privacy decision.
+
+Capacity constraints are linted:
+
+- `current_weekly_hgl` must not exceed `weekly_hgl_budget`
+- `current_open_r3` must not exceed `max_concurrent_r3`
+- `current_open_r4` must not exceed `max_concurrent_r4`
+- `current_open_r5` must not exceed `max_concurrent_r5`
+
+Workflow planning treats available weekly HGL as
+`weekly_hgl_budget - current_weekly_hgl`. A workflow whose estimated HGL exceeds
+available weekly capacity must not look launch-ready.
 
 ## CLI
 

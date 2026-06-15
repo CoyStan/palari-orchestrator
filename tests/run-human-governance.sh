@@ -42,6 +42,10 @@ test -f humans/revoked/.gitkeep || fail "init should create humans/revoked"
 grep -Fq "human create: humans/proposed/HUMAN-ALICE-alice.md" "$TMP_ROOT/create.out" ||
 	fail "human create path missing"
 test -f humans/proposed/HUMAN-ALICE-alice.md || fail "proposed human profile missing"
+grep -Fq "weekly_hgl_budget: 60" humans/proposed/HUMAN-ALICE-alice.md ||
+	fail "human create should write weekly_hgl_budget"
+grep -Fq "max_concurrent_r5: 1" humans/proposed/HUMAN-ALICE-alice.md ||
+	fail "human create should write risk capacity fields"
 
 ./bin/palari human list >"$TMP_ROOT/list-proposed.out"
 grep -Fq "proposed HUMAN-ALICE" "$TMP_ROOT/list-proposed.out" ||
@@ -139,6 +143,70 @@ fi
 grep -Fq "capacity_weekly_hgl must be a non-negative integer" "$TMP_ROOT/bad-capacity.out" ||
 	fail "capacity diagnostic missing"
 rm -f humans/active/HUMAN-DANA-dana.md
+
+cat >humans/active/HUMAN-ERIN-erin.md <<'DOC'
+---
+id: HUMAN-ERIN
+name: Erin
+status: active
+roles:
+  - product_governor
+skills:
+  - product_strategy:L4
+authority_max_risk: R4
+may_approve_policy_changes: false
+weekly_hgl_budget: 10
+current_weekly_hgl: 11
+max_concurrent_r3: 2
+current_open_r3: 0
+max_concurrent_r4: 1
+current_open_r4: 0
+max_concurrent_r5: 0
+current_open_r5: 0
+constraints:
+---
+
+# HUMAN-ERIN Erin
+DOC
+
+if ./bin/palari human lint HUMAN-ERIN >"$TMP_ROOT/over-weekly.out" 2>&1; then
+	fail "current weekly HGL over budget should fail"
+fi
+grep -Fq "current_weekly_hgl exceeds weekly_hgl_budget" "$TMP_ROOT/over-weekly.out" ||
+	fail "weekly capacity diagnostic missing"
+rm -f humans/active/HUMAN-ERIN-erin.md
+
+cat >humans/active/HUMAN-FRANK-frank.md <<'DOC'
+---
+id: HUMAN-FRANK
+name: Frank
+status: active
+roles:
+  - privacy_governor
+skills:
+  - privacy:L5
+authority_max_risk: R5
+may_approve_policy_changes: true
+weekly_hgl_budget: 40
+current_weekly_hgl: 0
+max_concurrent_r3: 2
+current_open_r3: 0
+max_concurrent_r4: 1
+current_open_r4: 0
+max_concurrent_r5: 1
+current_open_r5: 2
+constraints:
+---
+
+# HUMAN-FRANK Frank
+DOC
+
+if ./bin/palari human lint HUMAN-FRANK >"$TMP_ROOT/over-risk.out" 2>&1; then
+	fail "current open risk count over max should fail"
+fi
+grep -Fq "current_open_r5 exceeds max_concurrent_r5" "$TMP_ROOT/over-risk.out" ||
+	fail "risk capacity diagnostic missing"
+rm -f humans/active/HUMAN-FRANK-frank.md
 
 ./bin/palari human lint >"$TMP_ROOT/final-lint.out"
 grep -Fq "human lint: ok" "$TMP_ROOT/final-lint.out" ||

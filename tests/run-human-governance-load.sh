@@ -82,6 +82,41 @@ assert data["expected_decisions"]["R4"] == 1
 assert data["launch_gate"] == "yellow"
 assert data["autonomy_ceiling"] == "human_led"
 assert data["missing_skills"] == []
+assert data["capacity"]["weekly_hgl_budget"] == 80
+assert data["capacity"]["current_weekly_hgl"] == 0
+assert data["capacity"]["available_weekly_hgl"] == 80
+assert data["capacity"]["risk_capacity_failures"] == []
+PY
+
+python3 - <<'PY'
+from pathlib import Path
+
+for path in Path("humans/active").glob("HUMAN-*.md"):
+    text = path.read_text()
+    if "id: HUMAN-ALICE" in text:
+        text = text.replace("current_weekly_hgl: 0", "current_weekly_hgl: 60")
+    if "id: HUMAN-BOB" in text:
+        text = text.replace("current_weekly_hgl: 0", "current_weekly_hgl: 20")
+    path.write_text(text)
+PY
+./bin/palari burden score WF-0001 --json >"$TMP_ROOT/no-weekly-capacity.json"
+python3 - "$TMP_ROOT/no-weekly-capacity.json" <<'PY'
+import json
+import sys
+
+data = json.load(open(sys.argv[1]))
+assert data["capacity"]["available_weekly_hgl"] == 0, data["capacity"]
+assert data["launch_gate"] == "red", data
+assert data["autonomy_ceiling"] == "simulation_only", data
+PY
+python3 - <<'PY'
+from pathlib import Path
+
+for path in Path("humans/active").glob("HUMAN-*.md"):
+    text = path.read_text()
+    text = text.replace("current_weekly_hgl: 60", "current_weekly_hgl: 0")
+    text = text.replace("current_weekly_hgl: 20", "current_weekly_hgl: 0")
+    path.write_text(text)
 PY
 
 ./bin/palari human coverage WF-0001 --json >"$TMP_ROOT/coverage.json"
@@ -279,6 +314,7 @@ data = json.load(open(sys.argv[1]))
 row = data["decisions"][0]["coverage"][0]
 assert row["covered_by"] == []
 assert row["at_capacity"] == ["HUMAN-PRIVACY-FULL"]
+assert data["capacity"]["risk_capacity_failures"] == ["HUMAN-PRIVACY-FULL at R5 capacity"]
 assert data["coverage_failures"] == ["privacy:L5 has authorized candidates but all are at risk capacity"]
 assert data["launch_gate"] == "red"
 PY

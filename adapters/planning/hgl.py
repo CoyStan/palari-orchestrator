@@ -366,6 +366,7 @@ def analyze(root: pathlib.Path, args: argparse.Namespace) -> dict[str, object]:
     decision_rows: list[dict[str, object]] = []
     missing_skills: set[str] = set()
     coverage_failures: set[str] = set()
+    risk_capacity_failures: set[str] = set()
     bottlenecks: set[str] = set()
     total = 0
     red = False
@@ -388,6 +389,8 @@ def analyze(root: pathlib.Path, args: argparse.Namespace) -> dict[str, object]:
             elif isinstance(covered, list) and len(covered) == 1:
                 for role in row.get("roles", []):  # type: ignore[union-attr]
                     bottlenecks.add(str(role))
+            for human in row.get("at_capacity", []):  # type: ignore[union-attr]
+                risk_capacity_failures.add(f"{human} at {risk} capacity")
         score = decision_score(risk, decision["attrs"], scarcity)  # type: ignore[arg-type]
         total += score
         if risk in {"R4", "R5"} and scarcity == "missing_or_underleveled":
@@ -430,7 +433,13 @@ def analyze(root: pathlib.Path, args: argparse.Namespace) -> dict[str, object]:
             yellow = True
 
     capacity = sum(human.weekly_hgl_budget for human in humans)
-    if capacity and total > capacity:
+    current_weekly_hgl = sum(human.current_weekly_hgl for human in humans)
+    available_weekly_hgl = sum(
+        max(0, human.weekly_hgl_budget - human.current_weekly_hgl) for human in humans
+    )
+    if total > 0 and available_weekly_hgl <= 0:
+        red = True
+    elif total > available_weekly_hgl:
         yellow = True
     if missing_skills and any(counts[risk] for risk in ["R3", "R4", "R5"]):
         red = True
@@ -481,6 +490,12 @@ def analyze(root: pathlib.Path, args: argparse.Namespace) -> dict[str, object]:
         "launch_gate": gate,
         "autonomy_ceiling": autonomy,
         "capacity_weekly_hgl": capacity,
+        "capacity": {
+            "weekly_hgl_budget": capacity,
+            "current_weekly_hgl": current_weekly_hgl,
+            "available_weekly_hgl": available_weekly_hgl,
+            "risk_capacity_failures": sorted(risk_capacity_failures),
+        },
         "decisions": decision_rows,
     }
 
@@ -515,6 +530,14 @@ def print_text(data: dict[str, object], coverage_only: bool) -> None:
     print("risk_coverage_gaps:")
     for item in data["risk_coverage_gaps"] or ["(none)"]:  # type: ignore[operator]
         print(f"  - {item}")
+    print("capacity:")
+    capacity = data["capacity"]  # type: ignore[assignment]
+    print(f"  weekly_hgl_budget: {capacity['weekly_hgl_budget']}")
+    print(f"  current_weekly_hgl: {capacity['current_weekly_hgl']}")
+    print(f"  available_weekly_hgl: {capacity['available_weekly_hgl']}")
+    print("  risk_capacity_failures:")
+    for item in capacity["risk_capacity_failures"] or ["(none)"]:
+        print(f"    - {item}")
     print(f"launch_gate: {data['launch_gate']}")
     print(f"autonomy_ceiling: {data['autonomy_ceiling']}")
 
