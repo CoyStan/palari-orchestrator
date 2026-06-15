@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/CoyStan/palari-orchestrator/schemas/broker-observation.schema.json",
+  "title": "Palari Broker Observation",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "ticket",
+    "run_id",
+    "broker_mode",
+    "boundary_type",
+    "command",
+    "working_directory",
+    "started_at",
+    "ended_at",
+    "exit_code",
+    "side_effects_enabled",
+    "credentials_available_to_agents",
+    "network_or_hosted_api_access",
+    "changed_paths",
+    "forbidden_path_changes",
+    "decision",
+    "decision_reasons",
+    "input_hash",
+    "output_hash",
+    "signed_by"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "broker-observation-v1"
+    },
+    "ticket": {
+      "type": "string",
+      "minLength": 1
+    },
+    "workflow": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^RUN-[A-Za-z0-9._:-]+$"
+    },
+    "broker_mode": {
+      "type": "string",
+      "enum": [
+        "mock",
+        "sandbox"
+      ]
+    },
+    "boundary_type": {
+      "type": "string",
+      "enum": [
+        "observed_only",
+        "local_sandbox_repo_copy"
+      ]
+    },
+    "command": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "working_directory": {
+      "type": "string",
+      "minLength": 1
+    },
+    "started_at": {
+      "type": "string",
+      "minLength": 1
+    },
+    "ended_at": {
+      "type": "string",
+      "minLength": 1
+    },
+    "exit_code": {
+      "type": "integer"
+    },
+    "side_effects_enabled": {
+      "const": false
+    },
+    "credentials_available_to_agents": {
+      "const": false
+    },
+    "network_or_hosted_api_access": {
+      "const": false
+    },
+    "network_isolation_enforced": {
+      "type": "boolean"
+    },
+    "changed_paths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "forbidden_path_changes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "decision": {
+      "type": "string",
+      "enum": [
+        "observed",
+        "denied",
+        "observed_allowed",
+        "denied_or_violation",
+        "failed"
+      ]
+    },
+    "decision_reasons": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "input_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "output_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "signed_by": {
+      "type": "string",
+      "enum": [
+        "broker-mock",
+        "broker-sandbox"
+      ]
+    }
+  }
+}

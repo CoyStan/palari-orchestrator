@@ -1,17 +1,17 @@
 ---
 id: POS-0090
 title: Add schemas for company OS artifacts
-status: open
+status: in-review
 risk: R2
 priority: P2
 stream: process
 serves_goal: GOAL-0200
 model_hint: 
-claimed_by:
-claimed_at:
-claim_ref:
-claim_heartbeat_at:
-claim_expires_at:
+claimed_by: Codex
+claimed_at: 2026-06-15T16:11:56Z
+claim_ref: refs/palari/claims/POS-0090
+claim_heartbeat_at: 2026-06-15T16:25:43Z
+claim_expires_at: 2026-06-15T16:30:43Z
 allowed_paths:
   - schemas/**
   - contracts/**
@@ -45,6 +45,7 @@ verification:
   - ./bin/palari human lint
   - ./bin/palari policy lint
   - ./bin/palari outcome lint
+  - ./tests/run-company-os-schemas.sh
 target_branch: main
 branch: ticket/POS-0090
 worktree: 
@@ -88,6 +89,7 @@ current Markdown/frontmatter interface.
 - ./bin/palari human lint
 - ./bin/palari policy lint
 - ./bin/palari outcome lint
+- ./tests/run-company-os-schemas.sh
 
 ## Ticket Completion Contract
 

@@ -1,0 +1,252 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/CoyStan/palari-orchestrator/schemas/company-os-snapshot.schema.json",
+  "title": "Palari Company OS Snapshot Section",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "workflows",
+    "humans",
+    "human_governance",
+    "autonomy",
+    "policy",
+    "broker",
+    "outcomes"
+  ],
+  "properties": {
+    "workflows": {
+      "type": "object",
+      "required": [
+        "active",
+        "proposed",
+        "closed",
+        "items"
+      ],
+      "properties": {
+        "active": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "proposed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "closed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "humans": {
+      "type": "object",
+      "required": [
+        "active",
+        "proposed",
+        "revoked"
+      ],
+      "properties": {
+        "active": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "proposed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "revoked": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "coverage_gaps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "human_governance": {
+      "type": "object",
+      "required": [
+        "open_hgl_estimate",
+        "r3_decisions_open",
+        "r4_decisions_open",
+        "r5_decisions_open",
+        "missing_skills",
+        "bottlenecks"
+      ],
+      "properties": {
+        "open_hgl_estimate": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "r3_decisions_open": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "r4_decisions_open": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "r5_decisions_open": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "missing_skills": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "bottlenecks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "capacity_warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "autonomy": {
+      "type": "object",
+      "required": [
+        "green_workflows",
+        "yellow_workflows",
+        "red_workflows"
+      ],
+      "properties": {
+        "green_workflows": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "yellow_workflows": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "red_workflows": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "required": [
+        "simulation_only",
+        "candidates",
+        "active_policies",
+        "proposed_policies"
+      ],
+      "properties": {
+        "simulation_only": {
+          "const": true
+        },
+        "candidates": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "active_policies": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "proposed_policies": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "broker": {
+      "type": "object",
+      "required": [
+        "real_side_effects_enabled",
+        "mock_observations",
+        "tickets_with_broker_evidence"
+      ],
+      "properties": {
+        "real_side_effects_enabled": {
+          "const": false
+        },
+        "mock_observations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "tickets_with_broker_evidence": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "outcomes": {
+      "type": "object",
+      "required": [
+        "open",
+        "recorded",
+        "invalidated"
+      ],
+      "properties": {
+        "open": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "recorded": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "invalidated": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "dashboard_cards": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "value",
+          "status",
+          "detail"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "value": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "watch",
+              "bad"
+            ]
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

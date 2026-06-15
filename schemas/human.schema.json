@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/CoyStan/palari-orchestrator/schemas/human.schema.json",
+  "title": "Palari Human Governance Profile",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "id",
+    "name",
+    "status",
+    "roles",
+    "skills",
+    "authority_max_risk",
+    "may_approve_policy_changes",
+    "weekly_hgl_budget",
+    "current_weekly_hgl",
+    "max_concurrent_r3",
+    "current_open_r3",
+    "max_concurrent_r4",
+    "current_open_r4",
+    "max_concurrent_r5",
+    "current_open_r5"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^HUMAN-[A-Z0-9][A-Z0-9-]*$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "proposed",
+        "active",
+        "revoked"
+      ]
+    },
+    "roles": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "skills": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9_.-]+:L[1-5]$"
+      }
+    },
+    "authority_max_risk": {
+      "type": "string",
+      "enum": [
+        "R0",
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ]
+    },
+    "may_approve_policy_changes": {
+      "type": "boolean"
+    },
+    "weekly_hgl_budget": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "current_weekly_hgl": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "max_concurrent_r3": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "current_open_r3": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "max_concurrent_r4": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "current_open_r4": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "max_concurrent_r5": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "current_open_r5": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "capacity_weekly_hgl": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "capacity_open_r3": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "capacity_open_r4": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "capacity_open_r5": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "constraints": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

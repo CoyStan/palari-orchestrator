@@ -188,6 +188,28 @@ would allow or forbid it. A result records `allowed`, `denied`, `observed`, or
 unless a later R5-approved broker boundary changes that. In the current mock
 mode, `observed` is evidence only and is not a permission grant.
 
+## Typed Schemas
+
+The first Company OS typed contracts live under `schemas/`:
+
+- `workflow.schema.json`
+- `human.schema.json`
+- `policy.schema.json`
+- `outcome.schema.json`
+- `broker-observation.schema.json`
+- `company-os-snapshot.schema.json`
+
+These schemas document the current repo-native artifact shape and planned
+compatibility fields. They are machine-readable contracts for tests, future
+validators, and future migrations. They do not replace the Markdown
+frontmatter interface, rewrite existing artifacts, grant policy authority,
+enable broker side effects, or change acceptance behavior.
+
+Runtime lint can remain in Bash/Python while the schema layer matures. When a
+schema and a runtime linter disagree, Palari should fail closed and route a
+bounded compatibility ticket rather than silently accepting weakened
+governance.
+
 ## Non-Goals For The First Company OS Batch
 
 Do not build these until the supporting safeguards exist and a later ticket

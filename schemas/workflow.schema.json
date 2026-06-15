@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/CoyStan/palari-orchestrator/schemas/workflow.schema.json",
+  "title": "Palari Workflow Artifact",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "id",
+    "title",
+    "status",
+    "goal",
+    "owner",
+    "risk_ceiling",
+    "work_units",
+    "expected_decisions"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^WF-[0-9]{4}$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "proposed",
+        "active",
+        "closed"
+      ]
+    },
+    "goal": {
+      "type": "string",
+      "pattern": "^GOAL-[0-9]{4}$"
+    },
+    "owner": {
+      "type": "string",
+      "minLength": 1
+    },
+    "risk_ceiling": {
+      "type": "string",
+      "enum": [
+        "R0",
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ]
+    },
+    "autonomy_target": {
+      "type": "string"
+    },
+    "success_metric": {
+      "type": "string"
+    },
+    "allowed_modes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "forbidden_modes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "work_units": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^WU-[^|]+\\|[^|]+\\|R[0-5]\\|.+$"
+      }
+    },
+    "expected_decisions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^R[0-5]\\|[^|]+\\|[^|]*\\|.+$"
+      }
+    },
+    "human_decision_exception": {
+      "type": "string"
+    }
+  }
+}
