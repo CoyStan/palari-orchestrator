@@ -1,7 +1,7 @@
 ---
 id: POS-0073
 title: Add broker permission check without execution
-status: in-review
+status: accepted
 risk: R3
 priority: P2
 stream: process
@@ -10,8 +10,8 @@ model_hint:
 claimed_by: codex
 claimed_at: 2026-06-15T13:17:11Z
 claim_ref: refs/palari/claims/POS-0073
-claim_heartbeat_at: 2026-06-15T13:17:11Z
-claim_expires_at: 2026-06-15T13:22:11Z
+claim_heartbeat_at: 2026-06-15T23:28:10Z
+claim_expires_at: 2026-06-15T23:33:10Z
 allowed_paths:
   - adapters/broker/**
   - lib/palari/**
@@ -47,9 +47,9 @@ verification:
 target_branch: main
 branch: ticket/POS-0073
 worktree: 
-accepted_by:
+accepted_by: founder
 acceptance_mode: human
-accepted_at:
+accepted_at: 2026-06-15T23:28:12Z
 created: 2026-06-15
 updated: 2026-06-15
 ---
