@@ -7,8 +7,12 @@ Policy acceptance starts as simulation only.
 - Policy commands may explain whether a ticket would satisfy a policy.
 - Policy commands must not accept tickets, move tickets, merge, push, deploy,
   write production state, or trigger broker side effects.
+- Default policy simulation is limited to `risk_max: R2`.
+- R3/R4/R5 work remains human decision work until broker boundaries and R5
+  controls mature further.
 - R5 tickets are never eligible for policy acceptance.
-- A policy with `risk_max: R5` is invalid.
+- A policy with `risk_max: R3`, `risk_max: R4`, or `risk_max: R5` is invalid
+  by default.
 - Unknown policy conditions fail closed during simulation.
 
 ## Artifact Model
@@ -56,7 +60,8 @@ Supported first-pass conditions:
 - `evidence_score>=N`
 - `no_open_decisions`
 - `scope_check_passed`
-- `risk<=R0` through `risk<=R5`
+- `risk<=R0` through `risk<=R2` for policy suggestions that could become
+  candidates in this version
 
 Unknown conditions are preserved in policy artifacts but produce
 `would_not_accept` with a clear reason until implemented.

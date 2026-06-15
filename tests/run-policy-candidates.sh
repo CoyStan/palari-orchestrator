@@ -113,6 +113,7 @@ assert data["candidate_count"] == 1
 candidate = data["candidates"][0]
 assert candidate["id"] == "POL-DOCS-R1-AUTO"
 assert candidate["risk"] == "R1"
+assert all(item["risk"] in {"R0", "R1", "R2"} for item in data["candidates"])
 assert candidate["kind"] == "docs"
 assert candidate["decision_count"] == 3
 assert candidate["suggested_mode"] == "simulation"

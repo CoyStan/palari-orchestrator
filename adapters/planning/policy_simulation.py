@@ -12,6 +12,7 @@ from typing import Any
 
 
 RISK_ORDER = {f"R{i}": i for i in range(6)}
+DEFAULT_POLICY_RISK_MAX = "R2"
 
 
 def parse_frontmatter(path: Path) -> dict[str, Any]:
@@ -152,6 +153,10 @@ def risk_lte(left: str, right: str) -> bool:
     return RISK_ORDER.get(left, 99) <= RISK_ORDER.get(right, -1)
 
 
+def policy_risk_allowed_by_default(risk: str) -> bool:
+    return risk_lte(risk, DEFAULT_POLICY_RISK_MAX)
+
+
 def no_open_decisions(root: Path, decisions_open_dir: str) -> bool:
     directory = root / decisions_open_dir
     if not directory.is_dir():
@@ -171,7 +176,7 @@ def evaluate_condition(condition: str, context: dict[str, Any]) -> tuple[bool, s
             if context["scope_check_passed"]
             else (False, "scope-check pass marker missing")
         )
-    match = re.match(r"^risk<=(R[0-5])$", condition)
+    match = re.match(r"^risk<=(R[0-2])$", condition)
     if match:
         limit = match.group(1)
         if risk_lte(context["ticket_risk"], limit):
@@ -208,9 +213,14 @@ def simulate_policy(policy_path: Path, policy: dict[str, Any], context: dict[str
         reasons.append("policy mode is not simulation")
     risk_max = str(policy.get("risk_max", ""))
     if risk_max == "R5":
-        reasons.append("policy risk_max R5 is forbidden")
+        reasons.append("policy risk_max R5 exceeds default simulation max R2; R5 is never policy-eligible")
     elif risk_max not in RISK_ORDER:
         reasons.append(f"policy risk_max is invalid: {risk_max or 'missing'}")
+    elif not policy_risk_allowed_by_default(risk_max):
+        reasons.append(
+            f"policy risk_max {risk_max} exceeds default simulation max R2; "
+            "R3/R4/R5 remain human decision classes"
+        )
     elif not risk_lte(ticket_risk, risk_max):
         reasons.append(f"ticket risk {ticket_risk} exceeds policy risk_max {risk_max}")
 

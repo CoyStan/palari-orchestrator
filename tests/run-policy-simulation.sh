@@ -59,8 +59,14 @@ git commit -m "add simulation policy fixture" >/dev/null
 if ./bin/palari policy create POL-BAD "Bad authority" --risk-max R5 --mode simulation >"$TMP_ROOT/policy-r5.out" 2>&1; then
 	fail "R5 policy risk max should be refused"
 fi
-grep -Fq "R5 is never policy-eligible" "$TMP_ROOT/policy-r5.out" ||
+grep -Fq "exceeds default simulation max R2" "$TMP_ROOT/policy-r5.out" ||
 	fail "R5 policy diagnostic missing"
+
+if ./bin/palari policy create POL-R3 "R3 authority" --risk-max R3 --mode simulation >"$TMP_ROOT/policy-r3.out" 2>&1; then
+	fail "R3 policy risk max should be refused by default"
+fi
+grep -Fq "R3/R4/R5 remain human decision classes" "$TMP_ROOT/policy-r3.out" ||
+	fail "R3 policy diagnostic missing"
 
 ./bin/palari ticket create SIM-0001 "Low risk docs" \
 	--risk R1 \
