@@ -189,6 +189,24 @@ assert "draft" in data["ai_must_not_proceed"]
 assert "keep the workflow in research or simulation" in " ".join(data["recommended_next_actions"])
 PY
 
+./bin/palari decide inbox --json >"$TMP_ROOT/inbox.json"
+python3 - "$TMP_ROOT/inbox.json" <<'PY'
+import json
+import sys
+
+data = json.load(open(sys.argv[1]))
+assert data["read_only"] is True
+assert data["created_or_recorded_decisions"] is False
+assert data["counts_by_risk"]["R5"] == 1, data
+assert data["counts_by_risk"]["R4"] == 1, data
+assert data["counts_by_risk"]["R3"] == 1, data
+assert data["items"][0]["risk"] == "R5", data["items"]
+assert data["items"][0]["coverage_status"] == "missing_skill", data["items"][0]
+assert data["items"][1]["risk"] == "R4", data["items"]
+assert data["items"][2]["risk"] == "R3", data["items"]
+assert data["recommended_order"][0]["title"] == "Approve privacy policy boundary", data["recommended_order"]
+PY
+
 ./bin/palari workflow create WF-0003 "R5 ceiling without decisions" \
 	--goal GOAL-0100 \
 	--owner founder \

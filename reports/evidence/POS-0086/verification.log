@@ -1,0 +1,34 @@
+# Palari CI Evidence
+
+- Ticket: POS-0086
+- Base ref: local working tree
+- Created: 2026-06-15T15:13:39Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0086 (14 changed path(s))
+```
+
+## lint
+
+```text
+report-lint: ok for POS-0086
+lint: ok for POS-0086
+```
+
+## verification 1
+
+Command: `./tests/run-decisions.sh`
+
+```text
+decisions: ok
+```
+
+## verification 2
+
+Command: `./tests/run-workflow-planning.sh`
+
+```text
+workflow-planning: ok
+```

@@ -48,6 +48,21 @@ open_decision_count() {
 	decision_files_in_state open | wc -l | tr -d ' '
 }
 
+decision_inbox_adapter_args() {
+	python3 "$ROOT/adapters/planning/decision_inbox.py" \
+		--root "$ROOT" \
+		--workflows-proposed-dir "$WORKFLOWS_PROPOSED_DIR" \
+		--workflows-active-dir "$WORKFLOWS_ACTIVE_DIR" \
+		--workflows-closed-dir "$WORKFLOWS_CLOSED_DIR" \
+		--humans-active-dir "$HUMANS_ACTIVE_DIR" \
+		--decisions-open-dir "$DECISIONS_OPEN_DIR" \
+		--decisions-decided-dir "$DECISIONS_DECIDED_DIR" \
+		--tickets-open-dir "$OPEN_DIR" \
+		--tickets-closed-dir "$CLOSED_DIR" \
+		--outcomes-recorded-dir "$OUTCOMES_RECORDED_DIR" \
+		"$@"
+}
+
 cmd_decide_create() {
 	local id="${1:-}"
 	local title="${2:-}"
@@ -157,6 +172,25 @@ cmd_decide_create() {
 	} >"$file"
 	printf 'decide create: %s\n' "${file#"$ROOT"/}"
 	printf 'record the outcome with: ./bin/palari decide record %s --choice N --by NAME\n' "$id"
+}
+
+cmd_decide_inbox() {
+	local json="false" arg
+	while (($# > 0)); do
+		arg="$1"
+		case "$arg" in
+		--json)
+			json="true"
+			shift
+			;;
+		*) die "unknown decide inbox option: $arg" ;;
+		esac
+	done
+	if [[ "$json" == "true" ]]; then
+		decision_inbox_adapter_args --json
+	else
+		decision_inbox_adapter_args
+	fi
 }
 
 cmd_decide_list() {
@@ -306,6 +340,9 @@ cmd_decide() {
 	record)
 		cmd_decide_record "$@"
 		;;
+	inbox)
+		cmd_decide_inbox "$@"
+		;;
 	lint)
 		cmd_decide_lint "$@"
 		;;
@@ -320,6 +357,7 @@ usage: palari decide SUBCOMMAND
   show DEC-ID                          Print a decision file.
   record DEC-ID --choice N --by NAME [--note TEXT]
                                        Record the human outcome and archive it.
+  inbox [--json]                       Show decisions grouped by risk and HGL.
   lint                                 Check open decisions for completeness.
 
 A decision is the structured artifact agents bring to the human: a question,
