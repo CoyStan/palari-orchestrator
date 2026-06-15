@@ -156,3 +156,38 @@ Reopen.
   configured human-quorum behavior rather than hard-coded R5 dual-human
   acceptance.
 - Re-run focused checks and fresh-context review.
+
+## Final Amended Quorum Re-review Result
+
+Accept-ready.
+
+## Final Amended Quorum Re-review Findings
+
+- No blocking findings. The prior reopen issue is fixed.
+- POS-0067 and POS-0077 live wording now describes configured human-quorum
+  behavior rather than hard-coded R5 dual-human behavior.
+- The only remaining dual-human wording is POS-0066's own explicit historical
+  or fix wording.
+- Residual operational blocker: no active human profile markdown files exist
+  under `humans/active`; actual acceptance still requires one active
+  R5-authorized profile for the configured `R5: 1` quorum.
+
+## Final Amended Quorum Re-review Verification
+
+- Fresh-context re-review by Parfit subagent on 2026-06-15.
+- Ran/inspected:
+  - `git status --short`
+  - `./bin/palari status --next`
+  - `./bin/palari evidence score POS-0066 --strict`
+  - `./bin/palari doctor secure`
+  - `./bin/palari scope-check POS-0066`
+  - `./bin/palari report-lint POS-0066`
+  - `./bin/palari lint POS-0066`
+  - `reports/evidence/POS-0066/manifest.json`
+  - `find humans -maxdepth 3 -type f -name '*.md' -print | sort`
+
+## Final Amended Quorum Recommendation
+
+Leave POS-0066 accept-ready and in-review. Do not reopen for code. After one
+active R5-authorized human profile exists, acceptance can proceed with:
+`./bin/palari accept POS-0066 --by HUMAN-ONE`.
