@@ -88,3 +88,25 @@ Accept-ready after bounded repair.
 Do not reopen for code. Leave POS-0066 in-review until two authorized active
 R5 human profiles exist, then use exactly:
 `./bin/palari accept POS-0066 --by HUMAN-ONE --co-by HUMAN-TWO`.
+
+## Design Amendment
+
+Superseded on 2026-06-15 by founder direction to make human approvals
+configurable by risk tier instead of hard-coding dual-human R5 acceptance.
+
+The prior accept-ready re-review remains preserved as reviewer trail for the
+old dual-human implementation, but it is no longer the final approval evidence
+for POS-0066. The amended POS-0066 design is:
+
+- `governance.required_human_approvals` declares the active human-profile
+  quorum per risk tier.
+- The current solo-founder repo config sets `R5: 1`, so one active
+  R5-authorized human profile is enough for R5 acceptance.
+- Team repos may raise R5, or any other risk tier, to `2` or more; `palari
+  accept` supports repeated `--co-by` values and validates distinct active
+  profiles.
+- Policy acceptance remains simulation-only and ForgeGate remains separate
+  from human approval.
+
+A fresh-context re-review is required against the amended quorum design before
+POS-0066 can be considered accept-ready again.

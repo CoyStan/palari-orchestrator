@@ -265,7 +265,7 @@ Model providers must not:
   reviewer requirements, or human governance
 - hold company credentials directly or hide network access, hosted calls, tool
   permissions, prompts, model identity, or runtime identity from Palari evidence
-- replace scoped evidence, reviewer judgment, R5 dual-human controls, or human
+- replace scoped evidence, reviewer judgment, configured R5 human-quorum controls, or human
   acceptance gates
 
 OpenRouter remains model supply, not governance. It may provide routed model

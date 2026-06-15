@@ -36,12 +36,13 @@ The allowed values in this version are:
 
 - `human`
 - `human_dual`
+- `human_quorum`
 - `policy_simulation_only`
 - `deny`
 
-Only `human` and `human_dual` may close tickets. `policy_simulation_only`
-preserves policy evaluation as a read-only signal, and any attempt to accept by
-policy must fail with:
+Only `human`, `human_dual`, and `human_quorum` may close tickets.
+`policy_simulation_only` preserves policy evaluation as a read-only signal, and
+any attempt to accept by policy must fail with:
 
 ```text
 policy acceptance is simulation-only in this Palari version

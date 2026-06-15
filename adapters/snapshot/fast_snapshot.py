@@ -115,18 +115,22 @@ def parse_frontmatter(path: Path) -> dict:
 
 
 def parse_config(root: Path) -> dict:
-    """Flat scalars and lists plus one level of nesting (gate:, memory:)."""
+    """Flat scalars, lists, one-level nesting, and simple nested maps."""
     flat: dict = {}
     nested: dict = {}
+    maps: dict = {}
     lists: dict = {}
     section = None
+    current_map = None
     current_list = None
     for raw in read_text(root / "palari.config.yaml").split("\n"):
         if not raw.strip() or raw.lstrip().startswith("#"):
             continue
-        indented = raw.startswith((" ", "\t"))
+        indent = len(raw) - len(raw.lstrip(" "))
+        indented = indent > 0 or raw.startswith("\t")
         line = raw.strip()
         if not indented:
+            current_map = None
             current_list = None
             match = re.match(r"^([A-Za-z0-9_.-]+):\s*(.*)$", line)
             if not match:
@@ -141,15 +145,20 @@ def parse_config(root: Path) -> dict:
                 section = None
                 flat[key] = strip_quotes(value)
         else:
-            if line.startswith("- ") and current_list:
+            if line.startswith("- ") and current_list and not current_map:
                 lists[current_list].append(strip_quotes(line[2:]))
                 continue
             match = re.match(r"^([A-Za-z0-9_.-]+):\s*(.*)$", line)
-            if match and section:
+            if match and section and current_map and indent >= 4:
+                value = re.sub(r"\s+#.*$", "", match.group(2)).strip()
+                maps.setdefault(section, {}).setdefault(current_map, {})[match.group(1)] = strip_quotes(value)
+                continue
+            if match and section and indent <= 2:
                 value = re.sub(r"\s+#.*$", "", match.group(2)).strip()
                 nested.setdefault(section, {})[match.group(1)] = strip_quotes(value)
+                current_map = match.group(1) if value == "" else None
                 current_list = None
-    return {"flat": flat, "nested": nested, "lists": lists}
+    return {"flat": flat, "nested": nested, "maps": maps, "lists": lists}
 
 
 def cfg(config: dict, key: str, default: str = "") -> str:
@@ -162,13 +171,43 @@ def cfg_nested(config: dict, section: str, key: str, default: str = "") -> str:
     return value if value != "" else default
 
 
+def cfg_nested_map(config: dict, section: str, map_key: str, key: str, default: str = "") -> str:
+    value = config.get("maps", {}).get(section, {}).get(map_key, {}).get(key, "")
+    return value if value != "" else default
+
+
+def approval_quorum_for_risk(config: dict, risk: str) -> int:
+    raw = cfg_nested_map(config, "governance", "required_human_approvals", risk, "")
+    if raw == "":
+        raw = cfg_nested(config, "governance", f"required_human_approvals_{risk}", "")
+    if raw == "" and risk == "R5" and cfg_nested(config, "governance", "r5_requires_dual_human", "false") == "true":
+        raw = "2"
+    if raw == "":
+        raw = "1" if risk == "R5" else "0"
+    try:
+        return max(0, int(raw))
+    except ValueError:
+        return 1 if risk == "R5" else 0
+
+
+def human_placeholder(index: int) -> str:
+    if index == 1:
+        return "HUMAN-ONE"
+    if index == 2:
+        return "HUMAN-TWO"
+    if index == 3:
+        return "HUMAN-THREE"
+    return f"HUMAN-{index}"
+
+
 def accept_command_for_ticket(fm: dict, ticket_id: str, config: dict, by: str, prefix: str) -> str:
-    if (
-        scalar(fm, "risk") == "R5"
-        and cfg_nested(config, "governance", "r5_requires_dual_human", "false") == "true"
-    ):
-        return f"{prefix} accept {ticket_id} --by HUMAN-ONE --co-by HUMAN-TWO"
-    return f"{prefix} accept {ticket_id} --by {by}"
+    quorum = approval_quorum_for_risk(config, scalar(fm, "risk"))
+    if quorum <= 0:
+        return f"{prefix} accept {ticket_id} --by {by}"
+    command = f"{prefix} accept {ticket_id} --by {human_placeholder(1)}"
+    for index in range(2, quorum + 1):
+        command += f" --co-by {human_placeholder(index)}"
+    return command
 
 
 def glob_to_regex(pattern: str) -> re.Pattern:

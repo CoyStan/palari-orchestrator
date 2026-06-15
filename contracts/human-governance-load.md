@@ -125,10 +125,10 @@ human-governed and must not imply policy acceptance can satisfy the decision.
 
 `palari burden debt` reports Human Governance Debt across active workflows. It
 is a read-only operator report for missing skill coverage, high-risk bottlenecks,
-capacity pressure, weak evidence, policy-candidate opportunities, and R5
-dual-human coverage gaps. The report may summarize a highest-leverage fix, but
-it must not mutate humans, workflows, policies, tickets, outcomes, or weights.
-It is governance capacity planning, not productivity tracking.
+capacity pressure, weak evidence, policy-candidate opportunities, and configured
+R5 human-quorum coverage gaps. The report may summarize a highest-leverage fix,
+but it must not mutate humans, workflows, policies, tickets, outcomes, or
+weights. It is governance capacity planning, not productivity tracking.
 
 `palari burden calibrate` reports read-only calibration suggestions from
 recorded outcome impact fields. It compares predicted vs actual HGL, predicted

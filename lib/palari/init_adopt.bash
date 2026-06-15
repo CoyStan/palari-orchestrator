@@ -284,14 +284,14 @@ secure_doctor_broker_observations_available() {
 	[[ -n "$found" ]]
 }
 
-secure_doctor_accept_enforces_r5_dual_human() {
-	type accept_enforces_r5_dual_human >/dev/null 2>&1 || return 1
-	accept_enforces_r5_dual_human
+secure_doctor_accept_enforces_human_quorum() {
+	type accept_enforces_human_quorum >/dev/null 2>&1 || return 1
+	accept_enforces_human_quorum
 }
 
 cmd_secure_doctor() {
 	local gate_configured="false" gate_ready="false" broker_real="false" broker_boundary="false"
-	local policy_acceptance="false" r5_dual_human_configured="false" r5_dual_human_enforced="false" broker_observations="false"
+	local policy_acceptance="false" r5_human_quorum_configured="0" r5_human_quorum_enforced="false" broker_observations="false"
 	local policy_simulation_only="true"
 	local posture="weak"
 
@@ -303,18 +303,20 @@ cmd_secure_doctor() {
 	secure_doctor_bool governance broker_security_boundary_enabled false && broker_boundary="true"
 	secure_doctor_bool governance policy_acceptance_enabled false && policy_acceptance="true"
 	[[ "$policy_acceptance" == "true" ]] && policy_simulation_only="false"
-	secure_doctor_bool governance r5_requires_dual_human false && r5_dual_human_configured="true"
-	secure_doctor_accept_enforces_r5_dual_human && r5_dual_human_enforced="true"
+	if type accept_human_approval_quorum_for_risk >/dev/null 2>&1; then
+		r5_human_quorum_configured="$(accept_human_approval_quorum_for_risk R5)"
+	fi
+	secure_doctor_accept_enforces_human_quorum && r5_human_quorum_enforced="true"
 	secure_doctor_broker_observations_available && broker_observations="true"
 
-	if [[ "$gate_ready" == "true" && "$broker_real" == "false" && "$policy_acceptance" == "false" && "$r5_dual_human_configured" == "true" && "$r5_dual_human_enforced" == "true" && "$broker_observations" == "true" ]]; then
+	if [[ "$gate_ready" == "true" && "$broker_real" == "false" && "$policy_acceptance" == "false" && "$r5_human_quorum_configured" -ge 1 && "$r5_human_quorum_enforced" == "true" && "$broker_observations" == "true" ]]; then
 		posture="stronger"
 	fi
 
 	printf 'Palari secure governance doctor\n'
 	printf 'root: %s\n' "$ROOT"
-	printf 'R5 dual-human approval configured: %s\n' "$r5_dual_human_configured"
-	printf 'R5 dual-human approval enforced by accept: %s\n' "$r5_dual_human_enforced"
+	printf 'R5 human approval quorum configured: %s\n' "$r5_human_quorum_configured"
+	printf 'R5 human approval quorum enforced by accept: %s\n' "$r5_human_quorum_enforced"
 	printf 'Policy acceptance real mode enabled: %s\n' "$policy_acceptance"
 	printf 'Policy acceptance simulation-only: %s\n' "$policy_simulation_only"
 	printf 'Broker real side effects enabled: %s\n' "$broker_real"
@@ -329,7 +331,7 @@ cmd_secure_doctor() {
 Recommended modes:
 - local/demo: ForgeGate optional
 - R2+ team work: require ForgeGate policy before acceptance
-- R5: require configured and enforced dual-human acceptance before real autonomous governance
+- R5: require a configured and enforced human approval quorum before real autonomous governance
 
 Local verification limits:
 - This doctor does not verify hosted branch protection or remote rulesets.

@@ -15,24 +15,25 @@ that question with cryptography instead of convention.
 ## Configured is not enforced
 
 Repository configuration may declare future governance requirements before the
-acceptance command can enforce them. `governance.r5_requires_dual_human: true`
-means the repo wants dual-human R5 approval. It does not, by itself, prove that
-`palari accept` requires two distinct human approvals for R5 tickets.
+acceptance command can enforce them. `governance.required_human_approvals.R5:
+2` means the repo wants two active R5 human approvals. It does not, by itself,
+prove that `palari accept` requires two distinct human approvals for R5 tickets.
 `palari doctor secure` must therefore report both:
 
-- whether R5 dual-human approval is configured
-- whether `palari accept` currently enforces that configured requirement
+- the configured R5 human approval quorum
+- whether `palari accept` currently enforces a nonzero configured quorum
 
 When the accept path does not perform the R5-specific check, secure doctor
 must report the enforced value as false and must not present the repository
 posture as strong because of configuration alone.
 
-Once R5 dual-human acceptance enforcement is implemented, the human layer and
-the forge-proof gate remain separate controls. ForgeGate can prove signed
-implement/test/review evidence when enabled. It does not replace the two human
-approvals required for R5 acceptance. `palari accept TICKET-ID --by HUMAN-ONE
---co-by HUMAN-TWO` must still validate two distinct active R5 human profiles
-before closing an R5 ticket.
+Once risk-tier human-quorum enforcement is implemented, the human layer and the
+forge-proof gate remain separate controls. ForgeGate can prove signed
+implement/test/review evidence when enabled. It does not replace the configured
+human approvals required for ticket acceptance. For example, when R5 is set to
+two approvals, `palari accept TICKET-ID --by HUMAN-ONE --co-by HUMAN-TWO` must
+still validate two distinct active R5 human profiles before closing an R5
+ticket.
 
 ## The boundary
 

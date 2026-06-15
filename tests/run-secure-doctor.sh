@@ -35,8 +35,8 @@ chmod +x bin/palari scripts/palari
 rm -rf reports/evidence/*
 
 ./bin/palari doctor secure >"$TMP_ROOT/weak.out"
-expect_contains "$TMP_ROOT/weak.out" "R5 dual-human approval configured: true"
-expect_contains "$TMP_ROOT/weak.out" "R5 dual-human approval enforced by accept: true"
+expect_contains "$TMP_ROOT/weak.out" "R5 human approval quorum configured: 1"
+expect_contains "$TMP_ROOT/weak.out" "R5 human approval quorum enforced by accept: true"
 expect_contains "$TMP_ROOT/weak.out" "Policy acceptance real mode enabled: false"
 expect_contains "$TMP_ROOT/weak.out" "Policy acceptance simulation-only: true"
 expect_contains "$TMP_ROOT/weak.out" "Broker real side effects enabled: false"
@@ -75,8 +75,8 @@ expect_contains "$TMP_ROOT/stronger.out" "ForgeGate enabled: true"
 expect_contains "$TMP_ROOT/stronger.out" "Broker observations available: true"
 expect_contains "$TMP_ROOT/stronger.out" "Broker real side effects enabled: false"
 expect_contains "$TMP_ROOT/stronger.out" "Policy acceptance simulation-only: true"
-expect_contains "$TMP_ROOT/stronger.out" "R5 dual-human approval configured: true"
-expect_contains "$TMP_ROOT/stronger.out" "R5 dual-human approval enforced by accept: true"
+expect_contains "$TMP_ROOT/stronger.out" "R5 human approval quorum configured: 1"
+expect_contains "$TMP_ROOT/stronger.out" "R5 human approval quorum enforced by accept: true"
 expect_contains "$TMP_ROOT/stronger.out" "Branch protection verified locally: false"
 expect_not_contains "$TMP_ROOT/stronger.out" "R5 requires human approval"
 expect_not_contains "$TMP_ROOT/stronger.out" "branch protection active"
@@ -85,12 +85,12 @@ python3 - <<'PY'
 from pathlib import Path
 path = Path("palari.config.yaml")
 text = path.read_text(encoding="utf-8")
-text = text.replace("  r5_requires_dual_human: true", "  r5_requires_dual_human: false", 1)
+text = text.replace("    R5: 1", "    R5: 0", 1)
 path.write_text(text, encoding="utf-8")
 PY
 ./bin/palari doctor secure >"$TMP_ROOT/r5-missing.out"
-expect_contains "$TMP_ROOT/r5-missing.out" "R5 dual-human approval configured: false"
-expect_contains "$TMP_ROOT/r5-missing.out" "R5 dual-human approval enforced by accept: false"
+expect_contains "$TMP_ROOT/r5-missing.out" "R5 human approval quorum configured: 0"
+expect_contains "$TMP_ROOT/r5-missing.out" "R5 human approval quorum enforced by accept: false"
 expect_contains "$TMP_ROOT/r5-missing.out" "Posture: weak"
 expect_not_contains "$TMP_ROOT/r5-missing.out" "R5 requires human approval"
 

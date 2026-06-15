@@ -4,7 +4,7 @@
 
 - Ticket: POS-0066
 - Role: implementation
-- Branch: ticket/POS-0066
+- Branch: ticket/POS-0097
 - Commit: pending
 - Result: in-review
 
@@ -12,14 +12,22 @@
 
 ```text
 README.md
+contracts/adapters.md
 contracts/company-ai-os.md
 contracts/human-governance.md
+contracts/human-governance-load.md
+contracts/policy-acceptance.md
 contracts/signed-acceptance.md
+palari.config.yaml
+schemas/palari.config.schema.json
+adapters/planning/governance_debt.py
+adapters/snapshot/fast_snapshot.py
 lib/palari/ci_accept.bash
 lib/palari/dashboard_snapshot.bash
 lib/palari/evidence_quality.bash
 lib/palari/init_adopt.bash
 tests/palari_acceptance.bats
+tests/run-human-governance-load.sh
 tests/run-risks.sh
 tests/run-secure-doctor.sh
 tickets/open/POS-0066-enforce-dual-human-r5-acceptance.md
@@ -31,8 +39,8 @@ reports/evidence/POS-0066/
 
 ## Outcome
 
-- What changed: `palari accept` now supports `--co-by` and enforces dual-human approval for R5 tickets when `governance.r5_requires_dual_human: true`. R5 acceptance requires two distinct active human profiles with `authority_max_risk: R5` and `may_approve_policy_changes: true`; neither may be the claimant or implementer. Accepted R5 tickets record `co_accepted_by` and `acceptance_mode: human_dual`.
-- What did not change: R0-R4 acceptance remains compatible with `palari accept TICKET --by NAME`; policy acceptance remains simulation-only; ForgeGate does not replace human approval; no broker side effects, secrets, runtime state, dependencies, deployment behavior, or external integrations changed.
+- What changed: `palari accept` now enforces a configurable human approval quorum by risk tier via `governance.required_human_approvals`. The current repo config sets R5 to one active authorized human for the solo-founder phase, while preserving support for R5 quorum 2+ through repeated `--co-by`. Legacy `governance.r5_requires_dual_human: true` remains a compatibility fallback.
+- What did not change: R0-R4 acceptance remains compatible with `palari accept TICKET --by NAME` under the current config; policy acceptance remains simulation-only; ForgeGate does not replace human approval; no broker side effects, secrets, runtime state, dependencies, deployment behavior, or external integrations changed.
 - Blockers: none for implementation. POS-0066 itself is R5 and must not be self-accepted by an agent.
 - Next action: fresh-context review, then explicit founder/human acceptance if accept-ready.
 
@@ -42,8 +50,11 @@ reports/evidence/POS-0066/
   - `bash -n lib/palari/ci_accept.bash lib/palari/init_adopt.bash lib/palari/humans.bash tests/run-risks.sh tests/run-secure-doctor.sh`
   - `./bin/palari doctor secure`
   - `./bin/palari evidence score POS-0066`
+  - `python3 -m py_compile adapters/snapshot/fast_snapshot.py`
+  - `python3 -m json.tool schemas/palari.config.schema.json`
   - `./tests/run-risks.sh`
   - `./tests/run-secure-doctor.sh`
+  - `./tests/run-human-governance-load.sh`
   - `./tests/run-gate-kernel.sh`
   - `./tests/run-gate.sh`
   - `bats tests/palari_acceptance.bats`
@@ -72,5 +83,5 @@ reports/evidence/POS-0066/
 
 ## Risks / Follow-Ups
 
-- There is no compatibility bypass for R5 acceptance in this implementation; R5 acceptance requires active human profiles. This is safer than string-only founder acceptance but means real users must create/adopt R5 human profiles before accepting R5 tickets.
-- POS-0067 can add explicit frontmatter defaults for acceptance modes across all newly created tickets.
+- Current repo R5 acceptance still requires one active R5-authorized human profile; a bare founder string is no longer enough when R5 quorum is nonzero.
+- Teams can raise `governance.required_human_approvals.R5` to `2` or higher later without changing the accept path.

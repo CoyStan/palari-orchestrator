@@ -87,6 +87,41 @@ def max_active_risk(workflows: list[tuple[Any, dict[str, Any]]]) -> str:
     )
 
 
+def configured_human_quorum(root: pathlib.Path, risk: str) -> int:
+    config = root / "palari.config.yaml"
+    if not config.is_file():
+        return 1 if risk == "R5" else 0
+    section = ""
+    in_quorum = False
+    legacy_r5_dual = False
+    for raw in config.read_text(encoding="utf-8").splitlines():
+        stripped = raw.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        indent = len(raw) - len(raw.lstrip(" "))
+        if indent == 0 and ":" in stripped:
+            section = stripped.split(":", 1)[0]
+            in_quorum = False
+            continue
+        if section != "governance":
+            continue
+        if indent == 2 and stripped.startswith("required_human_approvals:"):
+            in_quorum = True
+            continue
+        if in_quorum and indent == 4 and stripped.startswith(f"{risk}:"):
+            value = stripped.split(":", 1)[1].split("#", 1)[0].strip().strip('"\'')
+            try:
+                return max(0, int(value))
+            except ValueError:
+                return 1 if risk == "R5" else 0
+        if indent == 2 and stripped.startswith("r5_requires_dual_human:"):
+            value = stripped.split(":", 1)[1].split("#", 1)[0].strip().lower()
+            legacy_r5_dual = value == "true"
+    if risk == "R5" and legacy_r5_dual:
+        return 2
+    return 1 if risk == "R5" else 0
+
+
 def missing_skill_items(workflows: list[tuple[Any, dict[str, Any]]]) -> list[DebtItem]:
     by_skill: dict[str, list[str]] = {}
     max_risk_by_skill: dict[str, str] = {}
@@ -269,8 +304,15 @@ def concentration_items(humans: list[hgl.Human]) -> list[DebtItem]:
     return items
 
 
-def r5_dual_human_item(workflows: list[tuple[Any, dict[str, Any]]], humans: list[hgl.Human]) -> list[DebtItem]:
+def r5_human_quorum_item(
+    root: pathlib.Path,
+    workflows: list[tuple[Any, dict[str, Any]]],
+    humans: list[hgl.Human],
+) -> list[DebtItem]:
     if hgl.risk_number(max_active_risk(workflows)) < 5:
+        return []
+    quorum = configured_human_quorum(root, "R5")
+    if quorum <= 0:
         return []
     qualified = [
         human
@@ -279,14 +321,14 @@ def r5_dual_human_item(workflows: list[tuple[Any, dict[str, Any]]], humans: list
         and human.may_approve_policy_changes
         and not hgl.human_at_risk_capacity(human, "R5")
     ]
-    if len(qualified) >= 2:
+    if len(qualified) >= quorum:
         return []
     return [
         DebtItem(
             severity="high",
-            category="r5_dual_human_coverage",
-            message=f"R5 policy/governance changes have {len(qualified)} qualified human(s); two are required",
-            recommendation="add a second active R5-authorized policy approver or keep R5 workflows simulation-only",
+            category="r5_human_quorum_coverage",
+            message=f"R5 policy/governance changes have {len(qualified)} qualified human(s); {quorum} required by config",
+            recommendation="add active R5-authorized policy approvers or lower the configured R5 quorum only if that matches the real governance model",
             risk="R5",
         )
     ]
@@ -340,7 +382,7 @@ def build_debt(root: pathlib.Path, args: argparse.Namespace) -> dict[str, Any]:
         + weak_evidence_items(workflows)
         + risk_gap_items(workflows)
         + concentration_items(humans)
-        + r5_dual_human_item(workflows, humans)
+        + r5_human_quorum_item(root, workflows, humans)
         + policy_candidate_item(root, args)
     )
     highest_leverage_fix = (

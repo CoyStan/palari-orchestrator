@@ -224,8 +224,9 @@ grep -Fq "Human Governance Debt: high" "$TMP_ROOT/debt.out" ||
 	fail "debt report should show high debt"
 grep -Fq "privacy:L5 missing for 1 active workflow" "$TMP_ROOT/debt.out" ||
 	fail "debt report should show privacy gap"
-grep -Fq "R5 policy/governance changes have 1 qualified human(s); two are required" "$TMP_ROOT/debt.out" ||
-	fail "debt report should show R5 dual-human gap"
+if grep -Fq "R5 policy/governance changes have 1 qualified human(s)" "$TMP_ROOT/debt.out"; then
+	fail "debt report should not show an R5 quorum gap when config requires one qualified human"
+fi
 grep -Fq "Highest leverage fix:" "$TMP_ROOT/debt.out" ||
 	fail "debt report should show highest leverage fix"
 
@@ -238,7 +239,7 @@ data = json.load(open(sys.argv[1]))
 assert data["level"] == "high", data
 categories = {item["category"] for item in data["items"]}
 assert "missing_skill_coverage" in categories, data
-assert "r5_dual_human_coverage" in categories, data
+assert "r5_human_quorum_coverage" not in categories, data
 assert "weak_evidence" in categories, data
 assert data["highest_leverage_fix"], data
 PY

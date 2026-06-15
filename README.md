@@ -300,8 +300,25 @@ The gate refuses acceptance unless, for every step the layout requires:
 ./bin/palari accept T-42 --by founder   # gate verdict required
 ```
 
-For R5 tickets, when `governance.r5_requires_dual_human: true`, acceptance
-requires two distinct active R5-authorized human profiles:
+For high-risk tickets, `governance.required_human_approvals` controls the
+active human-profile quorum by risk tier. A solo-founder repo can honestly set
+`R5: 1`; a team can raise it to `R5: 2` or more without changing the accept
+path.
+
+```yaml
+governance:
+  required_human_approvals:
+    R0: 0
+    R1: 0
+    R2: 0
+    R3: 0
+    R4: 0
+    R5: 1
+```
+
+When a risk tier requires two or more humans, pass one or more `--co-by`
+values. Each required human must be a distinct active profile authorized for
+that risk:
 
 ```bash
 ./bin/palari accept T-42 --by HUMAN-ONE --co-by HUMAN-TWO
@@ -328,7 +345,7 @@ and replacement inventory are documented in
 | Agent packets | Specialists, reviewers, and acceptors get the right context. |
 | Scope checks | Changed files are compared against allowed and forbidden paths. |
 | CI evidence | Logs, JUnit, SARIF, and an integrity manifest are written for the ticket. |
-| Human acceptance | `palari accept` refuses missing, failed, or stale evidence and records who accepted; R5 can require two authorized human profiles with `--by` and `--co-by`. |
+| Human acceptance | `palari accept` refuses missing, failed, or stale evidence and records who accepted; configured risk-tier human quorums require active authorized profiles with `--by` and, when needed, repeated `--co-by`. |
 | Forge-proof gate (optional) | When enabled, acceptance requires Ed25519-signed implement, test, and review attestations that verify to the repository root key. |
 
 ## Quick Start
@@ -625,7 +642,7 @@ palari packet WEB-0002 specialist
 | `palari scope-overlaps [ID]` | Detect overlapping active ticket write scopes. |
 | `palari lint [ID]` | Validate ticket state and required reports. |
 | `palari report-lint [ID]` | Validate specialist and reviewer report structure. |
-| `palari accept ID --by NAME [--co-by NAME]` | Close the ticket only after the acceptance gate is satisfied; R5 uses `--co-by` when dual-human approval is configured. |
+| `palari accept ID --by NAME [--co-by NAME]` | Close the ticket only after the acceptance gate is satisfied; repeat `--co-by` when the configured risk-tier human quorum is greater than one. |
 | `palari gate init` | Create the forge-proof gate root and orchestrator keys. |
 | `palari gate setup-ticket ID` | Grant implement, test, and review step tokens for a ticket. |
 | `palari gate attest-implement ID` | Sign the exact ticket diff with the implementer key. |

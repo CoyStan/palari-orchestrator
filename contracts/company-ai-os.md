@@ -107,28 +107,30 @@ conservative: simulation before mutation, mock broker before real side
 effects, and human acceptance before any authority expansion.
 
 Secure posture reporting must distinguish configuration from enforcement.
-For example, `governance.r5_requires_dual_human: true` records the desired R5
-approval policy, but it is not proof that `palari accept` enforces a second
-distinct human approval. `palari doctor secure` must report configured controls
-and enforced controls separately, and must keep the posture weak whenever a
-serious control is configured but not actually enforced.
+For example, `governance.required_human_approvals.R5: 2` records the desired R5
+approval quorum, but it is not proof that `palari accept` enforces two distinct
+human approvals. `palari doctor secure` must report configured controls and
+enforced controls separately, and must keep the posture weak whenever a serious
+control is configured but not actually enforced.
 
-When R5 dual-human acceptance enforcement is active, `palari accept` requires
-two distinct active human profiles for R5 tickets:
+When a risk-tier human approval quorum is active, `palari accept` requires the
+configured number of distinct active human profiles for that ticket risk:
 
 ```bash
 ./bin/palari accept TICKET-ID --by HUMAN-ONE --co-by HUMAN-TWO
 ```
 
-Both humans must have `authority_max_risk: R5` and
-`may_approve_policy_changes: true`. Policy simulation, ForgeGate reviewer keys,
-ticket text, or agent identity cannot replace either human approval.
+Each human must have `authority_max_risk` at or above the ticket risk. R5
+humans must also have `may_approve_policy_changes: true`. Policy simulation,
+ForgeGate reviewer keys, ticket text, or agent identity cannot replace the
+configured human approvals.
 
 Ticket acceptance mode is explicit repo state. New tickets default to
-`acceptance_mode: human`; R5 dual-human acceptance records
-`acceptance_mode: human_dual`. Policy simulation may set or inspect
-`policy_simulation_only` in future planning flows, but it must not close
-tickets in this version.
+`acceptance_mode: human`; two-human acceptance records
+`acceptance_mode: human_dual`; larger quorums record
+`acceptance_mode: human_quorum`. Policy simulation may set or inspect
+`policy_simulation_only` in future planning flows, but it must not close tickets
+in this version.
 
 ## Human Governance Load
 

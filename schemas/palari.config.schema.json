@@ -224,6 +224,53 @@
         }
       }
     },
+    "governance": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "required_human_approvals": {
+          "type": "object",
+          "description": "Minimum active authorized human profile approvals required before accepting tickets at each risk tier.",
+          "additionalProperties": false,
+          "properties": {
+            "R0": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "R1": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "R2": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "R3": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "R4": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "R5": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "r5_requires_dual_human": {
+          "type": "boolean",
+          "description": "Legacy compatibility fallback. Prefer governance.required_human_approvals.R5."
+        },
+        "policy_acceptance_enabled": {
+          "type": "boolean"
+        },
+        "broker_real_side_effects_enabled": {
+          "type": "boolean"
+        }
+      }
+    },
     "gate": {
       "type": "object",
       "description": "Forge-proof accept gate settings. When enabled, palari accept requires a cryptographic verdict from the vendored forgegate kernel and fails closed if the kernel is unavailable.",
