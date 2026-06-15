@@ -1,0 +1,18 @@
+{
+  "schema_version": "1",
+  "generator": "palari-ci",
+  "manifest_file": "manifest.json",
+  "ticket": "POS-0096",
+  "base_ref": "local working tree",
+  "head_sha": "ade261e6fec69b0b0d9a77539ff4e404253680ee",
+  "created_at": "2026-06-15T16:48:18Z",
+  "status": "passed",
+  "tests": 3,
+  "failures": 0,
+  "skipped": 0,
+  "artifacts": [
+    {"name":"verification.log","sha256":"e4e5733ccdc065275c6d82a5d78bd010ac97456778bb828d1302e1050c21e96e"},
+    {"name":"junit.xml","sha256":"ad4c026140d438cc7c20d6117ac02175064293fc18010fd54184b5df1e539948"},
+    {"name":"palari.sarif","sha256":"a6155150bb618e2df1be805f929c73ca9f68ef38d487372dde601e52ed889d21"}
+  ]
+}

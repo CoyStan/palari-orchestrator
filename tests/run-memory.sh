@@ -25,6 +25,24 @@ git config user.name "Memory Test"
 ./bin/palari memory lint >"$TMP_ROOT/no-memory-lint.out"
 grep -Fq "memory-lint: ok (no memory directory)" "$TMP_ROOT/no-memory-lint.out"
 
+CONTRACT="contracts/adapters.md"
+grep -Fq "## Governed Memory Provider Contract" "$CONTRACT"
+grep -Fq "Memory providers are context suppliers, not authority layers" "$CONTRACT"
+grep -Fq "future GBrain" "$CONTRACT"
+grep -Fq "\`memory.search\`" "$CONTRACT"
+grep -Fq "\`memory.synthesize\`" "$CONTRACT"
+grep -Fq "\`memory.cite\`" "$CONTRACT"
+grep -Fq "\`memory.check_acl\`" "$CONTRACT"
+grep -Fq "\`memory.report_gaps\`" "$CONTRACT"
+grep -Fq "\`memory.propose_write\`" "$CONTRACT"
+grep -Fq "which actor may query which memory" "$CONTRACT"
+grep -Fq "whether citations are required" "$CONTRACT"
+grep -Fq "whether memory is fresh enough" "$CONTRACT"
+grep -Fq "whether memory writes require review" "$CONTRACT"
+grep -Fq "what data class may be sent to which model, provider" "$CONTRACT"
+grep -Fq "must not become Palari's source of truth" "$CONTRACT"
+grep -Fq "adds no live GBrain dependency" "$CONTRACT"
+
 ./bin/palari ticket create APP-0001 "Memory packet smoke" \
 	--stream web \
 	--risk R1 \

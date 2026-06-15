@@ -1,0 +1,27 @@
+# Palari CI Evidence
+
+- Ticket: POS-0096
+- Base ref: local working tree
+- Created: 2026-06-15T16:48:02Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0096 (8 changed path(s))
+```
+
+## lint
+
+```text
+report-lint: ok for POS-0096
+lint: ok for POS-0096
+```
+
+## verification 1
+
+Command: `./tests/run-memory.sh`
+
+```text
+Preparing worktree (new branch 'ticket/APP-0001')
+memory: ok
+```

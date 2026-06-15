@@ -1,17 +1,17 @@
 ---
 id: POS-0096
 title: Define governed memory provider contract
-status: open
+status: in-review
 risk: R3
 priority: P3
 stream: process
 serves_goal: GOAL-0200
 model_hint: 
-claimed_by:
-claimed_at:
-claim_ref:
-claim_heartbeat_at:
-claim_expires_at:
+claimed_by: Codex
+claimed_at: 2026-06-15T16:49:37Z
+claim_ref: refs/palari/claims/POS-0096
+claim_heartbeat_at: 2026-06-15T16:49:37Z
+claim_expires_at: 2026-06-15T16:54:37Z
 allowed_paths:
   - contracts/**
   - docs/integration/**

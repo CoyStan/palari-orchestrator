@@ -159,6 +159,58 @@ this repo version, company OS worker adapters are contract-only and must not add
 real network dependencies, credentials, hosted services, or side-effecting
 connectors.
 
+## Governed Memory Provider Contract
+
+Memory providers are context suppliers, not authority layers. This contract
+covers future GBrain, local repo-native memory, and other memory systems that
+may provide context to Palari-governed work.
+
+Memory provider operations may include:
+
+- `memory.search`
+- `memory.synthesize`
+- `memory.cite`
+- `memory.check_acl`
+- `memory.report_gaps`
+- `memory.propose_write`
+
+Palari controls:
+
+- which actor may query which memory
+- whether citations are required before memory can inform a plan, review,
+  broker request, or result
+- whether memory is fresh enough for the work at hand
+- whether memory writes require review before becoming active context
+- what data class may be sent to which model, provider, runtime, or worker
+- whether a memory provider response can enter a ticket packet, workflow plan,
+  broker request, or outcome record
+
+Memory providers must:
+
+- return citations, source identifiers, freshness metadata, and ACL posture
+  when asked
+- distinguish retrieved facts from synthesized summaries and inferred gaps
+- make proposed writes explicit reviewable artifacts instead of silently
+  changing authority context
+- remain auditable by Palari through repo-native evidence, logs, or memory
+  artifacts
+
+Memory providers must not:
+
+- accept work, approve work, close tickets, satisfy human gates, or grant
+  authority
+- own credentials directly or bypass broker/tool permission boundaries
+- replace scoped evidence, reviewer judgment, R5 controls, policy simulation,
+  or acceptance gates
+- send sensitive data to a model/provider/runtime that Palari has not allowed
+- mutate active memory, ticket state, policies, outcomes, or workflows without
+  Palari-governed review and evidence
+
+GBrain or any later memory service can fit behind this contract only as a
+provider. It must not become Palari's source of truth, authority layer, or
+hidden acceptance path. This repo version adds no live GBrain dependency, hosted
+call, credential path, or side-effecting memory integration.
+
 ## Lead Planner Adapters
 
 Lead planner adapters turn founder intent into proposals, not implementation.
