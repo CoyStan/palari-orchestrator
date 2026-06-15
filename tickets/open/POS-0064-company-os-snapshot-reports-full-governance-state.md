@@ -1,17 +1,17 @@
 ---
 id: POS-0064
 title: Company OS snapshot reports full governance state
-status: open
+status: in-review
 risk: R2
 priority: P0
 stream: process
 serves_goal: GOAL-0200
 model_hint: 
-claimed_by:
-claimed_at:
-claim_ref:
-claim_heartbeat_at:
-claim_expires_at:
+claimed_by: Codex
+claimed_at: 2026-06-15T11:46:17Z
+claim_ref: refs/palari/claims/POS-0064
+claim_heartbeat_at: 2026-06-15T11:46:17Z
+claim_expires_at: 2026-06-15T11:51:17Z
 allowed_paths:
   - adapters/planning/company_os_snapshot.py
   - adapters/snapshot/**

@@ -89,6 +89,11 @@ for path in sys.argv[1:]:
     assert company["humans"]["active"] == 2, company
     assert company["human_governance"]["missing_skills"] == ["privacy:L5"], company
     assert company["autonomy"]["red_workflows"] == 1, company
+    assert company["policy"]["candidates"] == 1, company
+    assert company["broker"]["mock_observations"] == 1, company
+    assert company["broker"]["tickets_with_broker_evidence"] == ["DPC-9001"], company
+    assert company["outcomes"]["recorded"] == 1, company
+    assert company["outcomes"]["open"] == 0, company
     assert company["broker"]["real_side_effects_enabled"] is False, company
 PY
 

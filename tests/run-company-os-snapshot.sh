@@ -93,7 +93,12 @@ for path in sys.argv[1:]:
     assert company["workflows"]["active"] == 2, company
     assert company["workflows"]["proposed"] == 0, company
     assert len(company["workflows"]["items"]) == 2, company
+    workflow_items = {item["id"]: item for item in company["workflows"]["items"]}
+    assert workflow_items["WF-0001"]["risk_sources"]["max_declared_risk"] == "R4", workflow_items
+    assert workflow_items["WF-0002"]["risk_sources"]["max_declared_risk"] == "R5", workflow_items
+    assert workflow_items["WF-0002"]["missing_skills"] == ["privacy:L5"], workflow_items
     assert company["humans"]["active"] == 2, company
+    assert company["humans"]["coverage_gaps"] == ["privacy:L5"], company
     gov = company["human_governance"]
     assert gov["open_hgl_estimate"] > 15, gov
     assert gov["r3_decisions_open"] == 1, gov
@@ -101,11 +106,22 @@ for path in sys.argv[1:]:
     assert gov["r5_decisions_open"] == 1, gov
     assert gov["missing_skills"] == ["privacy:L5"], gov
     assert "product_governor" in gov["bottlenecks"], gov
+    assert "WF-0002 exceeds available weekly HGL" in gov["capacity_warnings"], gov
     autonomy = company["autonomy"]
     assert autonomy["yellow_workflows"] == 1, autonomy
     assert autonomy["red_workflows"] == 1, autonomy
-    assert company["policy"] == {"simulation_only": True, "candidates": 0}, company
-    assert company["broker"]["real_side_effects_enabled"] is False, company
+    assert company["policy"] == {
+        "simulation_only": True,
+        "candidates": 0,
+        "active_policies": 0,
+        "proposed_policies": 0,
+    }, company
+    assert company["broker"] == {
+        "real_side_effects_enabled": False,
+        "mock_observations": 0,
+        "tickets_with_broker_evidence": [],
+    }, company
+    assert company["outcomes"] == {"open": 0, "recorded": 0, "invalidated": 0}, company
 PY
 
 printf 'company-os-snapshot: ok\n'
