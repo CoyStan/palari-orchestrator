@@ -149,6 +149,37 @@ repo. A scoped change records `decision: observed_allowed`. A forbidden or
 outside-scope change records `decision: denied_or_violation` and the broker
 returns nonzero.
 
+## Permission Check Without Execution
+
+`palari broker check` inspects a proposed tool/action/resource against a
+ticket's allowed and forbidden paths without running anything:
+
+```bash
+./bin/palari broker check POS-0073 \
+  --tool filesystem \
+  --action write \
+  --resource adapters/broker/example.py \
+  --json
+```
+
+The check output is data, not evidence of execution:
+
+```json
+{
+  "allowed": true,
+  "reasons": ["resource is within ticket allowed paths"],
+  "risk": "R3",
+  "requires_human": true,
+  "requires_policy": false,
+  "side_effects_enabled": false,
+  "would_execute": false
+}
+```
+
+Forbidden paths and resources outside ticket scope return `allowed: false`.
+The command does not execute actions, create broker evidence, copy files, call
+network services, or mutate lifecycle state.
+
 ## Evidence Boundary
 
 Mock and local sandbox broker runs write evidence under:

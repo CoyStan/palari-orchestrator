@@ -1,0 +1,26 @@
+# Palari CI Evidence
+
+- Ticket: POS-0073
+- Base ref: local working tree
+- Created: 2026-06-15T13:18:31Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0073 (14 changed path(s))
+```
+
+## lint
+
+```text
+report-lint: ok for POS-0073
+lint: ok for POS-0073
+```
+
+## verification 1
+
+Command: `./tests/run-broker-mock.sh`
+
+```text
+broker-mock: ok
+```

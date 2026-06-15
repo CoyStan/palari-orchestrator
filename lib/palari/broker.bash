@@ -87,6 +87,47 @@ cmd_broker_evidence() {
 	python3 -B "$ROOT/adapters/broker/mock_broker.py" "${args[@]}"
 }
 
+cmd_broker_check() {
+	local ticket="${1:-}"
+	shift || true
+	[[ -n "$ticket" ]] || die "broker check requires TICKET-ID"
+	local tool="" action="" resource="" json="false" arg
+	while (($# > 0)); do
+		arg="$1"
+		case "$arg" in
+		--tool)
+			tool="$2"
+			shift 2
+			;;
+		--action)
+			action="$2"
+			shift 2
+			;;
+		--resource)
+			resource="$2"
+			shift 2
+			;;
+		--json)
+			json="true"
+			shift
+			;;
+		*) die "unknown broker check option: $arg" ;;
+		esac
+	done
+	[[ -n "$tool" ]] || die "broker check requires --tool"
+	[[ -n "$action" ]] || die "broker check requires --action"
+	[[ -n "$resource" ]] || die "broker check requires --resource"
+	local file ticket_id args
+	file="$(find_ticket_file "$ticket")" || die "ticket not found: $ticket"
+	ticket_id="$(frontmatter_value "$file" id)"
+	[[ -n "$ticket_id" ]] || ticket_id="$ticket"
+	args=(check --root "$ROOT" --ticket "$ticket_id" --tool "$tool" --action "$action" --resource "$resource")
+	if [[ "$json" == "true" ]]; then
+		args+=(--json)
+	fi
+	python3 -B "$ROOT/adapters/broker/mock_broker.py" "${args[@]}"
+}
+
 cmd_broker_status() {
 	cat <<'STATUS'
 Broker status
@@ -105,6 +146,7 @@ cmd_broker() {
 	case "$sub" in
 	run) cmd_broker_run "$@" ;;
 	sandbox) cmd_broker_sandbox "$@" ;;
+	check) cmd_broker_check "$@" ;;
 	evidence) cmd_broker_evidence "$@" ;;
 	status | "") cmd_broker_status "$@" ;;
 	help | -h | --help)
@@ -112,6 +154,7 @@ cmd_broker() {
 usage: palari broker run TICKET-ID --mock -- COMMAND [ARGS...]
        palari broker run TICKET-ID --sandbox -- COMMAND [ARGS...]
        palari broker sandbox TICKET-ID -- COMMAND [ARGS...]
+       palari broker check TICKET-ID --tool TOOL --action ACTION --resource PATH [--json]
        palari broker evidence TICKET-ID [--json]
        palari broker status
 

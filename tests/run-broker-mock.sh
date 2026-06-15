@@ -32,6 +32,13 @@ git commit -m "broker baseline" >/dev/null
 	--allowed reports/evidence/BRK-0100/** \
 	--verify "test -f README.md" >/dev/null
 
+./bin/palari ticket create BRK-0101 "Broker check fixture" \
+	--risk R3 \
+	--priority P2 \
+	--allowed 'adapters/broker/**' \
+	--allowed reports/evidence/BRK-0101/** \
+	--verify "broker check fixture" >/dev/null
+
 if ./bin/palari broker run BRK-0100 -- printf hello >"$TMP_ROOT/no-mock.out" 2>&1; then
 	fail "broker run should require --mock"
 fi
@@ -49,6 +56,42 @@ grep -Fq "real_side_effects_enabled: false" "$TMP_ROOT/status.out" ||
 	fail "broker status must show side effects disabled"
 grep -Fq "network_isolation_enforced: false" "$TMP_ROOT/status.out" ||
 	fail "broker status must not claim network isolation"
+
+./bin/palari broker check BRK-0101 --tool filesystem --action write --resource adapters/broker/example.py --json >"$TMP_ROOT/check-allowed.json"
+python3 - "$TMP_ROOT/check-allowed.json" <<'PY'
+import json
+import sys
+
+data = json.load(open(sys.argv[1]))
+assert data["allowed"] is True
+assert data["reasons"] == ["resource is within ticket allowed paths"]
+assert data["risk"] == "R3"
+assert data["requires_human"] is True
+assert data["requires_policy"] is False
+assert data["side_effects_enabled"] is False
+assert data["would_execute"] is False
+assert data["tool"] == "filesystem"
+assert data["action"] == "write"
+assert data["resource"] == "adapters/broker/example.py"
+assert data["boundary_type"] == "permission_check_only"
+PY
+./bin/palari broker check BRK-0101 --tool filesystem --action write --resource .env --json >"$TMP_ROOT/check-forbidden.json"
+python3 - "$TMP_ROOT/check-forbidden.json" <<'PY'
+import json
+import sys
+
+data = json.load(open(sys.argv[1]))
+assert data["allowed"] is False
+assert data["reasons"] == ["resource matches ticket forbidden paths"]
+assert data["would_execute"] is False
+PY
+./bin/palari broker check BRK-0101 --tool filesystem --action write --resource README.md >"$TMP_ROOT/check-outside.out"
+grep -Fq "allowed: false" "$TMP_ROOT/check-outside.out" ||
+	fail "broker check should deny outside-scope resources"
+grep -Fq "resource is outside ticket allowed paths" "$TMP_ROOT/check-outside.out" ||
+	fail "broker check outside-scope reason missing"
+test ! -d reports/evidence/BRK-0101/broker ||
+	fail "broker check must not create broker evidence"
 
 python3 - "$REPO_ROOT/schemas/broker-action-request.schema.json" "$REPO_ROOT/schemas/broker-result.schema.json" <<'PY'
 import json

@@ -565,6 +565,49 @@ def run_sandbox(args: argparse.Namespace) -> int:
             shutil.rmtree(temp_root, ignore_errors=True)
 
 
+def check_permission(args: argparse.Namespace) -> int:
+    root = Path(args.root).resolve()
+    meta = ticket_frontmatter(root, args.ticket)
+    if not meta:
+        raise SystemExit(f"ticket not found: {args.ticket}")
+    risk = str(meta.get("risk") or "R0")
+    forbidden_changes, outside_scope_changes = changed_path_violations([args.resource], meta)
+    allowed = not forbidden_changes and not outside_scope_changes
+    reasons: list[str] = []
+    if forbidden_changes:
+        reasons.append("resource matches ticket forbidden paths")
+    if outside_scope_changes:
+        reasons.append("resource is outside ticket allowed paths")
+    if allowed:
+        reasons.append("resource is within ticket allowed paths")
+    data = {
+        "allowed": allowed,
+        "reasons": reasons,
+        "risk": risk,
+        "requires_human": risk in {"R3", "R4", "R5"},
+        "requires_policy": False,
+        "side_effects_enabled": False,
+        "would_execute": False,
+        "tool": args.tool,
+        "action": args.action,
+        "resource": args.resource,
+        "boundary_type": "permission_check_only",
+    }
+    if args.json:
+        print(json.dumps(data, indent=2, sort_keys=True))
+        return 0
+    print("Broker permission check")
+    print(f"allowed: {str(allowed).lower()}")
+    print(f"risk: {risk}")
+    print(f"requires_human: {str(data['requires_human']).lower()}")
+    print("side_effects_enabled: false")
+    print("would_execute: false")
+    print("reasons:")
+    for reason in reasons:
+        print(f"- {reason}")
+    return 0
+
+
 def evidence_items(root: Path, evidence_dir: str, ticket: str) -> list[dict[str, Any]]:
     broker_dir = root / evidence_dir / ticket / "broker"
     if not broker_dir.is_dir():
@@ -627,6 +670,14 @@ def main() -> int:
     evidence.add_argument("--evidence-dir", required=True)
     evidence.add_argument("--json", action="store_true")
 
+    check = sub.add_parser("check")
+    check.add_argument("--root", required=True)
+    check.add_argument("--ticket", required=True)
+    check.add_argument("--tool", required=True)
+    check.add_argument("--action", required=True)
+    check.add_argument("--resource", required=True)
+    check.add_argument("--json", action="store_true")
+
     args = parser.parse_args()
     if args.command_name in {"run", "sandbox"}:
         if args.command and args.command[0] == "--":
@@ -636,6 +687,8 @@ def main() -> int:
         if args.command_name == "sandbox":
             return run_sandbox(args)
         return run_command(args)
+    if args.command_name == "check":
+        return check_permission(args)
     return list_evidence(args)
 
 
