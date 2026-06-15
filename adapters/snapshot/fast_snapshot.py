@@ -162,6 +162,15 @@ def cfg_nested(config: dict, section: str, key: str, default: str = "") -> str:
     return value if value != "" else default
 
 
+def accept_command_for_ticket(fm: dict, ticket_id: str, config: dict, by: str, prefix: str) -> str:
+    if (
+        scalar(fm, "risk") == "R5"
+        and cfg_nested(config, "governance", "r5_requires_dual_human", "false") == "true"
+    ):
+        return f"{prefix} accept {ticket_id} --by HUMAN-ONE --co-by HUMAN-TWO"
+    return f"{prefix} accept {ticket_id} --by {by}"
+
+
 def glob_to_regex(pattern: str) -> re.Pattern:
     out = []
     i = 0
@@ -319,7 +328,13 @@ def listval(fm: dict, key: str) -> list:
 
 
 def next_action(
-    fm: dict, ticket_id: str, status: str, default_branch: str, evidence: dict, reports: dict
+    fm: dict,
+    ticket_id: str,
+    status: str,
+    default_branch: str,
+    evidence: dict,
+    reports: dict,
+    config: dict,
 ) -> dict:
     target = scalar(fm, "target_branch") or default_branch
     has_evidence = bool(
@@ -406,7 +421,7 @@ def next_action(
         return action(
             "Accept or reopen",
             "A human or authorized acceptor should accept the ticket or send it back.",
-            f"./bin/palari accept {ticket_id} --by founder",
+            accept_command_for_ticket(fm, ticket_id, config, "founder", "./bin/palari"),
             "human",
             "waiting",
         )
@@ -684,7 +699,7 @@ def snapshot_dict(root: Path, *, full: bool = False) -> dict:
             "human": base_reports["human"],
             "custom": custom,
         }
-        action = next_action(fm, ticket_id, status, default_branch, evidence, reports)
+        action = next_action(fm, ticket_id, status, default_branch, evidence, reports, config)
         tickets.append(
             {
                 "id": ticket_id,

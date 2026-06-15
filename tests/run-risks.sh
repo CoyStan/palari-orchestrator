@@ -247,6 +247,16 @@ DOC
 ./bin/palari evidence score RSK-0003 >"$TMP_ROOT/r5-evidence-score.out"
 grep -Fq "next_action: human gate: ./bin/palari accept RSK-0003 --by HUMAN-ONE --co-by HUMAN-TWO" "$TMP_ROOT/r5-evidence-score.out" ||
 	fail "R5 evidence score should recommend the dual-human accept command"
+./bin/palari snapshot --json >"$TMP_ROOT/r5-snapshot.json"
+python3 - "$TMP_ROOT/r5-snapshot.json" <<'PY'
+import json
+import sys
+
+snapshot = json.load(open(sys.argv[1]))
+tickets = {ticket["id"]: ticket for ticket in snapshot["tickets"]}
+command = tickets["RSK-0003"]["next_action"]["command"]
+assert command == "./bin/palari accept RSK-0003 --by HUMAN-ONE --co-by HUMAN-TWO", command
+PY
 
 if ./bin/palari accept RSK-0003 --by HUMAN-R5A >"$TMP_ROOT/r5-one.out" 2>&1; then
 	fail "R5 accept with one human should fail"

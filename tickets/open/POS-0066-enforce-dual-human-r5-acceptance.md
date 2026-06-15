@@ -10,8 +10,8 @@ model_hint:
 claimed_by: codex
 claimed_at: 2026-06-15T12:04:21Z
 claim_ref: refs/palari/claims/POS-0066
-claim_heartbeat_at: 2026-06-15T12:16:38Z
-claim_expires_at: 2026-06-15T12:21:38Z
+claim_heartbeat_at: 2026-06-15T20:36:09Z
+claim_expires_at: 2026-06-16T20:36:09Z
 allowed_paths:
   - lib/palari/ci_accept.bash
   - lib/palari/dashboard_snapshot.bash
