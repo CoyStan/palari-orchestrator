@@ -230,4 +230,74 @@ assert "full_autonomy" not in data["autonomy_ceiling"]
 assert "high_autonomy" not in data["autonomy_ceiling"]
 PY
 
+./bin/palari workflow create WF-0004 "R3 source without decision" \
+	--goal GOAL-0100 \
+	--owner founder \
+	--risk-ceiling R3 >/dev/null
+python3 - <<'PY'
+from pathlib import Path
+
+path = Path("workflows/proposed/WF-0004-r3-source-without-decision.md")
+text = path.read_text()
+text = text.replace(
+    "work_units:\n",
+    "work_units:\n"
+    "  - WU-0001|analysis|R3|Analyze customer-impacting change\n",
+)
+path.write_text(text)
+PY
+./bin/palari workflow adopt WF-0004 --by founder >/dev/null
+./bin/palari workflow plan WF-0004 --json >"$TMP_ROOT/r3-no-decision.json"
+python3 - "$TMP_ROOT/r3-no-decision.json" <<'PY'
+import json
+import sys
+
+data = json.load(open(sys.argv[1]))
+assert data["risk_sources"]["workflow_risk_ceiling"] == "R3", data["risk_sources"]
+assert data["risk_sources"]["max_work_unit_risk"] == "R3", data["risk_sources"]
+assert data["risk_sources"]["max_declared_risk"] == "R3", data["risk_sources"]
+assert data["launch_gate"] == "yellow", data
+assert data["autonomy_ceiling"] == "conditional_autonomy", data
+assert data["risk_coverage_gaps"] == [
+    "work unit WU-0001 R3 has no expected decision at or above that risk",
+    "workflow risk ceiling R3 has no expected decision at or above that risk",
+], data["risk_coverage_gaps"]
+assert any("add expected human decision coverage" in item for item in data["recommended_next_actions"])
+PY
+
+./bin/palari workflow create WF-0005 "R3 source with exception" \
+	--goal GOAL-0100 \
+	--owner founder \
+	--risk-ceiling R3 >/dev/null
+python3 - <<'PY'
+from pathlib import Path
+
+path = Path("workflows/proposed/WF-0005-r3-source-with-exception.md")
+text = path.read_text()
+text = text.replace(
+    "work_units:\n",
+    "work_units:\n"
+    "  - WU-0001|analysis|R3|Analyze customer-impacting change\n",
+)
+text = text.replace(
+    "expected_decisions:\n",
+    "expected_decisions:\n"
+    "human_decision_exceptions:\n"
+    "  - R3 analysis is exploratory and will route to a separate decision before production use.\n",
+)
+path.write_text(text)
+PY
+./bin/palari workflow adopt WF-0005 --by founder >/dev/null
+./bin/palari workflow plan WF-0005 --json >"$TMP_ROOT/r3-exception.json"
+python3 - "$TMP_ROOT/r3-exception.json" <<'PY'
+import json
+import sys
+
+data = json.load(open(sys.argv[1]))
+assert data["risk_sources"]["max_declared_risk"] == "R3", data["risk_sources"]
+assert data["launch_gate"] == "green", data
+assert data["autonomy_ceiling"] == "conditional_autonomy", data
+assert data["risk_coverage_gaps"] == [], data["risk_coverage_gaps"]
+PY
+
 printf 'workflow-planning: ok\n'

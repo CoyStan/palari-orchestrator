@@ -100,6 +100,7 @@ for path in sys.argv[1:]:
     company = data["company_os"]
     assert company["workflows"]["active"] == 2, company
     assert company["workflows"]["proposed"] == 0, company
+    assert company["workflows"]["errors"] == [], company
     assert len(company["workflows"]["items"]) == 2, company
     workflow_items = {item["id"]: item for item in company["workflows"]["items"]}
     assert workflow_items["WF-0001"]["risk_sources"]["max_declared_risk"] == "R4", workflow_items
@@ -118,6 +119,7 @@ for path in sys.argv[1:]:
     assert gov["debt"]["level"] == "high", gov
     assert gov["debt"]["item_count"] >= 2, gov
     assert gov["debt"]["highest_leverage_fix"], gov
+    assert gov["errors"] == [], gov
     autonomy = company["autonomy"]
     assert autonomy["yellow_workflows"] == 1, autonomy
     assert autonomy["red_workflows"] == 1, autonomy
@@ -126,13 +128,16 @@ for path in sys.argv[1:]:
         "candidates": 0,
         "active_policies": 0,
         "proposed_policies": 0,
+        "errors": [],
     }, company
     assert company["broker"] == {
         "real_side_effects_enabled": False,
         "mock_observations": 1,
         "tickets_with_broker_evidence": ["BRK-0200"],
+        "errors": [],
     }, company
-    assert company["outcomes"] == {"open": 0, "recorded": 0, "invalidated": 0}, company
+    assert company["outcomes"] == {"open": 0, "recorded": 0, "invalidated": 0, "errors": []}, company
+    assert company["errors"] == [], company
     if not path.endswith("bash.json"):
         cards = company["dashboard_cards"]
         card_map = {card["id"]: card for card in cards}
@@ -155,6 +160,98 @@ for path in sys.argv[1:]:
         assert card_map["policy_candidates"]["detail"].startswith("Simulation-only"), card_map
         assert "observed-only" in card_map["broker_posture"]["value"], card_map
         assert card_map["broker_posture"]["status"] == "ok", card_map
+PY
+
+cat >workflows/active/WF-0999-broken-workflow.md <<'EOF'
+This active workflow is intentionally malformed for snapshot error coverage.
+EOF
+mkdir -p reports/evidence/BRK-0201/broker/RUN-BROKEN
+printf '{broken\n' >reports/evidence/BRK-0201/broker/RUN-BROKEN/summary.json
+cat >outcomes/open/OUT-0999-broken-outcome.md <<'EOF'
+This outcome is intentionally malformed for snapshot error coverage.
+EOF
+
+./bin/palari snapshot --json >"$TMP_ROOT/errors-fast.json"
+PALARI_SNAPSHOT_ENGINE=bash ./bin/palari snapshot --json >"$TMP_ROOT/errors-bash.json"
+
+python3 - "$TMP_ROOT/errors-fast.json" "$TMP_ROOT/errors-bash.json" <<'PY'
+import json
+import sys
+
+for path in sys.argv[1:]:
+    data = json.load(open(path))
+    company = data["company_os"]
+    assert company["errors"], company
+    assert company["workflows"]["errors"], company
+    assert company["human_governance"]["errors"], company
+    assert company["broker"]["errors"], company
+    assert company["outcomes"]["errors"], company
+    assert any("workflow analysis error" in item for item in company["errors"]), company
+    assert any("broker summary parse error" in item for item in company["errors"]), company
+    assert any("outcome parse error" in item for item in company["errors"]), company
+    error_items = [item for item in company["workflows"]["items"] if item.get("status") == "analysis_error"]
+    assert len(error_items) == 1, company["workflows"]["items"]
+    error_item = error_items[0]
+    assert error_item["id"] == "WF-0999-broken-workflow", error_item
+    assert error_item["launch_gate"] == "red", error_item
+    assert error_item["autonomy_ceiling"] == "simulation_only", error_item
+    assert error_item["human_governance_load"] is None, error_item
+    assert company["autonomy"]["red_workflows"] >= 2, company["autonomy"]
+    assert any("workflow analysis error" in item for item in company["human_governance"]["capacity_warnings"]), company
+    if not path.endswith("errors-bash.json"):
+        card_map = {card["id"]: card for card in company["dashboard_cards"]}
+        assert card_map["human_governance_load"]["status"] == "bad", card_map
+        assert card_map["high_risk_decisions"]["status"] == "bad", card_map
+        assert card_map["high_risk_decisions"]["value"] == "unknown", card_map
+        assert card_map["missing_skills"]["status"] == "bad", card_map
+        assert card_map["missing_skills"]["value"] == "unknown", card_map
+        assert card_map["bottlenecks"]["status"] == "bad", card_map
+        assert card_map["bottlenecks"]["value"] == "unknown", card_map
+        assert card_map["autonomy_gates"]["status"] == "bad", card_map
+        assert card_map["broker_posture"]["status"] == "bad", card_map
+        assert card_map["broker_posture"]["value"] == "unknown", card_map
+        assert card_map["outcomes"]["status"] == "bad", card_map
+        assert card_map["outcomes"]["value"] == "unknown", card_map
+        assert card_map["active_workflows"]["status"] == "bad", card_map
+        assert card_map["active_workflows"]["value"] == "unknown", card_map
+PY
+
+mv adapters/planning/company_os_snapshot.py "$TMP_ROOT/company_os_snapshot.py.disabled"
+./bin/palari snapshot --json >"$TMP_ROOT/helper-missing-fast.json"
+PALARI_SNAPSHOT_ENGINE=bash ./bin/palari snapshot --json >"$TMP_ROOT/helper-missing-bash.json"
+
+python3 - "$TMP_ROOT/helper-missing-fast.json" "$TMP_ROOT/helper-missing-bash.json" <<'PY'
+import json
+import sys
+
+expected = ["company OS snapshot helper unavailable"]
+for path in sys.argv[1:]:
+    data = json.load(open(path))
+    company = data["company_os"]
+    assert company["errors"] == expected, company
+    assert company["workflows"]["errors"] == expected, company
+    assert company["human_governance"]["errors"] == expected, company
+    assert company["human_governance"]["capacity_warnings"] == expected, company
+    assert company["policy"]["errors"] == expected, company
+    assert company["broker"]["errors"] == expected, company
+    assert company["outcomes"]["errors"] == expected, company
+    if not path.endswith("helper-missing-bash.json"):
+        card_map = {card["id"]: card for card in company["dashboard_cards"]}
+        assert card_map["human_governance_load"]["status"] == "bad", card_map
+        assert card_map["high_risk_decisions"]["status"] == "bad", card_map
+        assert card_map["high_risk_decisions"]["value"] == "unknown", card_map
+        assert card_map["missing_skills"]["status"] == "bad", card_map
+        assert card_map["missing_skills"]["value"] == "unknown", card_map
+        assert card_map["bottlenecks"]["status"] == "bad", card_map
+        assert card_map["bottlenecks"]["value"] == "unknown", card_map
+        assert card_map["policy_candidates"]["status"] == "bad", card_map
+        assert card_map["policy_candidates"]["value"] == "unknown", card_map
+        assert card_map["broker_posture"]["status"] == "bad", card_map
+        assert card_map["broker_posture"]["value"] == "unknown", card_map
+        assert card_map["outcomes"]["status"] == "bad", card_map
+        assert card_map["outcomes"]["value"] == "unknown", card_map
+        assert card_map["active_workflows"]["status"] == "bad", card_map
+        assert card_map["active_workflows"]["value"] == "unknown", card_map
 PY
 
 printf 'company-os-snapshot: ok\n'

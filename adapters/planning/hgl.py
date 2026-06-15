@@ -164,8 +164,18 @@ def has_expected_risk_at_least(counts: dict[str, int], risk: str) -> bool:
     return any(risk_number(item) >= threshold and count > 0 for item, count in counts.items())
 
 
+def workflow_has_human_decision_exception(workflow: Artifact) -> bool:
+    return bool(
+        workflow.lists.get("human_decision_exceptions")
+        or workflow.lists.get("human_decision_exception")
+    )
+
+
 def risk_coverage_gaps(
-    workflow_risk_ceiling: str, work_units: list[dict[str, str]], counts: dict[str, int]
+    workflow_risk_ceiling: str,
+    work_units: list[dict[str, str]],
+    counts: dict[str, int],
+    has_human_decision_exception: bool,
 ) -> list[str]:
     gaps: list[str] = []
     if risk_number(workflow_risk_ceiling) >= 4 and not has_expected_risk_at_least(
@@ -174,9 +184,25 @@ def risk_coverage_gaps(
         gaps.append(
             f"workflow risk ceiling {workflow_risk_ceiling} has no expected decision at or above that risk"
         )
+    elif (
+        risk_number(workflow_risk_ceiling) == 3
+        and not has_expected_risk_at_least(counts, workflow_risk_ceiling)
+        and not has_human_decision_exception
+    ):
+        gaps.append(
+            f"workflow risk ceiling {workflow_risk_ceiling} has no expected decision at or above that risk"
+        )
     for unit in work_units:
         risk = unit.get("risk", "")
         if risk_number(risk) >= 4 and not has_expected_risk_at_least(counts, risk):
+            gaps.append(
+                f"work unit {unit.get('id', '(unknown)')} {risk} has no expected decision at or above that risk"
+            )
+        elif (
+            risk_number(risk) == 3
+            and not has_expected_risk_at_least(counts, risk)
+            and not has_human_decision_exception
+        ):
             gaps.append(
                 f"work unit {unit.get('id', '(unknown)')} {risk} has no expected decision at or above that risk"
             )
@@ -201,15 +227,23 @@ def human_at_risk_capacity(human: Human, risk: str) -> bool:
     return False
 
 
-def coverage_failure(skill: str, level: int, decision_risk: str, row: dict[str, object]) -> str:
+def coverage_failures_for(
+    skill: str, level: int, decision_risk: str, row: dict[str, object]
+) -> list[str]:
     label = f"{skill}:L{level}"
+    failures: list[str] = []
     if row["under_authorized"]:
-        return f"{label} has candidates but none with {decision_risk} authority"
+        if row["at_capacity"] or row["underleveled"]:
+            failures.append(f"{label} has candidates without {decision_risk} authority")
+        else:
+            failures.append(f"{label} has candidates but none with {decision_risk} authority")
     if row["at_capacity"]:
-        return f"{label} has authorized candidates but all are at risk capacity"
+        failures.append(f"{label} has authorized candidates but all are at risk capacity")
     if row["underleveled"]:
-        return f"{label} has humans with the skill but below the required level"
-    return f"{label} has no active human candidates"
+        failures.append(f"{label} has humans with the skill but below the required level")
+    if not failures:
+        failures.append(f"{label} has no active human candidates")
+    return failures
 
 
 def coverage_for(
@@ -307,8 +341,10 @@ def analyze(root: pathlib.Path, args: argparse.Namespace) -> dict[str, object]:
             covered = row["covered_by"]
             if not covered:
                 missing_skills.add(f"{row['skill']}:{row['level']}")
-                coverage_failures.add(
-                    coverage_failure(str(row["skill"]), level_number(str(row["level"])), risk, row)
+                coverage_failures.update(
+                    coverage_failures_for(
+                        str(row["skill"]), level_number(str(row["level"])), risk, row
+                    )
                 )
             elif isinstance(covered, list) and len(covered) == 1:
                 for role in row.get("roles", []):  # type: ignore[union-attr]
@@ -349,7 +385,9 @@ def analyze(root: pathlib.Path, args: argparse.Namespace) -> dict[str, object]:
         "max_expected_decision_risk": max_expected_decision_risk,
         "max_declared_risk": max_declared_risk,
     }
-    planning_gaps = risk_coverage_gaps(workflow_risk_ceiling, work_units, counts)
+    planning_gaps = risk_coverage_gaps(
+        workflow_risk_ceiling, work_units, counts, workflow_has_human_decision_exception(workflow)
+    )
     if planning_gaps:
         if risk_number(max_declared_risk) >= 4:
             red = True

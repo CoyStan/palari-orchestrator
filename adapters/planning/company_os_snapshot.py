@@ -64,7 +64,8 @@ def cfg(config: dict[str, Any], key: str, default: str) -> str:
 
 def empty_company_os() -> dict[str, Any]:
     return {
-        "workflows": {"active": 0, "proposed": 0, "closed": 0, "items": []},
+        "errors": [],
+        "workflows": {"active": 0, "proposed": 0, "closed": 0, "items": [], "errors": []},
         "humans": {"active": 0, "proposed": 0, "revoked": 0, "coverage_gaps": []},
         "human_governance": {
             "open_hgl_estimate": 0,
@@ -74,6 +75,7 @@ def empty_company_os() -> dict[str, Any]:
             "missing_skills": [],
             "bottlenecks": [],
             "capacity_warnings": [],
+            "errors": [],
             "debt": {
                 "level": "none",
                 "item_count": 0,
@@ -86,29 +88,33 @@ def empty_company_os() -> dict[str, Any]:
             "candidates": 0,
             "active_policies": 0,
             "proposed_policies": 0,
+            "errors": [],
         },
         "broker": {
             "real_side_effects_enabled": False,
             "mock_observations": 0,
             "tickets_with_broker_evidence": [],
+            "errors": [],
         },
-        "outcomes": {"open": 0, "recorded": 0, "invalidated": 0},
+        "outcomes": {"open": 0, "recorded": 0, "invalidated": 0, "errors": []},
     }
 
 
-def count_invalidated_outcomes(paths: list[pathlib.Path]) -> int:
+def count_invalidated_outcomes(root: pathlib.Path, paths: list[pathlib.Path]) -> tuple[int, list[str]]:
     count = 0
+    errors: list[str] = []
     for path in paths:
         try:
             artifact = hgl.parse_frontmatter(path)
-        except (OSError, ValueError):
+        except (OSError, ValueError) as exc:
+            errors.append(f"outcome parse error: {path.relative_to(root)}: {exc}")
             continue
         if artifact.fields.get("status") == "invalidated":
             count += 1
-    return count
+    return count, errors
 
 
-def policy_candidate_count(root: pathlib.Path, dirs: dict[str, str]) -> int:
+def policy_candidate_count(root: pathlib.Path, dirs: dict[str, str]) -> tuple[int, list[str]]:
     args = SimpleNamespace(
         tickets_open_dir=dirs["tickets_open"],
         tickets_closed_dir=dirs["tickets_closed"],
@@ -117,9 +123,9 @@ def policy_candidate_count(root: pathlib.Path, dirs: dict[str, str]) -> int:
     )
     try:
         data = policy_candidates.build_candidates(root, args)
-    except (OSError, ValueError):
-        return 0
-    return int(data.get("candidate_count", 0))
+    except (OSError, ValueError) as exc:
+        return 0, [f"policy candidate analysis error: {exc}"]
+    return int(data.get("candidate_count", 0)), []
 
 
 def broker_summary(root: pathlib.Path, evidence_dir: str) -> dict[str, Any]:
@@ -127,16 +133,19 @@ def broker_summary(root: pathlib.Path, evidence_dir: str) -> dict[str, Any]:
     tickets: set[str] = set()
     mock_observations = 0
     real_side_effects = False
+    errors: list[str] = []
     if not base.is_dir():
         return {
             "real_side_effects_enabled": False,
             "mock_observations": 0,
             "tickets_with_broker_evidence": [],
+            "errors": [],
         }
     for path in sorted(base.glob("*/broker/*/summary.json")):
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
+        except (OSError, json.JSONDecodeError) as exc:
+            errors.append(f"broker summary parse error: {path.relative_to(root)}: {exc}")
             continue
         ticket = str(data.get("ticket") or path.relative_to(base).parts[0])
         tickets.add(ticket)
@@ -149,6 +158,7 @@ def broker_summary(root: pathlib.Path, evidence_dir: str) -> dict[str, Any]:
         "real_side_effects_enabled": real_side_effects,
         "mock_observations": mock_observations,
         "tickets_with_broker_evidence": sorted(tickets),
+        "errors": errors,
     }
 
 
@@ -173,6 +183,7 @@ def build_company_os(root: pathlib.Path, config: dict[str, Any] | None = None) -
         "evidence": cfg(config, "evidence_dir", "reports/evidence"),
     }
     section = empty_company_os()
+    errors: list[str] = []
     workflow_files = {
         "proposed": md_files(root, dirs["workflows_proposed"]),
         "active": md_files(root, dirs["workflows_active"]),
@@ -208,9 +219,12 @@ def build_company_os(root: pathlib.Path, config: dict[str, Any] | None = None) -
     items: list[dict[str, Any]] = []
 
     for path in workflow_files["active"]:
+        workflow_id = path.stem
+        title = ""
         try:
             artifact = hgl.parse_frontmatter(path)
             workflow_id = artifact.fields.get("id", path.stem)
+            title = artifact.fields.get("title", "")
             args = SimpleNamespace(
                 workflow=workflow_id,
                 workflows_proposed_dir=dirs["workflows_proposed"],
@@ -219,7 +233,30 @@ def build_company_os(root: pathlib.Path, config: dict[str, Any] | None = None) -
                 humans_active_dir=dirs["humans_active"],
             )
             data = hgl.analyze(root, args)
-        except (OSError, ValueError, SystemExit):
+        except (OSError, ValueError, SystemExit) as exc:
+            message = f"workflow analysis error: {path.relative_to(root)}: {exc}"
+            errors.append(message)
+            section["workflows"]["errors"].append(message)
+            capacity_warnings.add(message)
+            autonomy_counts["red"] += 1
+            items.append(
+                {
+                    "id": workflow_id,
+                    "title": title,
+                    "status": "analysis_error",
+                    "goal": "",
+                    "risk_ceiling": "",
+                    "human_governance_load": None,
+                    "launch_gate": "red",
+                    "autonomy_ceiling": "simulation_only",
+                    "missing_skills": [],
+                    "bottlenecks": [],
+                    "risk_sources": {},
+                    "capacity": {},
+                    "path": str(path.relative_to(root)),
+                    "error": message,
+                }
+            )
             continue
         hgl_total += int(data["human_governance_load"])
         counts = data["expected_decisions"]
@@ -275,6 +312,7 @@ def build_company_os(root: pathlib.Path, config: dict[str, Any] | None = None) -
         "missing_skills": sorted(missing_skills),
         "bottlenecks": sorted(bottlenecks),
         "capacity_warnings": sorted(capacity_warnings),
+        "errors": sorted(section["workflows"]["errors"]),
         "debt": {
             "level": debt["level"],
             "item_count": debt["item_count"],
@@ -286,18 +324,28 @@ def build_company_os(root: pathlib.Path, config: dict[str, Any] | None = None) -
         "yellow_workflows": autonomy_counts["yellow"],
         "red_workflows": autonomy_counts["red"],
     }
+    policy_count, policy_errors = policy_candidate_count(root, dirs)
+    errors.extend(policy_errors)
     section["policy"] = {
         "simulation_only": True,
-        "candidates": policy_candidate_count(root, dirs),
+        "candidates": policy_count,
         "active_policies": len(policy_files["active"]),
         "proposed_policies": len(policy_files["proposed"]),
+        "errors": policy_errors,
     }
     section["broker"] = broker_summary(root, dirs["evidence"])
+    errors.extend(section["broker"]["errors"])
+    invalidated_outcomes, outcome_errors = count_invalidated_outcomes(
+        root, outcome_files["open"] + outcome_files["recorded"]
+    )
+    errors.extend(outcome_errors)
     section["outcomes"] = {
         "open": len(outcome_files["open"]),
         "recorded": len(outcome_files["recorded"]),
-        "invalidated": count_invalidated_outcomes(outcome_files["open"] + outcome_files["recorded"]),
+        "invalidated": invalidated_outcomes,
+        "errors": outcome_errors,
     }
+    section["errors"] = sorted(errors)
     return section
 
 

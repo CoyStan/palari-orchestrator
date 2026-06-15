@@ -477,6 +477,12 @@ def build_company_dashboard_cards(company_os: dict, gate: dict) -> list[dict]:
     policy = company_os.get("policy", {})
     broker = company_os.get("broker", {})
     outcomes = company_os.get("outcomes", {})
+    company_errors = list(company_os.get("errors") or [])
+    workflow_errors = list(workflows.get("errors") or [])
+    governance_errors = list(governance.get("errors") or [])
+    policy_errors = list(policy.get("errors") or [])
+    broker_errors = list(broker.get("errors") or [])
+    outcome_errors = list(outcomes.get("errors") or [])
 
     hgl = int(governance.get("open_hgl_estimate") or 0)
     missing_skills = list(governance.get("missing_skills") or [])
@@ -499,14 +505,23 @@ def build_company_dashboard_cards(company_os: dict, gate: dict) -> list[dict]:
     invalidated_outcomes = int(outcomes.get("invalidated") or 0)
     workflow_count = int(workflows.get("active") or 0)
 
-    hgl_status = "bad" if missing_skills or capacity_warnings else ("watch" if hgl else "ok")
-    decision_status = "bad" if r5 else ("watch" if r3 or r4 else "ok")
-    missing_status = "bad" if missing_skills else "ok"
-    bottleneck_status = "watch" if bottlenecks else "ok"
-    autonomy_status = "bad" if red else ("watch" if yellow else "ok")
-    policy_status = "watch" if candidate_count else "ok"
-    broker_status = "bad" if real_side_effects else "ok"
-    outcome_status = "bad" if invalidated_outcomes else ("watch" if open_outcomes else "ok")
+    first_error = (
+        workflow_errors
+        or governance_errors
+        or policy_errors
+        or broker_errors
+        or outcome_errors
+        or company_errors
+    )
+    governance_state_error = workflow_errors or governance_errors or company_errors
+    hgl_status = "bad" if missing_skills or capacity_warnings or governance_errors else ("watch" if hgl else "ok")
+    decision_status = "bad" if governance_state_error or r5 else ("watch" if r3 or r4 else "ok")
+    missing_status = "bad" if governance_state_error or missing_skills else "ok"
+    bottleneck_status = "bad" if governance_state_error else ("watch" if bottlenecks else "ok")
+    autonomy_status = "bad" if red or workflow_errors else ("watch" if yellow else "ok")
+    policy_status = "bad" if policy_errors else ("watch" if candidate_count else "ok")
+    broker_status = "bad" if real_side_effects or broker_errors else "ok"
+    outcome_status = "bad" if outcome_errors or invalidated_outcomes else ("watch" if open_outcomes else "ok")
     if gate.get("enabled"):
         secure_status = "ok" if gate.get("available") and gate.get("initialized") else "bad"
         secure_value = "signed gate"
@@ -522,49 +537,62 @@ def build_company_dashboard_cards(company_os: dict, gate: dict) -> list[dict]:
             "Human Governance Load",
             f"{hgl} HGL",
             hgl_status,
-            "Open estimate across active workflows; capacity and missing skills escalate this card.",
+            governance_errors[0]
+            if governance_errors
+            else "Open estimate across active workflows; capacity and missing skills escalate this card.",
         ),
         company_card(
             "high_risk_decisions",
             "R3/R4/R5 Decisions",
-            f"{r3}/{r4}/{r5}",
+            "unknown" if governance_state_error else f"{r3}/{r4}/{r5}",
             decision_status,
-            "Open high-risk decisions stay visible; R5 requires explicit human authority.",
+            governance_state_error[0]
+            if governance_state_error
+            else "Open high-risk decisions stay visible; R5 requires explicit human authority.",
         ),
         company_card(
             "missing_skills",
             "Missing Skills",
-            str(len(missing_skills)),
+            "unknown" if governance_state_error else str(len(missing_skills)),
             missing_status,
-            ", ".join(missing_skills[:3]) if missing_skills else "All active workflow skills are covered.",
+            governance_state_error[0]
+            if governance_state_error
+            else ", ".join(missing_skills[:3]) if missing_skills else "All active workflow skills are covered.",
         ),
         company_card(
             "bottlenecks",
             "Bottlenecks",
-            str(len(bottlenecks)),
+            "unknown" if governance_state_error else str(len(bottlenecks)),
             bottleneck_status,
-            ", ".join(bottlenecks[:3]) if bottlenecks else "No active human or role bottlenecks detected.",
+            governance_state_error[0]
+            if governance_state_error
+            else ", ".join(bottlenecks[:3]) if bottlenecks else "No active human or role bottlenecks detected.",
         ),
         company_card(
             "autonomy_gates",
             "Autonomy Gates",
             f"{green}/{yellow}/{red}",
             autonomy_status,
-            "Green/yellow/red workflow gates; red and yellow states are never hidden.",
+            workflow_errors[0] if workflow_errors else "Green/yellow/red workflow gates; red and yellow states are never hidden.",
         ),
         company_card(
             "policy_candidates",
             "Policy Candidates",
-            str(candidate_count),
+            "unknown" if policy_errors else str(candidate_count),
             policy_status,
-            f"Simulation-only suggestions; {active_policies} active and {proposed_policies} proposed policy files.",
+            policy_errors[0]
+            if policy_errors
+            else f"Simulation-only suggestions; {active_policies} active and {proposed_policies} proposed policy files.",
         ),
         company_card(
             "broker_posture",
             "Broker Posture",
-            "real side effects" if real_side_effects else "mock / observed-only",
+            "unknown" if broker_errors else ("real side effects" if real_side_effects else "mock / observed-only"),
             broker_status,
             (
+                broker_errors[0]
+                if broker_errors
+                else
                 "Real side effects are reported; confirm a sandbox boundary before trusting broker authority."
                 if real_side_effects
                 else f"Mock/observed-only broker evidence across {len(broker_tickets)} ticket(s) and {mock_observations} observation(s)."
@@ -573,9 +601,11 @@ def build_company_dashboard_cards(company_os: dict, gate: dict) -> list[dict]:
         company_card(
             "outcomes",
             "Outcomes",
-            f"{open_outcomes}/{recorded_outcomes}/{invalidated_outcomes}",
+            "unknown" if outcome_errors else f"{open_outcomes}/{recorded_outcomes}/{invalidated_outcomes}",
             outcome_status,
-            "Open/recorded/invalidated outcomes; invalidated outcomes require review before policy learning.",
+            outcome_errors[0]
+            if outcome_errors
+            else "Open/recorded/invalidated outcomes; invalidated outcomes require review before policy learning.",
         ),
         company_card(
             "secure_posture",
@@ -587,9 +617,11 @@ def build_company_dashboard_cards(company_os: dict, gate: dict) -> list[dict]:
         company_card(
             "active_workflows",
             "Active Workflows",
-            str(workflow_count),
-            "ok" if workflow_count else "watch",
-            "Adopted workflows are the source for HGL, gates, and company OS governance cards.",
+            "unknown" if first_error else str(workflow_count),
+            "bad" if first_error else ("ok" if workflow_count else "watch"),
+            first_error[0]
+            if first_error
+            else "Adopted workflows are the source for HGL, gates, and company OS governance cards.",
         ),
     ]
 
@@ -845,8 +877,15 @@ def snapshot_dict(root: Path, *, full: bool = False) -> dict:
         company_os = company_os_snapshot.build_company_os(root, config)
     else:
         company_os = {
-            "workflows": {"active": 0, "proposed": 0, "closed": 0, "items": []},
-            "humans": {"active": 0, "proposed": 0, "revoked": 0},
+            "errors": ["company OS snapshot helper unavailable"],
+            "workflows": {
+                "active": 0,
+                "proposed": 0,
+                "closed": 0,
+                "items": [],
+                "errors": ["company OS snapshot helper unavailable"],
+            },
+            "humans": {"active": 0, "proposed": 0, "revoked": 0, "coverage_gaps": []},
             "human_governance": {
                 "open_hgl_estimate": 0,
                 "r3_decisions_open": 0,
@@ -854,10 +893,29 @@ def snapshot_dict(root: Path, *, full: bool = False) -> dict:
                 "r5_decisions_open": 0,
                 "missing_skills": [],
                 "bottlenecks": [],
+                "capacity_warnings": ["company OS snapshot helper unavailable"],
+                "errors": ["company OS snapshot helper unavailable"],
             },
             "autonomy": {"green_workflows": 0, "yellow_workflows": 0, "red_workflows": 0},
-            "policy": {"simulation_only": True, "candidates": 0},
-            "broker": {"real_side_effects_enabled": False},
+            "policy": {
+                "simulation_only": True,
+                "candidates": 0,
+                "active_policies": 0,
+                "proposed_policies": 0,
+                "errors": ["company OS snapshot helper unavailable"],
+            },
+            "broker": {
+                "real_side_effects_enabled": False,
+                "mock_observations": 0,
+                "tickets_with_broker_evidence": [],
+                "errors": ["company OS snapshot helper unavailable"],
+            },
+            "outcomes": {
+                "open": 0,
+                "recorded": 0,
+                "invalidated": 0,
+                "errors": ["company OS snapshot helper unavailable"],
+            },
         }
 
     # Gate: the fast path never imports the crypto kernel in-process. When

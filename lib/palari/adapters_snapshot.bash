@@ -741,7 +741,7 @@ snapshot_company_os_json() {
 	if command -v python3 >/dev/null 2>&1 && [[ -f "$ROOT/adapters/planning/company_os_snapshot.py" ]]; then
 		python3 -B "$ROOT/adapters/planning/company_os_snapshot.py" --root "$ROOT" 2>/dev/null && return 0
 	fi
-	printf '{"workflows":{"active":0,"proposed":0,"closed":0,"items":[]},"humans":{"active":0,"proposed":0,"revoked":0},"human_governance":{"open_hgl_estimate":0,"r3_decisions_open":0,"r4_decisions_open":0,"r5_decisions_open":0,"missing_skills":[],"bottlenecks":[]},"autonomy":{"green_workflows":0,"yellow_workflows":0,"red_workflows":0},"policy":{"simulation_only":true,"candidates":0},"broker":{"real_side_effects_enabled":false}}'
+	printf '{"errors":["company OS snapshot helper unavailable"],"workflows":{"active":0,"proposed":0,"closed":0,"items":[],"errors":["company OS snapshot helper unavailable"]},"humans":{"active":0,"proposed":0,"revoked":0,"coverage_gaps":[]},"human_governance":{"open_hgl_estimate":0,"r3_decisions_open":0,"r4_decisions_open":0,"r5_decisions_open":0,"missing_skills":[],"bottlenecks":[],"capacity_warnings":["company OS snapshot helper unavailable"],"errors":["company OS snapshot helper unavailable"]},"autonomy":{"green_workflows":0,"yellow_workflows":0,"red_workflows":0},"policy":{"simulation_only":true,"candidates":0,"active_policies":0,"proposed_policies":0,"errors":["company OS snapshot helper unavailable"]},"broker":{"real_side_effects_enabled":false,"mock_observations":0,"tickets_with_broker_evidence":[],"errors":["company OS snapshot helper unavailable"]},"outcomes":{"open":0,"recorded":0,"invalidated":0,"errors":["company OS snapshot helper unavailable"]}}'
 }
 
 cmd_snapshot() {

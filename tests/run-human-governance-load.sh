@@ -363,6 +363,50 @@ assert data["coverage_failures"] == ["privacy:L5 has authorized candidates but a
 assert data["launch_gate"] == "red"
 PY
 
+cat >humans/active/HUMAN-PRIVACY-JR-privacy-jr.md <<'DOC'
+---
+id: HUMAN-PRIVACY-JR
+name: Privacy Junior
+status: active
+roles:
+  - privacy_reviewer
+skills:
+  - privacy:L5
+authority_max_risk: R2
+may_approve_policy_changes: false
+weekly_hgl_budget: 60
+current_weekly_hgl: 0
+max_concurrent_r3: 6
+current_open_r3: 0
+max_concurrent_r4: 2
+current_open_r4: 0
+max_concurrent_r5: 1
+current_open_r5: 0
+constraints:
+---
+
+# HUMAN-PRIVACY-JR Privacy Junior
+DOC
+
+./bin/palari burden score WF-0002 --json >"$TMP_ROOT/mixed-coverage-failures.json"
+python3 - "$TMP_ROOT/mixed-coverage-failures.json" <<'PY'
+import json
+import sys
+
+data = json.load(open(sys.argv[1]))
+row = data["decisions"][0]["coverage"][0]
+assert row["covered_by"] == []
+assert row["under_authorized"] == ["HUMAN-PRIVACY-JR"]
+assert row["at_capacity"] == ["HUMAN-PRIVACY-FULL"]
+assert set(data["coverage_failures"]) == {
+    "privacy:L5 has authorized candidates but all are at risk capacity",
+    "privacy:L5 has candidates without R5 authority",
+}, data["coverage_failures"]
+assert data["launch_gate"] == "red"
+PY
+
+rm -f humans/active/HUMAN-PRIVACY-JR-privacy-jr.md
+
 python3 - <<'PY'
 from pathlib import Path
 
