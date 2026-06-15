@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Added the outcome ledger (OUT-0001). Outcomes now live under
+  `outcomes/open` and `outcomes/recorded`; `palari outcome
+  create|list|show|lint|record` manages records without accepting work, and
+  policy candidates can cite linked recorded outcomes when present.
 - Added the mock broker evidence boundary (BRK-0001). `palari broker run
   TICKET-ID --mock -- COMMAND` records command, cwd, exit code, stdout/stderr
   hashes, observed changed paths, and side-effect posture under

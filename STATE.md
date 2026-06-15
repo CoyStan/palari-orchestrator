@@ -94,6 +94,18 @@ promise is visible, scoped, reviewable work with explicit human gates.
 - Obvious dangerous command patterns are refused before execution, with refusal
   evidence preserved.
 
+### Outcome Ledger
+
+- Outcome artifacts under `outcomes/open` and `outcomes/recorded` record what
+  happened after governed work.
+- `palari outcome create|list|show|lint|record` manages outcome records.
+- Outcomes do not accept work and do not prove business impact unless evidence
+  is linked.
+- Outcome lint checks linked workflow, goal, ticket, decision, and evidence
+  references when present.
+- Policy candidates can cite recorded outcomes linked to their source tickets
+  or decisions.
+
 ### Work Isolation
 
 - Ticket branches and worktrees for isolated work.

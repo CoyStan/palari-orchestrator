@@ -281,6 +281,7 @@ cmd_policy_candidates() {
 		--tickets-open-dir "$OPEN_DIR"
 		--tickets-closed-dir "$CLOSED_DIR"
 		--decisions-decided-dir "$DECISIONS_DECIDED_DIR"
+		--outcomes-recorded-dir "$OUTCOMES_RECORDED_DIR"
 	)
 	if [[ "$json" == "true" ]]; then
 		args+=(--json)

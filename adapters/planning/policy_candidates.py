@@ -70,11 +70,31 @@ def slug_token(value: str) -> str:
     return token or "GENERAL"
 
 
+def indexed_outcomes(root: Path, outcomes_recorded_dir: str) -> dict[str, list[dict[str, str]]]:
+    index: dict[str, list[dict[str, str]]] = defaultdict(list)
+    for path in md_files(root, outcomes_recorded_dir):
+        outcome = parse_frontmatter(path)
+        item = {
+            "id": str(outcome.get("id", path.stem)),
+            "title": str(outcome.get("title", "")),
+            "status": str(outcome.get("status", "")),
+            "file": str(path.relative_to(root)),
+        }
+        ticket = str(outcome.get("ticket", ""))
+        decision = str(outcome.get("decision", ""))
+        if ticket:
+            index[ticket].append(item)
+        if decision:
+            index[decision].append(item)
+    return index
+
+
 def candidate_title(kind: str, risk: str) -> str:
     return f"{risk} {kind} repeated approvals"
 
 
 def build_candidates(root: Path, args: argparse.Namespace) -> dict[str, Any]:
+    outcomes = indexed_outcomes(root, args.outcomes_recorded_dir)
     groups: dict[tuple[str, str, str, str, str], list[dict[str, Any]]] = defaultdict(list)
     inspected = 0
     skipped_high_risk = 0
@@ -114,6 +134,7 @@ def build_candidates(root: Path, args: argparse.Namespace) -> dict[str, Any]:
                 "decision_file": str(decision_path.relative_to(root)),
                 "ticket": ticket_id,
                 "ticket_file": str(ticket_path.relative_to(root)),
+                "linked_outcomes": outcomes.get(ticket_id, []) + outcomes.get(str(decision.get("id", "")), []),
             }
         )
 
@@ -126,6 +147,14 @@ def build_candidates(root: Path, args: argparse.Namespace) -> dict[str, Any]:
         policy_id = f"POL-{policy_kind}-{risk}-AUTO"
         title = candidate_title(kind, risk)
         hgl_reduction = count * HGL_WEIGHTS.get(risk, 1)
+        linked_outcomes: list[dict[str, str]] = []
+        seen_outcomes: set[str] = set()
+        for item in items:
+            for outcome in item["linked_outcomes"]:
+                if outcome["id"] in seen_outcomes:
+                    continue
+                seen_outcomes.add(outcome["id"])
+                linked_outcomes.append(outcome)
         candidates.append(
             {
                 "id": policy_id,
@@ -138,6 +167,8 @@ def build_candidates(root: Path, args: argparse.Namespace) -> dict[str, Any]:
                 "chosen_text": chosen_text,
                 "suggested_mode": "simulation",
                 "expected_hgl_reduction": hgl_reduction,
+                "linked_outcome_count": len(linked_outcomes),
+                "linked_outcomes": linked_outcomes,
                 "observed": (
                     f"{count} decided {risk} {kind} decisions, "
                     f"{count} chose recommended option {chosen}"
@@ -182,6 +213,7 @@ def text_report(data: dict[str, Any]) -> str:
                 f"Observed: {candidate['observed']}",
                 "Suggested mode: simulation",
                 f"Expected HGL reduction: {candidate['expected_hgl_reduction']}",
+                f"Linked outcomes: {candidate['linked_outcome_count']} recorded",
                 f"Next: {candidate['next_command']}",
                 "",
             ]
@@ -195,6 +227,7 @@ def main() -> int:
     parser.add_argument("--tickets-open-dir", required=True)
     parser.add_argument("--tickets-closed-dir", required=True)
     parser.add_argument("--decisions-decided-dir", required=True)
+    parser.add_argument("--outcomes-recorded-dir", required=True)
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
 

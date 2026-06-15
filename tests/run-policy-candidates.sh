@@ -58,6 +58,27 @@ for i in 4 5 6; do
 	./bin/palari decide record "DEC-000$i" --choice 1 --by founder --note "High risk remains human-led" >/dev/null
 done
 
+mkdir -p outcomes/recorded
+cat >outcomes/recorded/OUT-9000-docs-outcome.md <<'DOC'
+---
+id: OUT-9000
+title: Docs outcome
+status: observed
+lifecycle: recorded
+workflow:
+goal:
+ticket: DOC-0001
+decision: DEC-0001
+linked_evidence:
+recorded_by: founder
+recorded_at: 2026-01-01T00:00:00Z
+created: 2026-01-01
+updated: 2026-01-01
+---
+
+# OUT-9000 Docs outcome
+DOC
+
 git_before="$(git status --porcelain | sort)"
 ./bin/palari policy candidates >"$TMP_ROOT/candidates.out"
 git_after="$(git status --porcelain | sort)"
@@ -72,6 +93,8 @@ grep -Fq "Suggested mode: simulation" "$TMP_ROOT/candidates.out" ||
 	fail "simulation mode missing"
 grep -Fq "Expected HGL reduction: 3" "$TMP_ROOT/candidates.out" ||
 	fail "HGL reduction missing"
+grep -Fq "Linked outcomes: 1 recorded" "$TMP_ROOT/candidates.out" ||
+	fail "linked outcome count missing"
 grep -Fq "./bin/palari policy create POL-DOCS-R1-AUTO" "$TMP_ROOT/candidates.out" ||
 	fail "next policy create command missing"
 if grep -Fq "R4 security" "$TMP_ROOT/candidates.out"; then
@@ -94,6 +117,8 @@ assert candidate["kind"] == "docs"
 assert candidate["decision_count"] == 3
 assert candidate["suggested_mode"] == "simulation"
 assert candidate["expected_hgl_reduction"] == 3
+assert candidate["linked_outcome_count"] == 1
+assert candidate["linked_outcomes"][0]["id"] == "OUT-9000"
 assert data["skipped"]["high_risk_or_governance"] == 3
 PY
 
