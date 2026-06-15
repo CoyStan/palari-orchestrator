@@ -1,7 +1,7 @@
 ---
 id: POS-0058
 title: Restore CLI structure guard after Company OS docs
-status: claimed
+status: accepted
 risk: R1
 priority: P2
 stream: process
@@ -10,8 +10,8 @@ model_hint:
 claimed_by: codex
 claimed_at: 2026-06-15T00:58:16Z
 claim_ref: refs/palari/claims/POS-0058
-claim_heartbeat_at: 2026-06-15T00:58:16Z
-claim_expires_at: 2026-06-15T01:03:16Z
+claim_heartbeat_at: 2026-06-15T01:01:11Z
+claim_expires_at: 2026-06-15T01:06:11Z
 allowed_paths:
   - bin/palari
   - tests/run-cli-structure.sh
@@ -43,8 +43,8 @@ verification:
 target_branch: main
 branch: ticket/POS-0058
 worktree: 
-accepted_by:
-accepted_at:
+accepted_by: quetza
+accepted_at: 2026-06-15T01:01:26Z
 created: 2026-06-15
 updated: 2026-06-15
 ---

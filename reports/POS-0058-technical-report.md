@@ -10,11 +10,31 @@
 
 ## Verification
 
-Pending.
+Passed during implementation:
+
+- `wc -l bin/palari`
+- `./tests/run-cli-structure.sh`
+- `./tests/run-state.sh`
+- `./bin/palari lint POS-0058`
+- `./bin/palari report-lint POS-0058`
+- `git diff --check`
 
 ## CI Evidence
 
-Pending.
+Passed:
+
+- `./bin/palari scope-check POS-0058 --base ticket/DOC-0001`
+- `./bin/palari ci POS-0058 --base ticket/DOC-0001`
+- `./bin/palari evidence score POS-0058`
+
+Evidence bundle:
+
+- `reports/evidence/POS-0058/verification.log`
+- `reports/evidence/POS-0058/junit.xml`
+- `reports/evidence/POS-0058/palari.sarif`
+- `reports/evidence/POS-0058/manifest.json`
+
+Evidence quality score: 100/100, rating `ready`.
 
 ## Risks / Follow-Ups
 
