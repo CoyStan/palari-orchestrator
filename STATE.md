@@ -102,6 +102,8 @@ promise is visible, scoped, reviewable work with explicit human gates.
   snapshot/web inspection.
 - The demo is local-only and does not run agents, access network services,
   accept tickets, push, merge, deploy, or enable broker side effects.
+- README and `docs/autonomy/company-ai-os-infrastructure.md` document the
+  expanded direction while preserving the no-overclaim boundary.
 
 ### Outcome Ledger
 

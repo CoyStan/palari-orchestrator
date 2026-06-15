@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Documented the Company AI OS infrastructure direction (DOC-0001). README and
+  operator docs now explain workflows, Human Governance Load, human coverage,
+  policy simulation, broker evidence, outcomes, and current non-goals without
+  claiming silent autonomous acceptance or real broker side effects.
 - Added deterministic Company OS demo fixtures (DEM-0004). `palari demo
   --company-os` creates a local-only founder/operator demo with active
   workflow, human coverage, missing skill, policy-candidate signal, mock broker
