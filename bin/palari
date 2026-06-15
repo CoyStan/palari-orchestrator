@@ -101,6 +101,24 @@ source "$PALARI_LIB_DIR/proposals.bash"
 palari_require_module "$PALARI_LIB_DIR/goals.bash"
 # shellcheck source=lib/palari/goals.bash
 source "$PALARI_LIB_DIR/goals.bash"
+palari_require_module "$PALARI_LIB_DIR/workflows.bash"
+# shellcheck source=lib/palari/workflows.bash
+source "$PALARI_LIB_DIR/workflows.bash"
+palari_require_module "$PALARI_LIB_DIR/humans.bash"
+# shellcheck source=lib/palari/humans.bash
+source "$PALARI_LIB_DIR/humans.bash"
+palari_require_module "$PALARI_LIB_DIR/burden.bash"
+# shellcheck source=lib/palari/burden.bash
+source "$PALARI_LIB_DIR/burden.bash"
+palari_require_module "$PALARI_LIB_DIR/policies.bash"
+# shellcheck source=lib/palari/policies.bash
+source "$PALARI_LIB_DIR/policies.bash"
+palari_require_module "$PALARI_LIB_DIR/broker.bash"
+# shellcheck source=lib/palari/broker.bash
+source "$PALARI_LIB_DIR/broker.bash"
+palari_require_module "$PALARI_LIB_DIR/outcomes.bash"
+# shellcheck source=lib/palari/outcomes.bash
+source "$PALARI_LIB_DIR/outcomes.bash"
 palari_require_module "$PALARI_LIB_DIR/decisions.bash"
 # shellcheck source=lib/palari/decisions.bash
 source "$PALARI_LIB_DIR/decisions.bash"
@@ -157,6 +175,20 @@ commands:
   propose adopt ID --ticket T  Adopt a proposal into an executable ticket.
   goal create|list|show|lint   Manage first-class founder goals.
   goal adopt|achieve|drop      Human goal lifecycle actions.
+  workflow create|list|show|lint Manage workflow artifacts above tickets.
+  workflow plan WF-ID [--json]  Read-only workflow plan with HGL and autonomy.
+  workflow adopt|close          Human workflow lifecycle actions.
+  human create|list|show|lint   Manage human governance profiles.
+  human adopt|revoke            Human governance profile lifecycle actions.
+  human coverage WF-ID [--json] Show human skill coverage for a workflow.
+  burden score WF-ID [--json]   Score Human Governance Load for a workflow.
+  policy create|list|show|lint  Manage simulation-only policy artifacts.
+  policy simulate ID [--json]   Explain policy acceptance without accepting.
+  policy candidates [--json]    Suggest conservative simulation policy candidates.
+  broker run ID --mock -- CMD   Capture mock broker observed-command evidence.
+  broker evidence|status        Inspect broker evidence and side-effect posture.
+  outcome create|list|show|lint Manage outcome ledger records.
+  outcome record OUT-ID --by NAME  Move an outcome into the recorded ledger.
   decide create|list|show|lint Draft and inspect structured founder decisions.
   decide record ID --choice N --by NAME  Record a human decision outcome.
   run --dry-run [--until blocked] [--goal G] [--json]
@@ -199,58 +231,7 @@ commands:
   github ci [--base REF]       Discover PR tickets and run merge-gate Palari CI.
   web [--host HOST] [--port PORT]  Run the optional local web dashboard.
   accept ID --by NAME          Human/authorized-reviewer acceptance gate.
-init options:
-  --ci                         Generate GitHub workflow and ruleset templates.
-  --hooks                      Generate local lefthook config.
-  --all                        Generate all optional adapters.
-  --force                      Overwrite generated adapter files.
-adopt options:
-  --ci                         Also generate GitHub workflow and ruleset templates.
-  --hooks                      Also generate local lefthook config.
-  --all                        Generate all optional adapters.
-  --force                      Overwrite existing copied Palari files.
-  --dry-run                    Print planned writes without copying files.
-authority options:
-  check ACTION                 ACTION is commit, push-branch, open-pr, merge-main, or accept.
-  --user-explicit              Allow user-explicit actions such as solo-founder accept.
-role options:
-  propose ROLE TITLE --by-role PARENT
-  adopt ROLE --by ACTOR
-  revoke ROLE --by ACTOR
-github options:
-  ci --base REF                 Diff changed ticket files against REF...HEAD.
-  ci --repo-only                Explicit non-merge-gate repository check.
-ci options:
-  --base REF                    Diff ticket scope against REF...HEAD.
-  --repo-only                   Explicitly skip ticket scope enforcement.
-propose create options:
-  --intent TEXT                 Founder intent to seed the proposal body.
-  --planner NAME                Planner identity; default human.
-  --model NAME                  Planner model, e.g. deepseek/deepseek-v4-flash.
-  --source TEXT                 Source note, thread, issue, or request id.
-propose adopt options:
-  --ticket ID --title TEXT      Ticket id and optional ticket title override.
-  plus ticket create options below.
-ticket create options:
-  --stream NAME --risk R1 --priority P2 --allowed GLOB --forbidden GLOB --goal GOAL-ID
-  --verify CHECK --review --human --contract --required-report NAME --skill NAME
-  --target-branch main --by-role ROLE-ID --delegate-to-role ROLE-ID
-demo options:
-  --force                      Replace existing fixtures for the selected demo.
-  --agent-refusal              Create a mock executor forbidden-path refusal fixture.
-ticket claim options:
-  --ttl SECONDS                Lease duration; default from claim_lease_seconds.
-  --allow-overlap              Acknowledge overlapping allowed_paths.
-agent run options:
-  --executor opencode|codex|mock  Executor adapter to run.
-  --model PROVIDER/MODEL       Optional executor model id.
-  --prompt TEXT                Optional executor instruction.
-  --scenario NAME              Mock-only: safe, forbidden-path, or outside-scope.
-  --dry-run                    Prepare packet/evidence plan without invoking the executor.
-  --no-gates                   Skip automatic scope-check and ci after executor run.
-skill create options:
-  --description TEXT           Required Agent Skills frontmatter description.
-  --dir DIR                    Optional output dir; default agent-skills.
+Run `palari COMMAND help` for command-specific options.
 USAGE
 }
 
@@ -294,6 +275,30 @@ propose | proposal)
 goal)
 	shift
 	cmd_goal "$@"
+	;;
+workflow)
+	shift
+	cmd_workflow "$@"
+	;;
+human)
+	shift
+	cmd_human "$@"
+	;;
+burden)
+	shift
+	cmd_burden "$@"
+	;;
+policy)
+	shift
+	cmd_policy "$@"
+	;;
+broker)
+	shift
+	cmd_broker "$@"
+	;;
+outcome)
+	shift
+	cmd_outcome "$@"
 	;;
 decide | decision)
 	shift

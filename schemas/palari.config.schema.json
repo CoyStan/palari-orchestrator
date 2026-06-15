@@ -76,6 +76,26 @@
       "type": "string",
       "minLength": 1
     },
+    "policies_proposed_dir": {
+      "type": "string",
+      "minLength": 1
+    },
+    "policies_active_dir": {
+      "type": "string",
+      "minLength": 1
+    },
+    "policies_revoked_dir": {
+      "type": "string",
+      "minLength": 1
+    },
+    "outcomes_open_dir": {
+      "type": "string",
+      "minLength": 1
+    },
+    "outcomes_recorded_dir": {
+      "type": "string",
+      "minLength": 1
+    },
     "state_dir": {
       "type": "string",
       "minLength": 1
@@ -275,6 +295,30 @@
       "type": "string",
       "description": "Directory for open decision artifacts awaiting a human."
     },
+    "workflows_proposed_dir": {
+      "type": "string",
+      "description": "Directory for proposed workflow artifacts."
+    },
+    "workflows_active_dir": {
+      "type": "string",
+      "description": "Directory for active workflow artifacts."
+    },
+    "workflows_closed_dir": {
+      "type": "string",
+      "description": "Directory for closed workflow artifacts."
+    },
+    "humans_proposed_dir": {
+      "type": "string",
+      "description": "Directory for proposed human governance profiles."
+    },
+    "humans_active_dir": {
+      "type": "string",
+      "description": "Directory for active human governance profiles."
+    },
+    "humans_revoked_dir": {
+      "type": "string",
+      "description": "Directory for revoked human governance profiles."
+    },
     "decisions_decided_dir": {
       "type": "string",
       "description": "Directory for recorded decisions."
@@ -318,6 +362,15 @@
         "frontier"
       ],
       "description": "Model class for R4 work."
+    },
+    "model_class_r5": {
+      "type": "string",
+      "enum": [
+        "fast",
+        "balanced",
+        "frontier"
+      ],
+      "description": "Model class for R5 governance/kernel work."
     },
     "model_class_default": {
       "type": "string",

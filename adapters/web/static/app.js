@@ -1153,6 +1153,74 @@ function renderHuman(snapshot) {
   });
 }
 
+function companyMetric(labelText, value, detail = "") {
+  const node = document.createElement("article");
+  node.className = "company-metric";
+  const labelNode = document.createElement("span");
+  labelNode.textContent = labelText;
+  const strong = document.createElement("strong");
+  strong.textContent = value;
+  node.append(labelNode, strong);
+  if (detail) {
+    const small = document.createElement("small");
+    small.textContent = detail;
+    node.append(small);
+  }
+  return node;
+}
+
+function gatePill(gate) {
+  const span = document.createElement("span");
+  span.className = "company-gate";
+  span.dataset.state = gate || "green";
+  span.textContent = gate || "green";
+  return span;
+}
+
+function renderCompanyGovernance(snapshot) {
+  const company = snapshot.company_os || {};
+  const workflows = company.workflows || { active: 0, proposed: 0, closed: 0, items: [] };
+  const humans = company.humans || { active: 0 };
+  const governance = company.human_governance || {};
+  const autonomy = company.autonomy || {};
+  const summary = $("#companyGovernanceSummary");
+  const list = $("#companyWorkflowList");
+  summary.replaceChildren();
+  list.replaceChildren();
+
+  const active = workflows.active || 0;
+  $("#companyGovernancePill").textContent = `${active} active`;
+  $("#companyGovernancePill").dataset.state = (autonomy.red_workflows || 0) ? "bad" : "ok";
+
+  summary.append(
+    companyMetric("Workflows", String(active), `${workflows.proposed || 0} proposed / ${workflows.closed || 0} closed`),
+    companyMetric("Open HGL", String(governance.open_hgl_estimate || 0), `${humans.active || 0} active human profile${humans.active === 1 ? "" : "s"}`),
+    companyMetric("R3/R4/R5", `${governance.r3_decisions_open || 0}/${governance.r4_decisions_open || 0}/${governance.r5_decisions_open || 0}`),
+    companyMetric("Missing skills", String((governance.missing_skills || []).length), (governance.missing_skills || []).slice(0, 2).join(", "))
+  );
+
+  if (!active) {
+    list.append(emptyNode("No active workflows", "Adopt a workflow to see HGL, launch gates, and autonomy posture here."));
+    return;
+  }
+
+  (workflows.items || []).slice(0, 5).forEach((workflow) => {
+    const row = document.createElement("article");
+    row.className = "company-workflow-row";
+    const head = document.createElement("div");
+    head.className = "company-workflow-head";
+    const code = document.createElement("code");
+    code.textContent = workflow.id;
+    const title = document.createElement("strong");
+    title.textContent = workflow.title || "Untitled workflow";
+    head.append(code, title, gatePill(workflow.launch_gate));
+    const detail = document.createElement("span");
+    detail.textContent = `HGL ${workflow.human_governance_load || 0} · ${workflow.autonomy_ceiling || "unknown"} · ${workflow.risk_ceiling || "risk"}`;
+    row.append(head, detail);
+    list.append(row);
+  });
+}
+
 function renderRepo(snapshot) {
   $("#branchPill").textContent = snapshot.git?.branch || "detached";
   $("#statusOutput").textContent = snapshot.git?.status || "clean";
@@ -1193,6 +1261,7 @@ function render(snapshot) {
   renderRoles(snapshot);
   renderScope(snapshot);
   renderHuman(snapshot);
+  renderCompanyGovernance(snapshot);
   renderRepo(snapshot);
   $("#timestamp").textContent = formatTimestamp(snapshot.generated_at);
 }

@@ -4,6 +4,14 @@ demo_ticket_ids=(DEM-0001 DEM-0002)
 demo_refusal_id="DEM-0003"
 demo_goal_id="GOAL-0099"
 demo_decision_id="DEC-0099"
+company_demo_goal_id="GOAL-9004"
+company_demo_preferred_goal_id="GOAL-0100"
+company_demo_workflow_id="WF-9004"
+company_demo_outcome_id="OUT-9004"
+company_demo_broker_ticket_id="DPC-9001"
+company_demo_human_ids=(HUMAN-COS-LEAD HUMAN-COS-OPS)
+company_demo_ticket_ids=(DPC-9001 DPC-9002 DPC-9003)
+company_demo_decision_ids=(DEC-9001 DEC-9002 DEC-9003)
 
 demo_ticket_exists() {
 	local id="$1"
@@ -35,6 +43,213 @@ demo_refusal_exists() {
 	demo_ticket_exists "$demo_refusal_id" && return 0
 	[[ -e "$ROOT/$EVIDENCE_DIR/$demo_refusal_id/executor/mock" ]] && return 0
 	return 1
+}
+
+company_demo_goal_for_use() {
+	if find_goal_file "$company_demo_preferred_goal_id" >/dev/null 2>&1; then
+		printf '%s\n' "$company_demo_preferred_goal_id"
+	else
+		printf '%s\n' "$company_demo_goal_id"
+	fi
+}
+
+company_demo_reset() {
+	local id
+	rm -f "$ROOT/$GOALS_ACTIVE_DIR/$company_demo_goal_id-"*.md "$ROOT/$GOALS_PROPOSED_DIR/$company_demo_goal_id-"*.md "$ROOT/$GOALS_CLOSED_DIR/$company_demo_goal_id-"*.md
+	rm -f "$ROOT/$WORKFLOWS_ACTIVE_DIR/$company_demo_workflow_id-"*.md "$ROOT/$WORKFLOWS_PROPOSED_DIR/$company_demo_workflow_id-"*.md "$ROOT/$WORKFLOWS_CLOSED_DIR/$company_demo_workflow_id-"*.md
+	for id in "${company_demo_human_ids[@]}"; do
+		rm -f "$ROOT/$HUMANS_ACTIVE_DIR/$id-"*.md "$ROOT/$HUMANS_PROPOSED_DIR/$id-"*.md "$ROOT/$HUMANS_REVOKED_DIR/$id-"*.md
+	done
+	for id in "${company_demo_ticket_ids[@]}"; do
+		demo_reset_ticket "$id"
+	done
+	for id in "${company_demo_decision_ids[@]}"; do
+		rm -f "$ROOT/$DECISIONS_OPEN_DIR/$id-"*.md "$ROOT/$DECISIONS_DECIDED_DIR/$id-"*.md "$ROOT/$MEMORY_DIR/decisions/$id-"*.md
+	done
+	rm -f "$ROOT/$OUTCOMES_OPEN_DIR/$company_demo_outcome_id-"*.md "$ROOT/$OUTCOMES_RECORDED_DIR/$company_demo_outcome_id-"*.md
+}
+
+company_demo_exists() {
+	local id
+	find_goal_file "$company_demo_goal_id" >/dev/null 2>&1 && return 0
+	find_workflow_file "$company_demo_workflow_id" >/dev/null 2>&1 && return 0
+	for id in "${company_demo_human_ids[@]}"; do
+		find_human_file "$id" >/dev/null 2>&1 && return 0
+	done
+	for id in "${company_demo_ticket_ids[@]}"; do
+		demo_ticket_exists "$id" && return 0
+	done
+	for id in "${company_demo_decision_ids[@]}"; do
+		find_decision_file "$id" >/dev/null 2>&1 && return 0
+	done
+	find_outcome_file "$company_demo_outcome_id" >/dev/null 2>&1 && return 0
+	return 1
+}
+
+company_demo_write_workflow_details() {
+	local file="$1"
+	python3 - "$file" <<'PY'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+text = path.read_text(encoding="utf-8")
+text = text.replace(
+    "work_units:\n",
+    "work_units:\n"
+    "  - WU-9001|research|R1|Map the current company OS operator loop\n"
+    "  - WU-9002|draft|R2|Draft a simulation-only policy candidate\n"
+    "  - WU-9003|review|R5|Review privacy boundary before real automation\n",
+)
+text = text.replace(
+    "expected_decisions:\n",
+    "expected_decisions:\n"
+    "  - R3|choose|product_strategy:L4,operations:L3|Choose the first governed workflow to pilot|novelty=medium|ambiguity=medium\n"
+    "  - R5|approve|privacy:L5|Approve privacy boundary before autonomous governance|novelty=high|ambiguity=high|irreversibility=high\n",
+)
+path.write_text(text, encoding="utf-8")
+PY
+}
+
+company_demo_write_broker_evidence() {
+	local ticket_id="$1"
+	local out_dir="$ROOT/$EVIDENCE_DIR/$ticket_id/broker/RUN-COMPANY-OS-DEMO"
+	local stdout_file="$out_dir/stdout.txt"
+	local stderr_file="$out_dir/stderr.txt"
+	local stdout_hash stderr_hash
+	mkdir -p "$out_dir"
+	printf 'company os demo broker observation\n' >"$stdout_file"
+	: >"$stderr_file"
+	: >"$out_dir/changed_paths.txt"
+	stdout_hash="$(sha256_file "$stdout_file")"
+	stderr_hash="$(sha256_file "$stderr_file")"
+	cat >"$out_dir/command.json" <<DOC
+{
+  "command": ["printf", "company os demo broker observation"],
+  "created_at": "2026-01-01T00:00:00Z",
+  "credentials_available_to_agents": false,
+  "cwd": "$ROOT",
+  "mode": "mock",
+  "network_or_hosted_api_access": false,
+  "schema_version": "1",
+  "side_effects_enabled": false,
+  "ticket": "$ticket_id"
+}
+DOC
+	cat >"$out_dir/summary.json" <<DOC
+{
+  "artifacts": {
+    "changed_paths": "changed_paths.txt",
+    "command": "command.json",
+    "stderr": "stderr.txt",
+    "stdout": "stdout.txt"
+  },
+  "changed_paths": [],
+  "command": ["printf", "company os demo broker observation"],
+  "created_at": "2026-01-01T00:00:00Z",
+  "credentials_available_to_agents": false,
+  "cwd": "$ROOT",
+  "executed": true,
+  "exit_code": 0,
+  "mode": "mock",
+  "network_or_hosted_api_access": false,
+  "refusal_reason": "",
+  "refused": false,
+  "schema_version": "1",
+  "side_effects_enabled": false,
+  "stderr_sha256": "$stderr_hash",
+  "stdout_sha256": "$stdout_hash",
+  "ticket": "$ticket_id",
+  "timed_out": false
+}
+DOC
+}
+
+cmd_demo_company_os() {
+	local force="$1"
+	local goal_id workflow_file ticket_id decision_id outcome_evidence
+	cmd_init >/dev/null
+	require_base_folders
+	if company_demo_exists; then
+		[[ "$force" == "true" ]] || die "company OS demo fixtures already exist; pass --force to replace demo fixtures"
+		company_demo_reset
+	fi
+
+	goal_id="$(company_demo_goal_for_use)"
+	if ! find_goal_file "$goal_id" >/dev/null 2>&1; then
+		cmd_goal_create "$goal_id" "Company OS demo" \
+			--owner founder \
+			--success "The demo shows workflow, human coverage, policy candidate, broker evidence, and outcome state without external services" >/dev/null
+	fi
+
+	cmd_human_create HUMAN-COS-LEAD "Company OS Lead" \
+		--skill product_strategy:L5 \
+		--skill operations:L4 \
+		--role company_os_governor \
+		--capacity-hgl 50 \
+		--authority-max-risk R5 \
+		--may-approve-policy-changes >/dev/null
+	cmd_human_adopt HUMAN-COS-LEAD --by founder >/dev/null
+
+	cmd_human_create HUMAN-COS-OPS "Operations Reviewer" \
+		--skill operations:L3 \
+		--role operations_reviewer \
+		--capacity-hgl 20 \
+		--authority-max-risk R3 >/dev/null
+	cmd_human_adopt HUMAN-COS-OPS --by founder >/dev/null
+
+	cmd_workflow_create "$company_demo_workflow_id" "Company OS beta operations" \
+		--goal "$goal_id" \
+		--owner founder \
+		--risk-ceiling R5 \
+		--success-metric "Founder can inspect the whole governance shape without external services" >/dev/null
+	workflow_file="$(find_workflow_file "$company_demo_workflow_id" proposed)"
+	company_demo_write_workflow_details "$workflow_file"
+	cmd_workflow_adopt "$company_demo_workflow_id" --by founder >/dev/null
+
+	for index in 0 1 2; do
+		ticket_id="${company_demo_ticket_ids[$index]}"
+		decision_id="${company_demo_decision_ids[$index]}"
+		cmd_ticket_create "$ticket_id" "Company OS demo docs approval $((index + 1))" \
+			--goal "$goal_id" \
+			--stream demo \
+			--risk R1 \
+			--priority P2 \
+			--allowed README.md \
+			--allowed "reports/evidence/$ticket_id/**" \
+			--verify "test -f README.md" >/dev/null
+		cmd_decide_create "$decision_id" "Approve company OS demo docs change $((index + 1))" \
+			--ticket "$ticket_id" \
+			--goal "$goal_id" \
+			--option "Approve demo docs-only change" \
+			--option "Request more review" \
+			--recommend 1 \
+			--raised-by demo >/dev/null
+		cmd_decide_record "$decision_id" --choice 1 --by founder --note "Deterministic company OS demo decision." >/dev/null
+		rm -f "$ROOT/$MEMORY_DIR/decisions/$decision_id-"*.md
+	done
+
+	company_demo_write_broker_evidence "$company_demo_broker_ticket_id"
+	outcome_evidence="$EVIDENCE_DIR/$company_demo_broker_ticket_id/broker/RUN-COMPANY-OS-DEMO/summary.json"
+	cmd_outcome_create "$company_demo_outcome_id" \
+		--workflow "$company_demo_workflow_id" \
+		--status observed \
+		--goal "$goal_id" \
+		--ticket "$company_demo_broker_ticket_id" \
+		--decision DEC-9001 \
+		--evidence "$outcome_evidence" \
+		--title "Company OS demo outcome" >/dev/null
+	cmd_outcome_record "$company_demo_outcome_id" --by founder >/dev/null
+
+	printf 'demo: wrote Company OS fixtures\n'
+	printf 'goal: %s active\n' "$goal_id"
+	printf 'workflow: %s active with HGL and launch gate\n' "$company_demo_workflow_id"
+	printf 'humans: HUMAN-COS-LEAD and HUMAN-COS-OPS active\n'
+	printf 'missing skill: privacy:L5\n'
+	printf 'policy candidate: run ./bin/palari policy candidates\n'
+	printf 'broker evidence: %s\n' "$outcome_evidence"
+	printf 'outcome: %s recorded\n' "$company_demo_outcome_id"
+	printf 'inspect: ./bin/palari workflow plan %s && ./bin/palari snapshot --json && ./bin/palari web --check\n' "$company_demo_workflow_id"
 }
 
 demo_write_review_ready_reports() {
@@ -296,7 +511,7 @@ cmd_demo_agent_refusal() {
 }
 
 cmd_demo() {
-	local force="false" agent_refusal="false" id file now expires
+	local force="false" agent_refusal="false" company_os="false" id file now expires
 	while (($# > 0)); do
 		case "$1" in
 		--force)
@@ -307,11 +522,22 @@ cmd_demo() {
 			agent_refusal="true"
 			shift
 			;;
+		--company-os)
+			company_os="true"
+			shift
+			;;
 		*) die "unknown demo option: $1" ;;
 		esac
 	done
+	if [[ "$agent_refusal" == "true" && "$company_os" == "true" ]]; then
+		die "choose one demo mode: --agent-refusal or --company-os"
+	fi
 	if [[ "$agent_refusal" == "true" ]]; then
 		cmd_demo_agent_refusal "$force"
+		return 0
+	fi
+	if [[ "$company_os" == "true" ]]; then
+		cmd_demo_company_os "$force"
 		return 0
 	fi
 	cmd_init >/dev/null

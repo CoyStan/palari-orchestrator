@@ -1,0 +1,187 @@
+#!/usr/bin/env python3
+"""Compact company OS snapshot section for Palari."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import pathlib
+import re
+from types import SimpleNamespace
+from typing import Any
+
+import hgl
+
+
+def read_text(path: pathlib.Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8")
+    except OSError:
+        return ""
+
+
+def strip_quotes(value: str) -> str:
+    value = value.strip()
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
+        return value[1:-1]
+    return value
+
+
+def parse_config(root: pathlib.Path) -> dict[str, Any]:
+    flat: dict[str, str] = {}
+    lists: dict[str, list[str]] = {}
+    current_list: str | None = None
+    for raw in read_text(root / "palari.config.yaml").splitlines():
+        if not raw.strip() or raw.lstrip().startswith("#"):
+            continue
+        if raw.startswith((" ", "\t")):
+            line = raw.strip()
+            if line.startswith("- ") and current_list:
+                lists[current_list].append(strip_quotes(line[2:]))
+            continue
+        current_list = None
+        match = re.match(r"^([A-Za-z0-9_.-]+):\s*(.*)$", raw.strip())
+        if not match:
+            continue
+        key, value = match.group(1), re.sub(r"\s+#.*$", "", match.group(2)).strip()
+        if value:
+            flat[key] = strip_quotes(value)
+        else:
+            flat[key] = ""
+            lists[key] = []
+            current_list = key
+    return {"flat": flat, "lists": lists}
+
+
+def cfg(config: dict[str, Any], key: str, default: str) -> str:
+    flat = config.get("flat", {})
+    value = flat.get(key, "")
+    return value if value else default
+
+
+def md_files(root: pathlib.Path, rel: str) -> list[pathlib.Path]:
+    directory = root / rel
+    if not directory.is_dir():
+        return []
+    return sorted(path for path in directory.glob("*.md") if path.name != "README.md")
+
+
+def empty_company_os() -> dict[str, Any]:
+    return {
+        "workflows": {"active": 0, "proposed": 0, "closed": 0, "items": []},
+        "humans": {"active": 0, "proposed": 0, "revoked": 0},
+        "human_governance": {
+            "open_hgl_estimate": 0,
+            "r3_decisions_open": 0,
+            "r4_decisions_open": 0,
+            "r5_decisions_open": 0,
+            "missing_skills": [],
+            "bottlenecks": [],
+        },
+        "autonomy": {"green_workflows": 0, "yellow_workflows": 0, "red_workflows": 0},
+        "policy": {"simulation_only": True, "candidates": 0},
+        "broker": {"real_side_effects_enabled": False},
+    }
+
+
+def build_company_os(root: pathlib.Path, config: dict[str, Any] | None = None) -> dict[str, Any]:
+    root = root.resolve()
+    config = config or parse_config(root)
+    dirs = {
+        "workflows_proposed": cfg(config, "workflows_proposed_dir", "workflows/proposed"),
+        "workflows_active": cfg(config, "workflows_active_dir", "workflows/active"),
+        "workflows_closed": cfg(config, "workflows_closed_dir", "workflows/closed"),
+        "humans_proposed": cfg(config, "humans_proposed_dir", "humans/proposed"),
+        "humans_active": cfg(config, "humans_active_dir", "humans/active"),
+        "humans_revoked": cfg(config, "humans_revoked_dir", "humans/revoked"),
+    }
+    section = empty_company_os()
+    workflow_files = {
+        "proposed": md_files(root, dirs["workflows_proposed"]),
+        "active": md_files(root, dirs["workflows_active"]),
+        "closed": md_files(root, dirs["workflows_closed"]),
+    }
+    human_files = {
+        "proposed": md_files(root, dirs["humans_proposed"]),
+        "active": md_files(root, dirs["humans_active"]),
+        "revoked": md_files(root, dirs["humans_revoked"]),
+    }
+    section["workflows"]["proposed"] = len(workflow_files["proposed"])
+    section["workflows"]["active"] = len(workflow_files["active"])
+    section["workflows"]["closed"] = len(workflow_files["closed"])
+    section["humans"]["proposed"] = len(human_files["proposed"])
+    section["humans"]["active"] = len(human_files["active"])
+    section["humans"]["revoked"] = len(human_files["revoked"])
+
+    missing_skills: set[str] = set()
+    bottlenecks: set[str] = set()
+    hgl_total = 0
+    r3 = r4 = r5 = 0
+    autonomy_counts = {"green": 0, "yellow": 0, "red": 0}
+    items: list[dict[str, Any]] = []
+
+    for path in workflow_files["active"]:
+        try:
+            artifact = hgl.parse_frontmatter(path)
+            workflow_id = artifact.fields.get("id", path.stem)
+            args = SimpleNamespace(
+                workflow=workflow_id,
+                workflows_proposed_dir=dirs["workflows_proposed"],
+                workflows_active_dir=dirs["workflows_active"],
+                workflows_closed_dir=dirs["workflows_closed"],
+                humans_active_dir=dirs["humans_active"],
+            )
+            data = hgl.analyze(root, args)
+        except (OSError, ValueError, SystemExit):
+            continue
+        hgl_total += int(data["human_governance_load"])
+        counts = data["expected_decisions"]
+        r3 += int(counts.get("R3", 0))
+        r4 += int(counts.get("R4", 0))
+        r5 += int(counts.get("R5", 0))
+        missing_skills.update(data.get("missing_skills", []))
+        bottlenecks.update(data.get("bottlenecks", []))
+        gate = str(data["launch_gate"])
+        if gate in autonomy_counts:
+            autonomy_counts[gate] += 1
+        items.append(
+            {
+                "id": workflow_id,
+                "title": data.get("title", ""),
+                "status": "active",
+                "goal": artifact.fields.get("goal", ""),
+                "risk_ceiling": artifact.fields.get("risk_ceiling", ""),
+                "human_governance_load": data["human_governance_load"],
+                "launch_gate": gate,
+                "autonomy_ceiling": data["autonomy_ceiling"],
+                "path": str(path.relative_to(root)),
+            }
+        )
+
+    section["workflows"]["items"] = sorted(items, key=lambda item: item["id"])
+    section["human_governance"] = {
+        "open_hgl_estimate": hgl_total,
+        "r3_decisions_open": r3,
+        "r4_decisions_open": r4,
+        "r5_decisions_open": r5,
+        "missing_skills": sorted(missing_skills),
+        "bottlenecks": sorted(bottlenecks),
+    }
+    section["autonomy"] = {
+        "green_workflows": autonomy_counts["green"],
+        "yellow_workflows": autonomy_counts["yellow"],
+        "red_workflows": autonomy_counts["red"],
+    }
+    return section
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--root", required=True)
+    args = parser.parse_args()
+    print(json.dumps(build_company_os(pathlib.Path(args.root)), sort_keys=True))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

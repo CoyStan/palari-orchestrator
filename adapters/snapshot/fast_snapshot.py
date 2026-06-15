@@ -29,6 +29,14 @@ import sys
 import time
 from pathlib import Path
 
+PLANNING_ADAPTER_DIR = Path(__file__).resolve().parents[1] / "planning"
+if str(PLANNING_ADAPTER_DIR) not in sys.path:
+    sys.path.insert(0, str(PLANNING_ADAPTER_DIR))
+try:
+    import company_os_snapshot
+except Exception:  # pragma: no cover - fast snapshot degrades below.
+    company_os_snapshot = None
+
 HYGIENE_DEFAULT_GENERATED = [
     "__pycache__/**",
     "**/__pycache__/**",
@@ -698,6 +706,25 @@ def snapshot_dict(root: Path, *, full: bool = False) -> dict:
         "index_exists": (mdir / "index.sqlite").exists() or (mdir / "index.json").exists(),
     }
 
+    if company_os_snapshot is not None:
+        company_os = company_os_snapshot.build_company_os(root, config)
+    else:
+        company_os = {
+            "workflows": {"active": 0, "proposed": 0, "closed": 0, "items": []},
+            "humans": {"active": 0, "proposed": 0, "revoked": 0},
+            "human_governance": {
+                "open_hgl_estimate": 0,
+                "r3_decisions_open": 0,
+                "r4_decisions_open": 0,
+                "r5_decisions_open": 0,
+                "missing_skills": [],
+                "bottlenecks": [],
+            },
+            "autonomy": {"green_workflows": 0, "yellow_workflows": 0, "red_workflows": 0},
+            "policy": {"simulation_only": True, "candidates": 0},
+            "broker": {"real_side_effects_enabled": False},
+        }
+
     # Gate: the fast path never imports the crypto kernel in-process. When
     # the gate is disabled, emit the cheap static section. When enabled, run
     # the kernel CLI once (~0.6s, dominated by the cryptography import) so
@@ -851,6 +878,7 @@ def snapshot_dict(root: Path, *, full: bool = False) -> dict:
         "overlaps": [],
         "workflow": workflow,
         "memory": memory,
+        "company_os": company_os,
         "gate": gate,
         "health": {
             "status_ok": True,

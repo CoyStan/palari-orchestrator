@@ -1,0 +1,34 @@
+# Palari CI Evidence
+
+- Ticket: BRK-0001
+- Base ref: ticket/POL-0002
+- Created: 2026-06-15T00:08:57Z
+
+## scope-check
+
+```text
+scope-check: ok for BRK-0001 (11 changed path(s))
+```
+
+## lint
+
+```text
+report-lint: ok for BRK-0001
+lint: ok for BRK-0001
+```
+
+## verification 1
+
+Command: `./tests/run-broker-mock.sh`
+
+```text
+broker-mock: ok
+```
+
+## verification 2
+
+Command: `./tests/run-evidence-quality.sh`
+
+```text
+evidence-quality: ok
+```

@@ -28,6 +28,26 @@ goals_proposed_dir: goals/proposed
 goals_closed_dir: goals/closed
 require_serves_goal: warn
 
+# Workflows are company/process planning artifacts above tickets.
+workflows_proposed_dir: workflows/proposed
+workflows_active_dir: workflows/active
+workflows_closed_dir: workflows/closed
+
+# Human governance profiles model decision coverage, skills, and capacity.
+humans_proposed_dir: humans/proposed
+humans_active_dir: humans/active
+humans_revoked_dir: humans/revoked
+
+# Policy acceptance artifacts start simulation-only. Policy commands can explain
+# what would happen, but cannot accept tickets or move lifecycle state.
+policies_proposed_dir: policies/proposed
+policies_active_dir: policies/active
+policies_revoked_dir: policies/revoked
+
+# Outcome records close the loop from governed work to observed results.
+outcomes_open_dir: outcomes/open
+outcomes_recorded_dir: outcomes/recorded
+
 # Model routing: send each ticket to the cheapest model class that matches its
 # risk tier, so frontier models are reserved for high-risk work. A ticket can
 # override with frontmatter `model_hint` (class or exact model); an explicit
@@ -39,6 +59,7 @@ model_class_r1: fast
 model_class_r2: balanced
 model_class_r3: frontier
 model_class_r4: frontier
+model_class_r5: frontier
 model_class_default: balanced
 
 # model_fast_codex: gpt-5-mini
@@ -173,6 +194,11 @@ required_reports: []
 
 acceptance:
   implementation_self_acceptance: forbidden
+
+governance:
+  r5_requires_dual_human: true
+  policy_acceptance_enabled: false
+  broker_real_side_effects_enabled: false
 
 # Forge-proof accept gate (vendored forgegate kernel in gate/).
 # When enabled, `palari accept` additionally requires a cryptographic

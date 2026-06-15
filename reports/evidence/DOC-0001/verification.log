@@ -1,0 +1,50 @@
+# Palari CI Evidence
+
+- Ticket: DOC-0001
+- Base ref: ticket/DEM-0004
+- Created: 2026-06-15T00:49:24Z
+
+## scope-check
+
+```text
+scope-check: ok for DOC-0001 (7 changed path(s))
+```
+
+## lint
+
+```text
+report-lint: ok for DOC-0001
+lint: ok for DOC-0001
+```
+
+## verification 1
+
+Command: `grep -Fq 'Human Governance Load' README.md`
+
+```text
+
+```
+
+## verification 2
+
+Command: `grep -Fq 'workflow plan' README.md`
+
+```text
+
+```
+
+## verification 3
+
+Command: `./tests/run-readme-assets.sh`
+
+```text
+readme-assets: ok (3 asset(s))
+```
+
+## verification 4
+
+Command: `./tests/run-state.sh`
+
+```text
+state: ok
+```

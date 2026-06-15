@@ -21,6 +21,7 @@
   <a href="#5-minute-demo">5-minute demo</a> ·
   <a href="#how-palari-compares">Compare</a> ·
   <a href="#how-it-works">How it works</a> ·
+  <a href="#company-ai-os-infrastructure">Company AI OS</a> ·
   <a href="#quick-start">Quick start</a> ·
   <a href="#optional-console">Console</a> ·
   <a href="#command-reference">Commands</a>
@@ -105,6 +106,21 @@ To see a deterministic agent-refusal fixture:
 That writes `DEM-0003`, a blocked ticket with preserved mock-executor evidence
 showing a forbidden `.env` write attempt refused by scope-check.
 
+To see the Company AI OS infrastructure shape:
+
+```bash
+./bin/palari demo --company-os
+./bin/palari workflow plan WF-9004
+./bin/palari policy candidates
+./bin/palari web
+```
+
+That writes local-only fixtures for a workflow above tickets, Human Governance
+Load, human coverage, a missing skill, a simulation-only policy candidate,
+mock broker evidence, and a recorded outcome. It does not run an agent, access
+the network, accept tickets, push, merge, deploy, or enable real broker side
+effects.
+
 Use `./bin/palari demo --force` to replace the selected demo fixtures. The command
 does not run an agent, change production paths, merge, push, or accept work.
 It exists so a founder, operator, or reviewer can see the queue, role boundary,
@@ -167,7 +183,9 @@ helps decide whether that work was allowed, reviewed, evidenced, and accepted.
 5. Accept only when the evidence, scope, and authority gates pass.
 
 Ceremony scales with risk. Small R0/R1 tasks stay short. R2+ work gets stronger
-review and evidence gates. R3/R4 work requires human confirmation.
+review and evidence gates. R3/R4/R5 work requires human confirmation. R5 is
+reserved for governance/kernel/authority changes to Palari or the operating
+boundary.
 
 ## The Operating Loop: Goals In, Decisions Out
 
@@ -215,6 +233,43 @@ closed by design.
 Defaults on decisions may never include accept, merge, push, deploy, spend,
 or credential actions. The full rules live in
 [contracts/goals-and-decisions.md](contracts/goals-and-decisions.md).
+
+## Company AI OS Infrastructure
+
+Palari is still repo-native governance first: scoped work, evidence, fresh
+review, and explicit human acceptance. The Company AI OS layer adds planning
+and learning surfaces above tickets so a founder or operator can see not only
+what an AI worker might do, but what human judgment the company must reserve.
+
+The first shipped infrastructure pieces are conservative:
+
+| Piece | What it does now | What it does not do |
+| --- | --- | --- |
+| Workflows | Model a company or business process above tickets. `palari workflow plan WF-ID` shows launch gate, autonomy ceiling, allowed modes, blocked modes, and next actions. | It does not run agents, claim tickets, accept work, or call services. |
+| Human Governance Load | Estimates how much human judgment a workflow needs from risk, novelty, ambiguity, irreversibility, context, and skill coverage. | It is a planning signal, not a productivity score or proof of safety. |
+| Human coverage | Records active human profiles, skills, authority ceilings, capacity, and constraints. | It does not grant agents human authority or surveil employees. |
+| Policy simulation | `palari policy simulate` and `palari policy candidates` explain what repeated low-risk decisions might become. | Policies do not accept tickets, merge, push, deploy, or replace human accountability. |
+| Broker evidence | Mock broker evidence records observed local commands while reporting `real_side_effects_enabled: false`. | There are no real Slack, email, Stripe, cloud, customer, or production writes. |
+| Outcomes | Records what happened after governed work so future policy and HGL improvements have evidence to inspect. | Outcomes do not prove business impact unless evidence is linked. |
+
+The quick operator loop is:
+
+```bash
+./bin/palari demo --company-os --force
+./bin/palari workflow plan WF-9004
+./bin/palari human coverage WF-9004
+./bin/palari policy candidates
+./bin/palari broker evidence DPC-9001
+./bin/palari outcome list
+./bin/palari snapshot --json
+```
+
+This is infrastructure for governed company workflows, not silent autonomous
+management. Palari still does not support silent autonomous accept, real broker
+side effects, hosted production mutation, or claims of proven safety or
+productivity without evidence. See
+[docs/autonomy/company-ai-os-infrastructure.md](docs/autonomy/company-ai-os-infrastructure.md)
+and [contracts/company-ai-os.md](contracts/company-ai-os.md).
 
 ## Forge-Proof Acceptance (Signed Gate)
 
@@ -506,7 +561,7 @@ palari packet WEB-0002 specialist
 | --- | --- |
 | `palari init` | Create the ticket, report, and handoff directories expected by the workflow. |
 | `palari adopt /path/to/repo` | Copy Palari into an existing git repo, initialize it, and run the doctor. |
-| `palari demo [--force] [--agent-refusal]` | Create local sample tickets, reports, and evidence for the operator console. |
+| `palari demo [--force] [--agent-refusal|--company-os]` | Create local sample tickets, reports, evidence, or Company OS fixtures for the operator console. |
 | `palari doctor` | Check whether the current repo has the required Palari files and directories. |
 | `palari doctor lifecycle` | Explain the next action for active tickets. |
 | `palari status [--next]` | Show current tickets and optionally the next required lifecycle action. |
@@ -525,6 +580,19 @@ palari packet WEB-0002 specialist
 | `palari goal create ID TITLE --success TEXT` | Create a first-class founder goal with success criteria. |
 | `palari goal list / show / lint` | Inspect goals and the tickets serving them; check serves_goal links. |
 | `palari goal adopt / achieve / drop ID --by NAME` | Human goal lifecycle actions. |
+| `palari workflow create WF-ID TITLE --goal GOAL-ID --owner NAME` | Create a proposed company/process workflow above tickets. |
+| `palari workflow plan WF-ID [--json]` | Show Human Governance Load, launch gate, autonomy ceiling, skill coverage, and next actions without side effects. |
+| `palari workflow list / show / lint` | Inspect and validate workflow artifacts. |
+| `palari workflow adopt / close WF-ID --by NAME` | Human workflow lifecycle actions. |
+| `palari human create HUMAN-ID NAME --skill skill:Lx --role ROLE` | Create a proposed human governance profile. |
+| `palari human list / show / lint` | Inspect and validate human governance coverage artifacts. |
+| `palari human coverage WF-ID [--json]` | Compare a workflow's expected decision skills against active human profiles. |
+| `palari human adopt / revoke HUMAN-ID --by NAME` | Human profile lifecycle actions. |
+| `palari burden score WF-ID [--json]` | Score a workflow's read-only Human Governance Load, skill gaps, launch gate, and autonomy ceiling. |
+| `palari policy simulate ID [--json]` | Explain whether a simulation policy would accept a ticket without accepting it. |
+| `palari policy candidates [--json]` | Suggest conservative simulation policy candidates from repeated low-risk human decisions. |
+| `palari broker evidence ID [--json]` | Inspect mock broker evidence and side-effect posture. |
+| `palari outcome create / record / list / show / lint` | Manage outcome records without accepting work or proving impact without evidence. |
 | `palari decide create ID TITLE --option A --option B` | Draft a structured decision with options, recommendation, and default. |
 | `palari decide record ID --choice N --by NAME` | Record the human outcome; archives it and mirrors it into repo memory. |
 | `palari run --dry-run [--goal ID] [--json]` | Read-only queue plan up to the next human gate; fails closed without --dry-run. |
@@ -594,6 +662,11 @@ ship as adapters:
 - Authority profiles: `palari authority` makes agent commit, push, PR, merge, and accept permissions explicit per repository.
 - Role-governed delegation: `palari role` lets a repo define root, lead, specialist, and reviewer authority as Markdown files. Role authority can only narrow as it flows from parent role to child role to ticket; unclear path containment escalates, and forbidden or invalid grants are rejected. Roles are local-mode authority artifacts. Signed provenance is not enforced in v1.
 - Lifecycle visibility: `palari status --next`, `palari doctor lifecycle`, and `palari ticket audit` explain active tickets that are not closed yet.
+- Workflow burden: `palari burden score WF-ID` and `palari human coverage WF-ID` estimate Human Governance Load, missing skills, bottleneck roles, launch gates, and autonomy ceilings from workflow and active human artifacts. These commands are read-only planning signals.
+- Company OS demo: `palari demo --company-os` creates deterministic local fixtures for workflow planning, human coverage, policy candidates, broker evidence, outcomes, snapshot, and the console.
+- Policy simulation: `palari policy simulate` and `palari policy candidates` stay simulation-only. They do not move lifecycle state or replace human accountability.
+- Broker evidence: `palari broker run TICKET-ID --mock -- CMD` and `palari broker evidence` record local mock observations while keeping real side effects disabled.
+- Outcomes: `palari outcome create` and `palari outcome record` preserve post-work evidence for later learning without proving impact automatically.
 - Autonomous hygiene: `palari hygiene` separates generated cache/build artifacts from source changes, highlights stale claims, and shows ticket branches with unintegrated work.
 - Executor wrappers: `palari agent run TICKET-ID --executor opencode` invokes opencode from a Palari packet and records executor evidence.
 - Mock executor: `palari agent run TICKET-ID --executor mock --scenario safe|forbidden-path|outside-scope` proves the governance loop deterministically - no AI tool, network, or credentials. The forbidden-path scenario shows an executor touching `.env`, scope-check refusing it, evidence preserved, and ticket state not advancing.
@@ -659,6 +732,7 @@ tests/golden/                     Fixtures that prove the flow works
 ```bash
 tests/run-golden.sh
 tests/run-demo.sh
+tests/run-company-os-demo.sh
 tests/run-cli-structure.sh
 tests/run-adoption.sh
 tests/run-agent-wrapper.sh

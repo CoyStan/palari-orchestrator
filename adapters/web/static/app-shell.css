@@ -1415,6 +1415,90 @@ button.copy:disabled {
   color: var(--muted);
 }
 
+.company-governance-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.company-metric {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--pane);
+  padding: 9px 10px;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.company-metric span,
+.company-metric small,
+.company-workflow-row > span {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.company-metric strong {
+  font-size: 18px;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+
+.company-workflow-list {
+  display: grid;
+  gap: 8px;
+}
+
+.company-workflow-row {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--seal);
+  border-radius: var(--radius);
+  background: var(--pane);
+  padding: 10px;
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.company-workflow-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.company-workflow-head code {
+  color: var(--seal);
+  flex: none;
+}
+
+.company-workflow-head strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.company-gate {
+  margin-left: auto;
+  border: 1px solid var(--green);
+  color: var(--green);
+  border-radius: 999px;
+  padding: 1px 7px;
+  font-size: 10.5px;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  flex: none;
+}
+
+.company-gate[data-state="yellow"] {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
+.company-gate[data-state="red"] {
+  border-color: var(--red);
+  color: var(--red);
+}
+
 .scope-head code,
 .human-head code {
   font-size: 12px;

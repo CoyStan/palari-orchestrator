@@ -24,10 +24,110 @@ promise is visible, scoped, reviewable work with explicit human gates.
 
 - Scoped Markdown tickets with `allowed_paths`, `forbidden_paths`, risk,
   priority, status, verification commands, and required reports.
+- R5 is a first-class governance/kernel risk tier. R5 tickets require review
+  and human confirmation, route conservatively, and are reserved for authority,
+  policy, broker, ForgeGate, model allowlist, credential/tool, autonomous
+  acceptance, and risk-definition changes.
 - Claim leases, heartbeats, review state, reopening, blocking, needs-human
   state, and human/authorized acceptance.
 - Scope checks for local and PR-diff paths.
 - Ticket audit and queue planning with `palari run --dry-run`.
+
+### Workflow Planning
+
+- Workflow artifacts under `workflows/proposed`, `workflows/active`, and
+  `workflows/closed` model company or business processes above tickets.
+- `palari workflow create|list|show|lint|adopt|close` manages workflow
+  lifecycle without running agents or accepting work.
+- Workflow lint validates linked goals, risk ceilings, work units, expected
+  decisions, and R3/R4/R5 skill requirements.
+- `palari workflow plan WF-ID [--json]` combines workflow fields with Human
+  Governance Load and active human coverage to show launch gate, autonomy
+  ceiling, allowed modes, blocked modes, required skills, missing skills,
+  bottlenecks, and recommended next actions without mutating lifecycle state.
+
+### Human Governance
+
+- Human governance profiles under `humans/proposed`, `humans/active`, and
+  `humans/revoked` model skills, authority ceilings, capacity, and constraints.
+- `palari human create|list|show|lint|adopt|revoke` manages profile lifecycle
+  without granting agent authority or tracking worker productivity.
+- Human lint validates skill levels, capacity numbers, authority risk, and the
+  explicit policy-approval flag required for R5 authority.
+
+### Human Governance Load
+
+- `palari burden score WF-ID [--json]` computes deterministic, read-only Human
+  Governance Load from workflow expected decisions and active human profiles.
+- `palari human coverage WF-ID [--json]` shows required skills, missing or
+  underleveled skills, covering humans, and bottleneck roles for a workflow.
+- HGL output includes R0-R5 expected-decision counts, total burden, launch gate,
+  and autonomy ceiling. It does not move workflows, accept tickets, activate
+  policies, run agents, or perform side effects.
+
+### Policy Simulation
+
+- Policy artifacts under `policies/proposed`, `policies/active`, and
+  `policies/revoked` model acceptance rules before they receive any authority.
+- `palari policy create|list|show|lint` manages simulation-only policy
+  artifacts.
+- `palari policy simulate TICKET-ID [--json]` explains `would_accept` or
+  `would_not_accept` from policy conditions, ticket risk, open decisions, and
+  CI evidence without accepting or moving anything.
+- `palari policy candidates [--json]` suggests conservative simulation policy
+  candidates from repeated decided R0-R2 decisions where the human chose the
+  recommended option.
+- R5 tickets are never policy-eligible, and policy `risk_max: R5` is invalid.
+- Unknown policy conditions fail closed during simulation.
+- Candidate detection never creates or activates policy files automatically,
+  and it excludes R3/R4/R5 decision classes from auto-accept suggestions.
+
+### Broker Boundary
+
+- `palari broker run TICKET-ID --mock -- COMMAND [ARGS...]` captures
+  mock broker observed-command evidence under `reports/evidence/TICKET/broker/`.
+- `palari broker evidence TICKET-ID [--json]` lists broker evidence.
+- `palari broker status` reports the current broker posture:
+  `real_side_effects_enabled: false`.
+- Broker support is mock-only. It does not load credentials, call hosted APIs,
+  enable network side effects, or grant agents direct external-write authority.
+- Obvious dangerous command patterns are refused before execution, with refusal
+  evidence preserved.
+
+### Company OS Demo
+
+- `palari demo --company-os` writes deterministic local fixtures for the
+  Company AI OS shape: active workflow, human governance coverage, missing
+  skill, policy-candidate signal, mock broker evidence, recorded outcome, and
+  snapshot/web inspection.
+- The demo is local-only and does not run agents, access network services,
+  accept tickets, push, merge, deploy, or enable broker side effects.
+- README and `docs/autonomy/company-ai-os-infrastructure.md` document the
+  expanded direction while preserving the no-overclaim boundary.
+
+### Outcome Ledger
+
+- Outcome artifacts under `outcomes/open` and `outcomes/recorded` record what
+  happened after governed work.
+- `palari outcome create|list|show|lint|record` manages outcome records.
+- Outcomes do not accept work and do not prove business impact unless evidence
+  is linked.
+- Outcome lint checks linked workflow, goal, ticket, decision, and evidence
+  references when present.
+- Policy candidates can cite recorded outcomes linked to their source tickets
+  or decisions.
+
+### Secure Governance Doctor
+
+- `palari doctor secure` and `palari doctor governance` print the local
+  governance posture without mutating lifecycle state.
+- The doctor reports ForgeGate, broker side-effect posture, broker
+  observations, policy acceptance posture, branch-protection verification
+  limits, and R5 human approval configuration.
+- Hosted branch protection is not verified locally; the doctor says so instead
+  of claiming remote protections are active.
+- Conservative config defaults keep policy acceptance simulation-only and
+  broker real side effects disabled.
 
 ### Work Isolation
 
@@ -69,9 +169,16 @@ metadata where available.
 - Optional stdlib web console in `adapters/web/`.
 - Dashboard reads `palari snapshot --json` state and shows tickets, roles,
   evidence, reports, progress, next actions, and human gates.
+- Console Company Governance cards render the `company_os` snapshot section:
+  workflow counts, open HGL, R3/R4/R5 decision counts, missing skills, and
+  active workflow launch gates.
 - Executor evidence and scope/CI refusal evidence surface in custody rows.
 - Fast stdlib Python snapshot adapter serves `snapshot --json`, `status`, and
   `web --check`, with Bash fallback through full/legacy controls.
+- `snapshot --json` includes a compact `company_os` section with workflow
+  counts, human governance counts, open HGL estimate, R3/R4/R5 decision counts,
+  missing skills, bottlenecks, autonomy gate distribution, simulation-only
+  policy posture, and broker side-effect posture.
 
 ### Evidence And Reports
 
@@ -115,6 +222,11 @@ metadata where available.
 
 ## Planned
 
+- Company AI OS infrastructure: policy simulation, mock broker evidence,
+  outcome records, and secure governance posture checks. See
+  `contracts/company-ai-os.md`,
+  `contracts/human-governance-load.md`, and
+  `docs/autonomy/workflow-planning.md`.
 - A richer collaborator orientation surface that can be regenerated or checked
   against shipped files.
 - Stronger stale-worktree and stale-branch recovery guidance.

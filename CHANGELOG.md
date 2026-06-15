@@ -2,6 +2,78 @@
 
 ## Unreleased
 
+- Documented the Company AI OS infrastructure direction (DOC-0001). README and
+  operator docs now explain workflows, Human Governance Load, human coverage,
+  policy simulation, broker evidence, outcomes, and current non-goals without
+  claiming silent autonomous acceptance or real broker side effects.
+- Added deterministic Company OS demo fixtures (DEM-0004). `palari demo
+  --company-os` creates a local-only founder/operator demo with active
+  workflow, human coverage, missing skill, policy-candidate signal, mock broker
+  evidence, recorded outcome, and snapshot/web inspection without external
+  agents or services.
+- Added the secure governance doctor (SEC-0001). `palari doctor secure` and
+  `palari doctor governance` classify weak vs stronger local governance
+  posture, report ForgeGate, broker, policy, R5, and branch-protection
+  boundaries, and avoid claiming hosted branch protection is active from local
+  state.
+- Added the outcome ledger (OUT-0001). Outcomes now live under
+  `outcomes/open` and `outcomes/recorded`; `palari outcome
+  create|list|show|lint|record` manages records without accepting work, and
+  policy candidates can cite linked recorded outcomes when present.
+- Added the mock broker evidence boundary (BRK-0001). `palari broker run
+  TICKET-ID --mock -- COMMAND` records command, cwd, exit code, stdout/stderr
+  hashes, observed changed paths, and side-effect posture under
+  `reports/evidence/TICKET/broker/`; `broker evidence` and `broker status`
+  inspect the mock-only posture without enabling real side effects.
+- Added conservative policy candidate suggestions (POL-0002). `palari policy
+  candidates [--json]` inspects decided R0-R2 decisions linked to tickets,
+  groups repeated recommendation/chosen-option patterns, estimates rough HGL
+  reduction, and suggests simulation policy creation commands without creating
+  or activating policy files.
+- Added simulation-only policy artifacts and CLI (POL-0001). Policies now live
+  under `policies/`; `palari policy create|list|show|lint` manages artifacts,
+  and `palari policy simulate TICKET-ID [--json]` explains
+  `would_accept`/`would_not_accept` without accepting work or moving lifecycle
+  state.
+- Added Company Governance cards to the local console (DSH-0001). The read-only
+  panel renders `company_os` snapshot state: workflow counts, open HGL,
+  R3/R4/R5 decision counts, active human coverage count, missing-skill count,
+  and active workflow launch gates without adding mutation controls.
+- Added compact Company OS snapshot state (SNP-0001). `palari snapshot --json`,
+  the Bash snapshot fallback, and `palari web --check` now expose
+  `company_os` with workflow/human counts, open HGL estimate, R3/R4/R5 decision
+  counts, missing skills, bottlenecks, autonomy gate distribution,
+  simulation-only policy posture, and broker side-effect posture.
+- Added read-only workflow planning and autonomy output (PLN-0001).
+  `palari workflow plan WF-ID [--json]` combines workflow artifacts, HGL,
+  active human coverage, allowed/blocked modes, required skills, missing
+  skills, bottlenecks, launch gates, autonomy ceilings, and recommended next
+  actions without claiming tickets or mutating lifecycle state.
+- Added Human Governance Load scoring and coverage commands (HGL-0001).
+  `palari burden score WF-ID [--json]` and `palari human coverage WF-ID
+  [--json]` read workflow expected decisions and active human profiles to show
+  deterministic HGL, R0-R5 decision counts, missing skills, bottleneck roles,
+  launch gates, and autonomy ceilings without mutating lifecycle state.
+- Added human governance profiles and CLI (HUM-0001). Profiles live under
+  `humans/proposed`, `humans/active`, and `humans/revoked`; new
+  `palari human create|list|show|lint|adopt|revoke` commands model governance
+  roles, skills, authority ceilings, capacity, and constraints without
+  granting agent authority or adding surveillance behavior.
+- Added workflow artifacts and CLI (WFU-0001). Workflows live under
+  `workflows/proposed`, `workflows/active`, and `workflows/closed`; new
+  `palari workflow create|list|show|lint|adopt|close` commands manage the
+  artifact lifecycle above tickets without executing work or granting
+  authority.
+- Added the R5 governance risk tier (COS-0001). Ticket creation, lint/report
+  gates, evidence scoring, dashboard readiness checks, role risk ranking, root
+  role authority, model routing, config/schema docs, and tests now recognize
+  R5 as a human-gated governance/kernel tier that routes to `frontier` by
+  default.
+- Added the Company AI OS doctrine contract (COS-0000). The contract records
+  the roadmap boundary for workflows above tickets, Human Governance Load,
+  human governance coverage, policy simulation, broker-controlled side effects,
+  R5 governance/kernel protection, and outcome learning without changing
+  runtime behavior.
 - Imported optional OpenRouter/model-routing support (POS-0056). Tickets can
   resolve to `fast`, `balanced`, or `frontier` model classes by risk tier,
   inspect routing with `palari model routes|show`, override via `model_hint`,

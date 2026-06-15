@@ -70,8 +70,13 @@ check_contains "$HTML" 'id="themeButton"' "theme toggle control"
 check_contains "$HTML" 'id="autoButton"' "auto refresh toggle"
 check_contains "$HTML" 'id="roleList"' "role authority surface"
 check_contains "$HTML" 'id="humanSummary"' "human decision surface"
+check_contains "$HTML" 'id="companyGovernance"' "company governance surface"
+check_contains "$HTML" 'id="companyGovernanceSummary"' "company governance metrics"
+check_contains "$HTML" 'id="companyWorkflowList"' "company workflow list"
 check_contains "$JS" 'function formatTimestamp' "compact timestamp formatting"
 check_contains "$JS" 'function formatCountdown' "lease countdown formatting"
+check_contains "$JS" 'function renderCompanyGovernance' "company governance renderer"
+check_contains "$JS" 'snapshot.company_os' "company OS snapshot read"
 check_contains "$JS" 'lease-tick' "live lease ticking"
 check_contains "$JS" 'document.hidden' "auto refresh pauses when hidden"
 check_contains "$JS" 'fresh=1' "manual refresh bypasses cache"
@@ -99,6 +104,8 @@ check_contains "$CSS" '.command-dock {' "command surface block"
 check_contains "$CSS" 'position: relative;' "non-overlapping command surface"
 check_contains "$CSS" 'max-height: min(420px, 58vh);' "command dock height guard"
 check_contains "$CSS" '.operator-strip {' "operator summary strip"
+check_contains "$CSS" '.company-governance-summary {' "company governance metrics styling"
+check_contains "$CSS" '.company-workflow-row {' "company workflow row styling"
 check_contains "$CSS" '.founder-inbox {' "founder inbox styling"
 check_contains "$CSS" '.inbox-item {' "founder inbox item styling"
 check_contains "$CSS" '.queue-controls {' "queue search/filter controls"
@@ -206,6 +213,13 @@ assert "roles" in snapshot
 assert "items" in snapshot["roles"]
 assert "lint" in snapshot["roles"]
 assert snapshot["roles"]["lint"]["mode"] == "shallow"
+assert "company_os" in snapshot
+company = snapshot["company_os"]
+assert "workflows" in company
+assert "human_governance" in company
+assert "autonomy" in company
+assert company["policy"]["simulation_only"] is True
+assert company["broker"]["real_side_effects_enabled"] is False
 gate = snapshot["gate"]
 for key in ("enabled", "available", "initialized", "root_fingerprint", "layout", "tickets"):
     assert key in gate, f"gate section missing {key}"

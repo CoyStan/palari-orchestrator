@@ -1,0 +1,18 @@
+{
+  "schema_version": "1",
+  "generator": "palari-ci",
+  "manifest_file": "manifest.json",
+  "ticket": "HUM-0001",
+  "base_ref": "ticket/WFU-0001",
+  "head_sha": "c5ada60ee74af2eb9977ab22a9bf7e65e1b664d0",
+  "created_at": "2026-06-14T22:47:29Z",
+  "status": "passed",
+  "tests": 4,
+  "failures": 0,
+  "skipped": 0,
+  "artifacts": [
+    {"name":"verification.log","sha256":"7853bc96502b98bb80031c36d0e7f679b819ed12778e974e67974d063a885ed8"},
+    {"name":"junit.xml","sha256":"4e2541fcabce4cd6ffb20353f1be7776f75d68d1172998a88a8d9e86755b13b2"},
+    {"name":"palari.sarif","sha256":"efa4a0b9b844b1962a7cce014b979695647ea4ac7a7d6a3c5bf55e009c55b0e6"}
+  ]
+}

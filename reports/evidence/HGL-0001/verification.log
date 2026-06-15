@@ -1,0 +1,42 @@
+# Palari CI Evidence
+
+- Ticket: HGL-0001
+- Base ref: ticket/HUM-0001
+- Created: 2026-06-14T22:59:54Z
+
+## scope-check
+
+```text
+scope-check: ok for HGL-0001 (15 changed path(s))
+```
+
+## lint
+
+```text
+report-lint: ok for HGL-0001
+lint: ok for HGL-0001
+```
+
+## verification 1
+
+Command: `./tests/run-human-governance-load.sh`
+
+```text
+human-governance-load: ok
+```
+
+## verification 2
+
+Command: `./tests/run-workflows.sh`
+
+```text
+workflows: ok
+```
+
+## verification 3
+
+Command: `./tests/run-human-governance.sh`
+
+```text
+human-governance: ok
+```

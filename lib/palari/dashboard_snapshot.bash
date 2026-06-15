@@ -135,9 +135,9 @@ snapshot_ticket_reports_ready_quiet() {
 	snapshot_fast_report_present "$REPORTS_DIR" "$ticket_id" reviewer && reviewer="true"
 	snapshot_fast_report_present "$HUMAN_REPORTS_DIR" "$ticket_id" human && human="true"
 	if [[ "$status" == "in-review" || "$status" == "accepted" ]]; then
-		[[ ! "$risk" =~ ^R[234]$ || "$technical" == "true" ]] || return 1
-		[[ !( "$requires_review" == "true" || "$risk" =~ ^R[234]$ ) || "$reviewer" == "true" ]] || return 1
-		[[ !( "$requires_human" == "true" || "$risk" =~ ^R[34]$ ) || "$human" == "true" ]] || return 1
+		[[ ! "$risk" =~ ^R[2345]$ || "$technical" == "true" ]] || return 1
+		[[ !( "$requires_review" == "true" || "$risk" =~ ^R[2345]$ ) || "$reviewer" == "true" ]] || return 1
+		[[ !( "$requires_human" == "true" || "$risk" =~ ^R[345]$ ) || "$human" == "true" ]] || return 1
 	fi
 	while IFS= read -r required_report; do
 		[[ -n "$required_report" ]] || continue

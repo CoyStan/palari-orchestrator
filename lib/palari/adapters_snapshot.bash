@@ -741,6 +741,13 @@ snapshot_memory_json() {
 	printf ',"total":0,"active":0,"proposed":0,"stale_review":0,"lint_ok":true,"index_exists":false}'
 }
 
+snapshot_company_os_json() {
+	if command -v python3 >/dev/null 2>&1 && [[ -f "$ROOT/adapters/planning/company_os_snapshot.py" ]]; then
+		python3 -B "$ROOT/adapters/planning/company_os_snapshot.py" --root "$ROOT" 2>/dev/null && return 0
+	fi
+	printf '{"workflows":{"active":0,"proposed":0,"closed":0,"items":[]},"humans":{"active":0,"proposed":0,"revoked":0},"human_governance":{"open_hgl_estimate":0,"r3_decisions_open":0,"r4_decisions_open":0,"r5_decisions_open":0,"missing_skills":[],"bottlenecks":[]},"autonomy":{"green_workflows":0,"yellow_workflows":0,"red_workflows":0},"policy":{"simulation_only":true,"candidates":0},"broker":{"real_side_effects_enabled":false}}'
+}
+
 cmd_snapshot() {
 	require_base_folders
 	local format="" mode="fast" arg
@@ -854,6 +861,8 @@ cmd_snapshot() {
 	snapshot_workflow_json
 	printf ',\n  "memory": '
 	snapshot_memory_json
+	printf ',\n  "company_os": '
+	snapshot_company_os_json
 	printf ',\n  "gate": '
 	snapshot_gate_json
 	printf ',\n  "health": {"status_ok":true,"dirty_paths":%s,"generated_dirty_paths":%s,"source_dirty_paths":%s,"stale_claims":%s,"missing_evidence":%s,"overlaps":%s},\n' \

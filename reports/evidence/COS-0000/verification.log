@@ -1,0 +1,50 @@
+# Palari CI Evidence
+
+- Ticket: COS-0000
+- Base ref: origin/main
+- Created: 2026-06-14T22:14:36Z
+
+## scope-check
+
+```text
+scope-check: ok for COS-0000 (7 changed path(s))
+```
+
+## lint
+
+```text
+report-lint: ok for COS-0000
+lint: ok for COS-0000
+```
+
+## verification 1
+
+Command: `test -s contracts/company-ai-os.md`
+
+```text
+
+```
+
+## verification 2
+
+Command: `grep -Fq 'Human Governance Load' contracts/company-ai-os.md`
+
+```text
+
+```
+
+## verification 3
+
+Command: `grep -Fq 'broker' contracts/company-ai-os.md`
+
+```text
+
+```
+
+## verification 4
+
+Command: `./tests/run-state.sh`
+
+```text
+state: ok
+```
