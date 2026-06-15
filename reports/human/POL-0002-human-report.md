@@ -31,9 +31,9 @@ are excluded from auto-accept suggestions.
 
 ## Founder Acceptance
 
-Founder pre-approval from Quetzali covers this marathon's review path. Final
-acceptance should happen only after POL-0002 verification and fresh-context
-review are green.
+Founder pre-approval from Quetzali covers this marathon's review path.
+POL-0002 is ready for acceptance after green verification and accept-ready
+fresh-context review.
 
 ## Recommended Next Move
 

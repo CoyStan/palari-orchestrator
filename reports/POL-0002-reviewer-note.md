@@ -2,7 +2,7 @@
 
 ## Review Result
 
-Decision: implementation review pending final CI.
+Decision: accept-ready.
 
 ## Findings
 
@@ -13,6 +13,7 @@ Decision: implementation review pending final CI.
 - R4 decisions are excluded in the focused test, and R3/R4/R5 are excluded by
   the implementation's low-risk allowlist.
 - The command does not create policy files or mutate repository state.
+- CI evidence passed and evidence quality scored 100/100.
 
 ## Verification Reviewed
 
@@ -24,7 +25,9 @@ Passed during implementation:
 - `./tests/run-policy-candidates.sh`
 - `./tests/run-decisions.sh`
 
-Final ticket gates and CI are still pending in this draft note.
+- `./bin/palari scope-check POL-0002 --base ticket/POL-0001`
+- `./bin/palari ci POL-0002 --base ticket/POL-0001`
+- `./bin/palari evidence score POL-0002`
 
 ## Required Changes
 
@@ -38,4 +41,4 @@ None identified so far.
 
 ## Recommendation
 
-Run final CI/evidence. If green, update this review to accept-ready.
+Accept POL-0002.

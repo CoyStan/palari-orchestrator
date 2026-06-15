@@ -27,7 +27,20 @@ Passed during implementation:
 
 ## CI Evidence
 
-Pending final `palari ci POL-0002 --base ticket/POL-0001`.
+Passed:
+
+- `./bin/palari scope-check POL-0002 --base ticket/POL-0001`
+- `./bin/palari ci POL-0002 --base ticket/POL-0001`
+- `./bin/palari evidence score POL-0002`
+
+Evidence bundle:
+
+- `reports/evidence/POL-0002/verification.log`
+- `reports/evidence/POL-0002/junit.xml`
+- `reports/evidence/POL-0002/palari.sarif`
+- `reports/evidence/POL-0002/manifest.json`
+
+Evidence quality score: 100/100, rating `ready`.
 
 ## Risks / Follow-Ups
 

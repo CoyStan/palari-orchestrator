@@ -1,7 +1,7 @@
 ---
 id: POL-0002
 title: Suggest policy candidates from repeated decisions
-status: claimed
+status: accepted
 risk: R4
 priority: P2
 stream: process
@@ -10,8 +10,8 @@ model_hint:
 claimed_by: codex
 claimed_at: 2026-06-14T23:58:20Z
 claim_ref: refs/palari/claims/POL-0002
-claim_heartbeat_at: 2026-06-14T23:58:20Z
-claim_expires_at: 2026-06-15T00:03:20Z
+claim_heartbeat_at: 2026-06-15T00:03:28Z
+claim_expires_at: 2026-06-15T00:08:28Z
 allowed_paths:
   - lib/palari/**
   - adapters/planning/**
@@ -50,10 +50,10 @@ verification:
 target_branch: main
 branch: ticket/POL-0002
 worktree: 
-accepted_by:
-accepted_at:
+accepted_by: quetza
+accepted_at: 2026-06-15T00:03:42Z
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-15
 ---
 
 # POL-0002 Suggest policy candidates from repeated decisions
