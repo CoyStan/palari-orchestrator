@@ -1,17 +1,17 @@
 ---
 id: POS-0074
 title: Repair performance test pipefail assertions
-status: open
+status: in-review
 risk: R1
 priority: P1
 stream: process
 serves_goal: GOAL-0200
 model_hint: 
-claimed_by:
-claimed_at:
-claim_ref:
-claim_heartbeat_at:
-claim_expires_at:
+claimed_by: codex
+claimed_at: 2026-06-15T13:25:29Z
+claim_ref: refs/palari/claims/POS-0074
+claim_heartbeat_at: 2026-06-15T13:25:29Z
+claim_expires_at: 2026-06-15T13:30:29Z
 allowed_paths:
   - tests/run-performance.sh
   - tickets/open/POS-0074-repair-performance-test-pipefail-assertions.md

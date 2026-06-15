@@ -1,0 +1,31 @@
+# Palari CI Evidence
+
+- Ticket: POS-0074
+- Base ref: local working tree
+- Created: 2026-06-15T13:27:07Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0074 (11 changed path(s))
+```
+
+## lint
+
+```text
+report-lint: ok for POS-0074
+lint: ok for POS-0074
+```
+
+## verification 1
+
+Command: `./tests/run-performance.sh`
+
+```text
+performance: snapshot-json: 142 ms (budget 800 ms) ok
+performance: web-check: 146 ms (budget 800 ms) ok
+performance: status: 123 ms (budget 500 ms) ok
+performance: status-next: 167 ms (budget 500 ms) ok
+performance: web-check: 153 ms (budget 800 ms) ok
+performance: ok
+```

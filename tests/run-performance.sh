@@ -9,22 +9,28 @@ fail() {
 	exit 1
 }
 
+contains_literal() {
+	local haystack="$1"
+	local needle="$2"
+	[[ "$haystack" == *"$needle"* ]]
+}
+
 command -v python3 >/dev/null 2>&1 || {
 	printf 'performance: skipped (python3 unavailable; fast engine cannot run)\n'
 	exit 0
 }
 
 # The fast engine must actually be the one answering. Capture to variables
-# rather than piping into grep -q, which under pipefail can surface SIGPIPE
-# from the producer as a false failure.
+# and check them in-process; piping into grep -q under pipefail can surface
+# SIGPIPE from the producer as a false failure on large JSON.
 fast_out="$(./bin/palari snapshot --json)"
-printf '%s' "$fast_out" | grep -Fq '"snapshot_engine": "python-fast"' ||
+contains_literal "$fast_out" '"snapshot_engine": "python-fast"' ||
 	fail "snapshot --json is not served by the fast engine"
 legacy_out="$(PALARI_SNAPSHOT_ENGINE=bash ./bin/palari snapshot --json)"
-printf '%s' "$legacy_out" | grep -Fq '"snapshot_mode":' ||
+contains_literal "$legacy_out" '"snapshot_mode":' ||
 	fail "legacy bash snapshot fallback is broken"
 web_out="$(./bin/palari web --check)"
-printf '%s' "$web_out" | grep -Fq '"snapshot_engine": "python-fast"' ||
+contains_literal "$web_out" '"snapshot_engine": "python-fast"' ||
 	fail "web --check is not served by the fast engine"
 
 # Gate-enabled repos must keep the instant path (shallow gate state).
@@ -39,12 +45,12 @@ text = re.sub(r"(gate:\n(?:[ \t]+.*\n)*?[ \t]+enabled:)[ \t]*\w+", r"\1 true", t
 open(path, "w", encoding="utf-8").write(text)
 PY
 gate_out="$(cd "$GATE_TMP" && chmod +x bin/palari && ./bin/palari snapshot --json)"
-printf '%s' "$gate_out" | grep -Fq '"snapshot_engine": "python-fast"' ||
+contains_literal "$gate_out" '"snapshot_engine": "python-fast"' ||
 	fail "gate-enabled repo lost the fast path"
-printf '%s' "$gate_out" | grep -Fq '"enabled": true' ||
+contains_literal "$gate_out" '"enabled": true' ||
 	fail "gate-enabled fast snapshot missing gate state"
 web_out="$(./bin/palari web --check)"
-printf '%s' "$web_out" | grep -Fq '"snapshot_engine": "python-fast"' ||
+contains_literal "$web_out" '"snapshot_engine": "python-fast"' ||
 	fail "web --check is not served by the fast engine"
 
 python3 - <<'PY'
