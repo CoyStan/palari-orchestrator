@@ -78,6 +78,14 @@ path.write_text(text)
 PY
 ./bin/palari workflow adopt WF-0002 --by founder >/dev/null
 
+./bin/palari ticket create BRK-0200 "Snapshot broker observation" \
+	--risk R1 \
+	--priority P2 \
+	--allowed README.md \
+	--allowed reports/evidence/BRK-0200/** \
+	--verify "test -f README.md" >/dev/null
+./bin/palari broker run BRK-0200 --mock -- printf "snapshot broker" >/dev/null
+
 ./bin/palari snapshot --json >"$TMP_ROOT/fast.json"
 PALARI_SNAPSHOT_ENGINE=bash ./bin/palari snapshot --json >"$TMP_ROOT/bash.json"
 ./bin/palari web --check >"$TMP_ROOT/web.json"
@@ -118,8 +126,8 @@ for path in sys.argv[1:]:
     }, company
     assert company["broker"] == {
         "real_side_effects_enabled": False,
-        "mock_observations": 0,
-        "tickets_with_broker_evidence": [],
+        "mock_observations": 1,
+        "tickets_with_broker_evidence": ["BRK-0200"],
     }, company
     assert company["outcomes"] == {"open": 0, "recorded": 0, "invalidated": 0}, company
 PY

@@ -87,6 +87,48 @@ broker uses `observed` for commands it ran only as local evidence, `denied` for
 refusals, and `failed` for command failures. A mock `observed` result is not a
 permission grant.
 
+## Broker Observation Schema V1
+
+Every broker run writes a schema-versioned observation summary:
+
+```json
+{
+  "schema_version": "broker-observation-v1",
+  "ticket": "POS-0071",
+  "workflow": "WF-0001",
+  "run_id": "RUN-20260615T000000Z-1234",
+  "broker_mode": "mock",
+  "boundary_type": "observed_only",
+  "command": ["printf", "hello"],
+  "working_directory": "/path/to/repo",
+  "started_at": "2026-06-15T00:00:00Z",
+  "ended_at": "2026-06-15T00:00:01Z",
+  "exit_code": 0,
+  "side_effects_enabled": false,
+  "credentials_available_to_agents": false,
+  "network_or_hosted_api_access": false,
+  "changed_paths": [],
+  "forbidden_path_changes": [],
+  "decision": "observed",
+  "decision_reasons": ["mock broker observed command"],
+  "input_hash": "sha256",
+  "output_hash": "sha256",
+  "signed_by": "broker-mock"
+}
+```
+
+`signed_by: broker-mock` is an explicit mock signature label, not a
+cryptographic ForgeGate acceptance and not human approval. Until a later ticket
+adds a stronger sandbox or real broker boundary, all observations must use:
+
+```yaml
+broker_mode: mock
+boundary_type: observed_only
+side_effects_enabled: false
+credentials_available_to_agents: false
+network_or_hosted_api_access: false
+```
+
 ## Evidence Boundary
 
 Mock broker runs write evidence under:

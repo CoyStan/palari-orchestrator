@@ -76,18 +76,28 @@ import json
 import sys
 
 data = json.load(open(sys.argv[1]))
+assert data["schema_version"] == "broker-observation-v1"
 assert data["ticket"] == "BRK-0100"
+assert data["run_id"].startswith("RUN-")
+assert data["broker_mode"] == "mock"
+assert data["mode"] == "mock"
+assert data["boundary_type"] == "observed_only"
 assert data["side_effects_enabled"] is False
 assert data["credentials_available_to_agents"] is False
 assert data["network_or_hosted_api_access"] is False
+assert data["working_directory"]
+assert data["started_at"]
+assert data["ended_at"]
 assert data["executed"] is True
 assert data["refused"] is False
 assert data["exit_code"] == 0
 assert data["command"] == ["printf", "hello broker"]
 assert data["request_id"].startswith("BRK-REQ-RUN-")
 assert data["status"] == "observed"
+assert data["decision"] == "observed"
 assert data["decision_reason"] == "mock_broker_observed_command"
 assert data["changed_resources"] == data["changed_paths"]
+assert data["forbidden_path_changes"] == []
 assert data["signed_by"] == "broker-mock"
 assert len(data["input_hash"]) == 64
 assert len(data["output_hash"]) == 64
@@ -134,6 +144,8 @@ assert data["ticket"] == "BRK-0100"
 assert data["real_side_effects_enabled"] is False
 assert data["count"] == 1
 assert data["items"][0]["exit_code"] == 0
+assert data["items"][0]["schema_version"] == "broker-observation-v1"
+assert data["items"][0]["boundary_type"] == "observed_only"
 assert data["items"][0]["status"] == "observed"
 PY
 
@@ -154,6 +166,7 @@ assert len(refused) == 1
 assert refused[0]["executed"] is False
 assert refused[0]["exit_code"] == 126
 assert refused[0]["status"] == "denied"
+assert refused[0]["decision"] == "denied"
 assert refused[0]["decision_reason"] == "dangerous_command_refused"
 assert refused[0]["broker_result"]["status"] == "denied"
 assert "rm -rf" in refused[0]["refusal_reason"]

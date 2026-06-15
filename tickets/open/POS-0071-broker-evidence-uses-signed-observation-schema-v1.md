@@ -1,17 +1,17 @@
 ---
 id: POS-0071
 title: Broker evidence uses signed observation schema v1
-status: open
+status: in-review
 risk: R3
 priority: P1
 stream: process
 serves_goal: GOAL-0200
 model_hint: 
-claimed_by:
-claimed_at:
-claim_ref:
-claim_heartbeat_at:
-claim_expires_at:
+claimed_by: codex
+claimed_at: 2026-06-15T13:00:50Z
+claim_ref: refs/palari/claims/POS-0071
+claim_heartbeat_at: 2026-06-15T13:00:50Z
+claim_expires_at: 2026-06-15T13:05:50Z
 allowed_paths:
   - adapters/broker/**
   - contracts/broker.md

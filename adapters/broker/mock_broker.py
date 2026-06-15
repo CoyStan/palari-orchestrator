@@ -151,6 +151,7 @@ def broker_result(
     stdout: bytes,
     stderr: bytes,
     changed_paths: list[str],
+    observed_at: str,
 ) -> dict[str, Any]:
     if reason:
         status = "denied"
@@ -175,7 +176,7 @@ def broker_result(
         "status": status,
         "decision_reason": decision_reason,
         "decision_reasons": decision_reasons,
-        "observed_at": now(),
+        "observed_at": observed_at,
         "input_hash": sha256_json(request),
         "output_hash": sha256_bytes(output_material),
         "changed_resources": changed_paths,
@@ -189,6 +190,8 @@ def run_command(args: argparse.Namespace) -> int:
     out = Path(args.out).resolve()
     command = list(args.command)
     out.mkdir(parents=True, exist_ok=True)
+    run_id = out.name
+    started_at = now()
     request = action_request(root, args.ticket, command, out)
 
     before = git_status(root)
@@ -221,6 +224,7 @@ def run_command(args: argparse.Namespace) -> int:
 
     after = git_status(root)
     changed_paths = sorted(after - before)
+    ended_at = now()
     result_record = broker_result(
         request,
         reason=reason,
@@ -229,6 +233,7 @@ def run_command(args: argparse.Namespace) -> int:
         stdout=stdout,
         stderr=stderr,
         changed_paths=changed_paths,
+        observed_at=ended_at,
     )
 
     (out / "stdout.txt").write_bytes(stdout)
@@ -237,7 +242,7 @@ def run_command(args: argparse.Namespace) -> int:
     command_record = {
         "schema_version": "1",
         "ticket": args.ticket,
-        "created_at": now(),
+        "created_at": started_at,
         "mode": "mock",
         "side_effects_enabled": False,
         "credentials_available_to_agents": False,
@@ -250,10 +255,18 @@ def run_command(args: argparse.Namespace) -> int:
     write_json(out / "command.json", command_record)
     summary = {
         **command_record,
+        "schema_version": "broker-observation-v1",
+        "run_id": run_id,
+        "broker_mode": "mock",
+        "boundary_type": "observed_only",
+        "working_directory": str(root),
+        "started_at": started_at,
+        "ended_at": ended_at,
         "request_id": request["request_id"],
         "action_request": request,
         "broker_result": result_record,
         "status": result_record["status"],
+        "decision": result_record["status"],
         "decision_reason": result_record["decision_reason"],
         "decision_reasons": result_record["decision_reasons"],
         "executed": executed,
@@ -265,6 +278,7 @@ def run_command(args: argparse.Namespace) -> int:
         "stderr_sha256": sha256_bytes(stderr),
         "changed_paths": changed_paths,
         "changed_resources": changed_paths,
+        "forbidden_path_changes": [],
         "signed_by": result_record["signed_by"],
         "input_hash": result_record["input_hash"],
         "output_hash": result_record["output_hash"],
