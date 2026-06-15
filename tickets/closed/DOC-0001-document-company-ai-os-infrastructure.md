@@ -1,7 +1,7 @@
 ---
 id: DOC-0001
 title: Document company AI OS infrastructure
-status: claimed
+status: accepted
 risk: R2
 priority: P2
 stream: process
@@ -10,8 +10,8 @@ model_hint:
 claimed_by: codex
 claimed_at: 2026-06-15T00:47:00Z
 claim_ref: refs/palari/claims/DOC-0001
-claim_heartbeat_at: 2026-06-15T00:47:00Z
-claim_expires_at: 2026-06-15T00:52:00Z
+claim_heartbeat_at: 2026-06-15T00:50:10Z
+claim_expires_at: 2026-06-15T00:55:10Z
 allowed_paths:
   - README.md
   - docs/**
@@ -49,8 +49,8 @@ verification:
 target_branch: main
 branch: ticket/DOC-0001
 worktree: 
-accepted_by:
-accepted_at:
+accepted_by: quetza
+accepted_at: 2026-06-15T00:50:23Z
 created: 2026-06-15
 updated: 2026-06-15
 ---

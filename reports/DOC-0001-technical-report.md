@@ -14,11 +14,32 @@
 
 ## Verification
 
-Pending.
+Passed during implementation:
+
+- `grep -Fq 'Human Governance Load' README.md`
+- `grep -Fq 'workflow plan' README.md`
+- `./tests/run-readme-assets.sh`
+- `./tests/run-state.sh`
+- `./bin/palari lint DOC-0001`
+- `./bin/palari report-lint DOC-0001`
+- `git diff --check`
 
 ## CI Evidence
 
-Pending.
+Passed:
+
+- `./bin/palari scope-check DOC-0001 --base ticket/DEM-0004`
+- `./bin/palari ci DOC-0001 --base ticket/DEM-0004`
+- `./bin/palari evidence score DOC-0001`
+
+Evidence bundle:
+
+- `reports/evidence/DOC-0001/verification.log`
+- `reports/evidence/DOC-0001/junit.xml`
+- `reports/evidence/DOC-0001/palari.sarif`
+- `reports/evidence/DOC-0001/manifest.json`
+
+Evidence quality score: 100/100, rating `ready`.
 
 ## Risks / Follow-Ups
 
