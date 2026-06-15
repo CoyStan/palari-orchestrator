@@ -62,6 +62,7 @@ verification:
   - ./tests/run-risks.sh
   - ./tests/run-secure-doctor.sh
   - ./tests/run-gate-kernel.sh
+  - ./tests/run-human-governance-load.sh
 target_branch: ticket/POS-0065
 branch: ticket/POS-0066
 worktree: 
@@ -104,6 +105,7 @@ raise R5 or other risks to two or more human approvals.
 - ./tests/run-risks.sh
 - ./tests/run-secure-doctor.sh
 - ./tests/run-gate-kernel.sh
+- ./tests/run-human-governance-load.sh
 
 ## Ticket Completion Contract
 
