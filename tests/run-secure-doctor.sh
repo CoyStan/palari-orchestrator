@@ -36,7 +36,7 @@ rm -rf reports/evidence/*
 
 ./bin/palari doctor secure >"$TMP_ROOT/weak.out"
 expect_contains "$TMP_ROOT/weak.out" "R5 dual-human approval configured: true"
-expect_contains "$TMP_ROOT/weak.out" "R5 dual-human approval enforced by accept: false"
+expect_contains "$TMP_ROOT/weak.out" "R5 dual-human approval enforced by accept: true"
 expect_contains "$TMP_ROOT/weak.out" "Policy acceptance real mode enabled: false"
 expect_contains "$TMP_ROOT/weak.out" "Policy acceptance simulation-only: true"
 expect_contains "$TMP_ROOT/weak.out" "Broker real side effects enabled: false"
@@ -66,16 +66,17 @@ printf '{"mode":"mock-only"}\n' >reports/evidence/SEC-TEST/broker/RUN-1/summary.
 ./bin/palari doctor secure >"$TMP_ROOT/stronger.out"
 if python3 -c 'import cryptography' >/dev/null 2>&1; then
 	expect_contains "$TMP_ROOT/stronger.out" "ForgeGate enforcement available: true"
+	expect_contains "$TMP_ROOT/stronger.out" "Posture: stronger"
 else
 	expect_contains "$TMP_ROOT/stronger.out" "ForgeGate enforcement available: false"
+	expect_contains "$TMP_ROOT/stronger.out" "Posture: weak"
 fi
-expect_contains "$TMP_ROOT/stronger.out" "Posture: weak"
 expect_contains "$TMP_ROOT/stronger.out" "ForgeGate enabled: true"
 expect_contains "$TMP_ROOT/stronger.out" "Broker observations available: true"
 expect_contains "$TMP_ROOT/stronger.out" "Broker real side effects enabled: false"
 expect_contains "$TMP_ROOT/stronger.out" "Policy acceptance simulation-only: true"
 expect_contains "$TMP_ROOT/stronger.out" "R5 dual-human approval configured: true"
-expect_contains "$TMP_ROOT/stronger.out" "R5 dual-human approval enforced by accept: false"
+expect_contains "$TMP_ROOT/stronger.out" "R5 dual-human approval enforced by accept: true"
 expect_contains "$TMP_ROOT/stronger.out" "Branch protection verified locally: false"
 expect_not_contains "$TMP_ROOT/stronger.out" "R5 requires human approval"
 expect_not_contains "$TMP_ROOT/stronger.out" "branch protection active"

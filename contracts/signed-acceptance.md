@@ -23,9 +23,16 @@ means the repo wants dual-human R5 approval. It does not, by itself, prove that
 - whether R5 dual-human approval is configured
 - whether `palari accept` currently enforces that configured requirement
 
-Until the accept path performs the R5-specific check, secure doctor must report
-the enforced value as false and must not present the repository posture as
-strong because of configuration alone.
+When the accept path does not perform the R5-specific check, secure doctor
+must report the enforced value as false and must not present the repository
+posture as strong because of configuration alone.
+
+Once R5 dual-human acceptance enforcement is implemented, the human layer and
+the forge-proof gate remain separate controls. ForgeGate can prove signed
+implement/test/review evidence when enabled. It does not replace the two human
+approvals required for R5 acceptance. `palari accept TICKET-ID --by HUMAN-ONE
+--co-by HUMAN-TWO` must still validate two distinct active R5 human profiles
+before closing an R5 ticket.
 
 ## The boundary
 

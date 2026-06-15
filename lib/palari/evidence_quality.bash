@@ -28,6 +28,8 @@ evidence_score_rating() {
 }
 
 evidence_score_next_action() {
+	local file="$1"
+	shift
 	local ticket_id="$1"
 	local status="$2"
 	local score="$3"
@@ -38,7 +40,7 @@ evidence_score_next_action() {
 	elif [[ "$status" == "claimed" || "$status" == "reopened" ]]; then
 		printf 'move to review: ./bin/palari ticket ready %s\n' "$ticket_id"
 	elif [[ "$status" == "in-review" ]]; then
-		printf 'human gate: ./bin/palari accept %s --by HUMAN\n' "$ticket_id"
+		printf 'human gate: %s\n' "$(accept_command_for_ticket "$file" "$ticket_id" "HUMAN" "./bin/palari")"
 	else
 		printf 'monitor only; ticket status is %s\n' "$status"
 	fi
@@ -147,7 +149,7 @@ cmd_evidence_score() {
 	printf 'score: %s/100\n' "$score"
 	printf 'rating: %s\n' "$(evidence_score_rating "$score")"
 	printf 'next_action: '
-	evidence_score_next_action "$ticket_id" "$status" "$score"
+	evidence_score_next_action "$file" "$ticket_id" "$status" "$score"
 
 	if [[ "$strict" == "true" && "$score" != "100" ]]; then
 		return 1

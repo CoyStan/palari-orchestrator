@@ -41,6 +41,12 @@ R5 authority requires `may_approve_policy_changes: true`. That flag only makes
 the profile lintable; it does not bypass ticket, evidence, review, or
 acceptance gates.
 
+For R5 ticket acceptance, an active human profile is also the authority source.
+When `governance.r5_requires_dual_human: true`, `palari accept` requires
+`--by HUMAN-ONE --co-by HUMAN-TWO`; both profiles must be active, distinct,
+authorized to R5, and allowed to approve policy/governance changes. Neither
+human may be the ticket claimant or implementer.
+
 Human Governance Load coverage requires skill, authority, and available
 risk-specific capacity. Skill alone is insufficient: a human with
 `privacy:L5` and `authority_max_risk: R2` cannot cover an R5 privacy decision.

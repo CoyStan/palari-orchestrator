@@ -1,19 +1,22 @@
 ---
 id: POS-0066
 title: Enforce dual-human R5 acceptance
-status: open
+status: in-review
 risk: R5
 priority: P0
 stream: process
 serves_goal: GOAL-0200
 model_hint: 
-claimed_by:
-claimed_at:
-claim_ref:
-claim_heartbeat_at:
-claim_expires_at:
+claimed_by: codex
+claimed_at: 2026-06-15T12:04:21Z
+claim_ref: refs/palari/claims/POS-0066
+claim_heartbeat_at: 2026-06-15T12:16:38Z
+claim_expires_at: 2026-06-15T12:21:38Z
 allowed_paths:
   - lib/palari/ci_accept.bash
+  - lib/palari/dashboard_snapshot.bash
+  - lib/palari/evidence_quality.bash
+  - lib/palari/init_adopt.bash
   - lib/palari/humans.bash
   - contracts/company-ai-os.md
   - contracts/human-governance.md

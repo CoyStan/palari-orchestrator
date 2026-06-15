@@ -149,7 +149,7 @@ ticket_next_action() {
 		elif ! ticket_report_lint_quiet "$id"; then
 			printf 'reviewer reports needed: palari packet %s reviewer; verify with palari lint %s\n' "$id" "$id"
 		else
-			printf 'acceptance: palari accept %s --by founder (or reopen: palari ticket reopen %s to send back)\n' "$id" "$id"
+			printf 'acceptance: %s (or reopen: palari ticket reopen %s to send back)\n' "$(accept_command_for_ticket "$file" "$id" "founder" "palari")" "$id"
 		fi
 		;;
 	blocked)
@@ -285,9 +285,8 @@ secure_doctor_broker_observations_available() {
 }
 
 secure_doctor_accept_enforces_r5_dual_human() {
-	# POS-0066 should replace this fail-closed probe when `palari accept`
-	# performs an R5-specific dual-human enforcement check.
-	return 1
+	type accept_enforces_r5_dual_human >/dev/null 2>&1 || return 1
+	accept_enforces_r5_dual_human
 }
 
 cmd_secure_doctor() {

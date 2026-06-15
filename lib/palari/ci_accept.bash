@@ -536,15 +536,86 @@ same_actor() {
 	[[ "${left,,}" == "${right,,}" ]]
 }
 
+accept_r5_dual_human_enforcement_enabled() {
+	[[ "$(cfg_nested governance r5_requires_dual_human false)" == "true" ]]
+}
+
+accept_enforces_r5_dual_human() {
+	accept_r5_dual_human_enforcement_enabled
+}
+
+accept_command_for_ticket() {
+	local file="$1"
+	local ticket_id="$2"
+	local by="${3:-HUMAN}"
+	local prefix="${4:-./bin/palari}"
+	local risk
+	risk="$(frontmatter_value "$file" risk)"
+	if [[ "$risk" == "R5" ]] && accept_r5_dual_human_enforcement_enabled; then
+		printf '%s accept %s --by HUMAN-ONE --co-by HUMAN-TWO\n' "$prefix" "$ticket_id"
+	else
+		printf '%s accept %s --by %s\n' "$prefix" "$ticket_id" "$by"
+	fi
+}
+
+accept_ensure_frontmatter_key() {
+	local file="$1" key="$2"
+	frontmatter_has_key "$file" "$key" && return 0
+	local tmp="${file}.tmp.$$"
+	awk -v key="$key" '
+    NR == 1 && $0 == "---" { in_fm = 1; print; next }
+    in_fm && $0 == "---" {
+      print key ":"
+      in_fm = 0
+      print
+      next
+    }
+    { print }
+  ' "$file" >"$tmp"
+	mv "$tmp" "$file"
+}
+
+accept_require_r5_human() {
+	local actor="$1"
+	local ticket_id="$2"
+	local human_file risk may_policy
+	human_file="$(find_human_file "$actor" active)" ||
+		die "accept refused: R5 acceptor $actor must be an active human profile"
+	risk="$(frontmatter_value "$human_file" authority_max_risk)"
+	may_policy="$(frontmatter_value "$human_file" may_approve_policy_changes)"
+	[[ "$risk" == "R5" ]] ||
+		die "accept refused: R5 acceptor $actor has authority_max_risk ${risk:-missing}; R5 required for $ticket_id"
+	[[ "$may_policy" == "true" ]] ||
+		die "accept refused: R5 acceptor $actor must have may_approve_policy_changes: true"
+}
+
+accept_require_r5_dual_human() {
+	local ticket_id="$1" by="$2" co_by="$3" claimed_by="$4" implemented_by="$5"
+	[[ -n "$by" ]] || die "accept requires --by NAME; acceptance must name the human or authorized reviewer"
+	[[ -n "$co_by" ]] || die "accept refused: R5 tickets require --co-by HUMAN when r5_requires_dual_human is true"
+	! same_actor "$by" "$co_by" ||
+		die "accept refused: R5 dual-human acceptance requires two distinct humans"
+	for actor in "$by" "$co_by"; do
+		if same_actor "$actor" "$claimed_by" || same_actor "$actor" "$implemented_by"; then
+			die "accept refused: R5 acceptor $actor must not be the claimant or implementer for $ticket_id"
+		fi
+		accept_require_r5_human "$actor" "$ticket_id"
+	done
+}
+
 cmd_accept() {
 	require_base_folders
 	local ticket="${1:-}"
 	shift || true
-	local by=""
+	local by="" co_by=""
 	while (($# > 0)); do
 		case "$1" in
 		--by)
 			by="$2"
+			shift 2
+			;;
+		--co-by)
+			co_by="$2"
 			shift 2
 			;;
 		*) die "unknown accept option: $1" ;;
@@ -552,10 +623,11 @@ cmd_accept() {
 	done
 	[[ -n "$ticket" ]] || die "accept requires ticket ID"
 	[[ -n "$by" ]] || die "accept requires --by NAME; acceptance must name the human or authorized reviewer"
-	local file status id dest claim_ref claimed_by implemented_by self_policy
+	local file status id risk dest claim_ref claimed_by implemented_by self_policy r5_dual_required="false"
 	file="$(find_ticket_file "$ticket")" || die "ticket not found: $ticket"
 	status="$(frontmatter_value "$file" status)"
 	id="$(frontmatter_value "$file" id)"
+	risk="$(frontmatter_value "$file" risk)"
 	[[ -n "$id" ]] || id="$ticket"
 	[[ "${file#"$ROOT"/}" == "$OPEN_DIR/"* ]] || die "ticket is already closed: $ticket"
 	[[ "$status" == "in-review" ]] || die "accept requires in-review status; current: ${status:-missing}"
@@ -578,24 +650,44 @@ cmd_accept() {
 	# checks below remain as UX guards only; they are not a security
 	# boundary (see contracts/signed-acceptance.md).
 	gate_require_accept "$id"
+	[[ "$risk" == "R5" ]] && accept_r5_dual_human_enforcement_enabled && r5_dual_required="true"
 	self_policy="$(cfg_nested acceptance implementation_self_acceptance "forbidden")"
+	claimed_by="$(frontmatter_value "$file" claimed_by)"
+	implemented_by="$(frontmatter_value "$file" implemented_by)"
+	if [[ "$r5_dual_required" == "true" ]]; then
+		accept_require_r5_dual_human "$id" "$by" "$co_by" "$claimed_by" "$implemented_by"
+	fi
 	if [[ "$self_policy" == "forbidden" ]]; then
-		claimed_by="$(frontmatter_value "$file" claimed_by)"
-		implemented_by="$(frontmatter_value "$file" implemented_by)"
 		if same_actor "$by" "$claimed_by" || same_actor "$by" "$implemented_by"; then
 			die "accept refused: implementation_self_acceptance is forbidden for $id"
 		fi
+		if [[ -n "$co_by" ]] && { same_actor "$co_by" "$claimed_by" || same_actor "$co_by" "$implemented_by"; }; then
+			die "accept refused: implementation_self_acceptance is forbidden for $id"
+		fi
 	fi
-	update_frontmatter_scalars "$file" \
-		"status"$'\035'"accepted"$'\034' \
-		"accepted_by"$'\035'"$by"$'\034' \
-		"accepted_at"$'\035'"$(now_utc)"$'\034' \
-		"updated"$'\035'"$(today_utc)"$'\034'
+	if [[ "$r5_dual_required" == "true" ]]; then
+		accept_ensure_frontmatter_key "$file" co_accepted_by
+		accept_ensure_frontmatter_key "$file" acceptance_mode
+		update_frontmatter_scalars "$file" \
+			"status"$'\035'"accepted"$'\034' \
+			"accepted_by"$'\035'"$by"$'\034' \
+			"co_accepted_by"$'\035'"$co_by"$'\034' \
+			"acceptance_mode"$'\035'"human_dual"$'\034' \
+			"accepted_at"$'\035'"$(now_utc)"$'\034' \
+			"updated"$'\035'"$(today_utc)"$'\034'
+	else
+		update_frontmatter_scalars "$file" \
+			"status"$'\035'"accepted"$'\034' \
+			"accepted_by"$'\035'"$by"$'\034' \
+			"accepted_at"$'\035'"$(now_utc)"$'\034' \
+			"updated"$'\035'"$(today_utc)"$'\034'
+	fi
 	dest="$ROOT/$CLOSED_DIR/$(basename "$file")"
 	mv "$file" "$dest"
 	if [[ -n "$claim_ref" ]]; then
 		git -C "$ROOT" update-ref -d "$claim_ref" >/dev/null 2>&1 || true
 	fi
 	printf 'accept: %s accepted by %s\n' "$id" "$by"
+	[[ "$r5_dual_required" == "true" ]] && printf 'co-accepted-by: %s\n' "$co_by"
 	printf 'closed: %s\n' "${dest#"$ROOT"/}"
 }

@@ -102,7 +102,7 @@ R5 includes:
 - risk-tier definitions
 - Palari kernel changes that weaken enforcement
 
-Until later tickets add explicit R5 enforcement, all Company OS work must stay
+Even with explicit R5 acceptance enforcement, all Company OS work must stay
 conservative: simulation before mutation, mock broker before real side
 effects, and human acceptance before any authority expansion.
 
@@ -112,6 +112,17 @@ approval policy, but it is not proof that `palari accept` enforces a second
 distinct human approval. `palari doctor secure` must report configured controls
 and enforced controls separately, and must keep the posture weak whenever a
 serious control is configured but not actually enforced.
+
+When R5 dual-human acceptance enforcement is active, `palari accept` requires
+two distinct active human profiles for R5 tickets:
+
+```bash
+./bin/palari accept TICKET-ID --by HUMAN-ONE --co-by HUMAN-TWO
+```
+
+Both humans must have `authority_max_risk: R5` and
+`may_approve_policy_changes: true`. Policy simulation, ForgeGate reviewer keys,
+ticket text, or agent identity cannot replace either human approval.
 
 ## Human Governance Load
 
