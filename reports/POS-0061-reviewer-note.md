@@ -63,3 +63,44 @@ upstream issue.
 - `reports/evidence/POS-0061/junit.xml`
 - `reports/evidence/POS-0061/palari.sarif`
 - `reports/evidence/POS-0061/manifest.json`
+
+---
+
+## Fresh-Context Re-Review After Evidence Refresh
+
+Review result: Accept-ready.
+
+Reviewer: Aristotle subagent, 2026-06-15.
+
+Scope reviewed:
+
+- Latest stacked worktree `/home/quetza/palari-orchestrator-worktrees/POS-0097`.
+- Stabilization commit `e2be023db1caf673093fc3c5f09324dd9bf6f73b`.
+- `adapters/planning/hgl.py`
+- `contracts/human-governance-load.md`
+- `tests/run-human-governance-load.sh`
+- `reports/evidence/POS-0061/manifest.json`
+- `reports/evidence/POS-0061/verification.log`
+
+Findings:
+
+- No reopen findings.
+- HGL evidence weighting remains correct: `decision_score` multiplies by the
+  evidence factor.
+- Direct probe on current HEAD produced `strong=16`, `normal=20`, unknown
+  label `=20`, `weak=23`, and `none_or_unknown=25`.
+- POS-0061 claim lease is active through `2026-06-16T20:08:49Z`.
+
+Verification:
+
+- `./tests/run-human-governance-load.sh` passed.
+- `./tests/run-workflow-planning.sh` passed.
+- `./tests/run-company-os-demo.sh` passed.
+- Refreshed POS-0061 evidence records commit
+  `e2be023db1caf673093fc3c5f09324dd9bf6f73b`, status `passed`, 4 tests, 0
+  failures.
+
+Caveat:
+
+- This is stacked-branch evidence refreshed with `--base HEAD`; it attests the
+  current stacked HEAD, not an isolated POS-0061-only branch diff.

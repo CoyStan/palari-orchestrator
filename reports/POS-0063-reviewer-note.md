@@ -61,3 +61,50 @@ POS-0062 still block stack acceptance even after POS-0063 is fixed.
 - `reports/evidence/POS-0063/junit.xml`
 - `reports/evidence/POS-0063/palari.sarif`
 - `reports/evidence/POS-0063/manifest.json`
+
+---
+
+## Fresh-Context Re-Review After Claim And Evidence Refresh
+
+Review result: Accept-ready.
+
+Reviewer: Huygens subagent, 2026-06-15.
+
+Scope reviewed:
+
+- Latest stacked worktree `/home/quetza/palari-orchestrator-worktrees/POS-0097`.
+- Stabilization commit `e2be023db1caf673093fc3c5f09324dd9bf6f73b`.
+- `adapters/planning/hgl.py`
+- `adapters/planning/workflow_plan.py`
+- `tickets/open/POS-0063-human-capacity-affects-hgl-coverage-and-launch-gates.md`
+- `reports/evidence/POS-0063/manifest.json`
+- `reports/evidence/POS-0063/verification.log`
+
+Findings:
+
+- No reopen findings.
+- Human capacity behavior remains correct: HGL excludes qualified humans who
+  are at per-risk capacity, records `risk_capacity_failures`, and turns zero
+  weekly availability into a red launch gate.
+- Workflow planning propagates the capacity object and recommendations,
+  including after the POS-0060/POS-0062 repairs.
+- POS-0063 claim lease is active through `2026-06-16T20:08:49Z`.
+
+Verification:
+
+- `git diff --check HEAD` passed.
+- Shell and Python syntax checks passed.
+- `./bin/palari human lint` passed.
+- `./tests/run-human-governance.sh` passed.
+- `./tests/run-human-governance-load.sh` passed.
+- `./tests/run-workflow-planning.sh` passed.
+- Additional temporary-copy probes for R5 risk-capacity propagation and weekly
+  capacity launch gating passed.
+- Refreshed POS-0063 evidence records commit
+  `e2be023db1caf673093fc3c5f09324dd9bf6f73b`, status `passed`, 6 tests, 0
+  failures.
+
+Caveat:
+
+- This is stacked-branch evidence refreshed with `--base HEAD`; it attests the
+  current stacked HEAD, not an isolated POS-0063-only branch diff.
