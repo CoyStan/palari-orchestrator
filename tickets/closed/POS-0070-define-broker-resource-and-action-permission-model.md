@@ -1,7 +1,7 @@
 ---
 id: POS-0070
 title: Define broker resource and action permission model
-status: in-review
+status: accepted
 risk: R4
 priority: P1
 stream: process
@@ -10,8 +10,8 @@ model_hint:
 claimed_by: codex
 claimed_at: 2026-06-15T12:54:12Z
 claim_ref: refs/palari/claims/POS-0070
-claim_heartbeat_at: 2026-06-15T12:54:12Z
-claim_expires_at: 2026-06-15T12:59:12Z
+claim_heartbeat_at: 2026-06-15T23:26:01Z
+claim_expires_at: 2026-06-15T23:31:01Z
 allowed_paths:
   - contracts/broker.md
   - contracts/company-ai-os.md
@@ -49,9 +49,9 @@ verification:
 target_branch: main
 branch: ticket/POS-0070
 worktree: 
-accepted_by:
+accepted_by: founder
 acceptance_mode: human
-accepted_at:
+accepted_at: 2026-06-15T23:26:03Z
 created: 2026-06-15
 updated: 2026-06-15
 ---
