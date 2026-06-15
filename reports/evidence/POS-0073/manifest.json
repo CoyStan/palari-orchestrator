@@ -3,15 +3,15 @@
   "generator": "palari-ci",
   "manifest_file": "manifest.json",
   "ticket": "POS-0073",
-  "base_ref": "HEAD",
-  "head_sha": "3f210640a9c359730612b2c2b0927370cb5b67fd",
-  "created_at": "2026-06-15T23:02:11Z",
+  "base_ref": "local working tree",
+  "head_sha": "075454f51f77cb709f439bc6ad4c85d3dd2316a8",
+  "created_at": "2026-06-15T23:11:01Z",
   "status": "passed",
   "tests": 3,
   "failures": 0,
   "skipped": 0,
   "artifacts": [
-    {"name":"verification.log","sha256":"4fb7765ea9eeda287d276a3d90feb90ce058d2b40031f2791bf8745be8dd0293"},
+    {"name":"verification.log","sha256":"204ba6b7424243aa58c13cac12e1657899079e84b4fc33844a274a7ac5ea8f99"},
     {"name":"junit.xml","sha256":"ad4c026140d438cc7c20d6117ac02175064293fc18010fd54184b5df1e539948"},
     {"name":"palari.sarif","sha256":"2829f6fe714642404e93f62ed049efdea7be11505d88b9f4e1c98257a83884b5"}
   ]
