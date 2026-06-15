@@ -44,6 +44,13 @@ def indexed_outcomes(root: Path, outcomes_recorded_dir: str) -> dict[str, list[d
             "id": str(outcome.get("id", path.stem)),
             "title": str(outcome.get("title", "")),
             "status": str(outcome.get("status", "")),
+            "review_outcome": str(outcome.get("review_outcome", "")),
+            "rollback_used": str(outcome.get("rollback_used", "")),
+            "policy_candidate": str(outcome.get("policy_candidate", "")),
+            "metric_name": str(outcome.get("metric_name", "")),
+            "metric_delta": str(outcome.get("metric_delta", "")),
+            "risk_actual": str(outcome.get("risk_actual", "")),
+            "hgl_actual": str(outcome.get("hgl_actual", "")),
             "file": str(path.relative_to(root)),
         }
         ticket = str(outcome.get("ticket", ""))
@@ -115,12 +122,15 @@ def build_candidates(root: Path, args: argparse.Namespace) -> dict[str, Any]:
         hgl_reduction = count * HGL_WEIGHTS.get(risk, 1)
         linked_outcomes: list[dict[str, str]] = []
         seen_outcomes: set[str] = set()
+        successful_outcomes = 0
         for item in items:
             for outcome in item["linked_outcomes"]:
                 if outcome["id"] in seen_outcomes:
                     continue
                 seen_outcomes.add(outcome["id"])
                 linked_outcomes.append(outcome)
+                if outcome.get("review_outcome") == "passed" and outcome.get("rollback_used") != "true":
+                    successful_outcomes += 1
         candidates.append(
             {
                 "id": policy_id,
@@ -134,6 +144,7 @@ def build_candidates(root: Path, args: argparse.Namespace) -> dict[str, Any]:
                 "suggested_mode": "simulation",
                 "expected_hgl_reduction": hgl_reduction,
                 "linked_outcome_count": len(linked_outcomes),
+                "successful_outcome_count": successful_outcomes,
                 "linked_outcomes": linked_outcomes,
                 "observed": (
                     f"{count} decided {risk} {kind} decisions, "
@@ -180,6 +191,7 @@ def text_report(data: dict[str, Any]) -> str:
                 "Suggested mode: simulation",
                 f"Expected HGL reduction: {candidate['expected_hgl_reduction']}",
                 f"Linked outcomes: {candidate['linked_outcome_count']} recorded",
+                f"Successful outcomes: {candidate['successful_outcome_count']} recorded",
                 f"Next: {candidate['next_command']}",
                 "",
             ]

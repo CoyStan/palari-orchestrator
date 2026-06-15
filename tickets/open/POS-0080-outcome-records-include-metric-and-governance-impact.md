@@ -1,17 +1,17 @@
 ---
 id: POS-0080
 title: Outcome records include metric and governance impact
-status: open
+status: in-review
 risk: R2
 priority: P2
 stream: process
 serves_goal: GOAL-0200
 model_hint: 
-claimed_by:
-claimed_at:
-claim_ref:
-claim_heartbeat_at:
-claim_expires_at:
+claimed_by: Codex
+claimed_at: 2026-06-15T14:20:31Z
+claim_ref: refs/palari/claims/POS-0080
+claim_heartbeat_at: 2026-06-15T14:20:31Z
+claim_expires_at: 2026-06-15T14:25:31Z
 allowed_paths:
   - lib/palari/outcomes.bash
   - contracts/outcomes.md
@@ -62,15 +62,28 @@ updated: 2026-06-15
 
 ## Goal
 
-State the result this ticket should produce.
+Expand outcome artifacts so they can record metric impact and governance
+impact while remaining optional, backward-compatible, and read-only for future
+learning surfaces.
 
 ## Scope
 
-List what may change.
+- Outcome artifact creation and lint validation.
+- Outcome template and contract.
+- Policy candidate linked-outcome summaries.
+- Focused outcome and policy-candidate tests.
+- Ticket reports and evidence.
 
 ## Acceptance
 
-- The scoped result exists.
+- New outcome records include optional metric and governance-impact fields.
+- Outcome lint validates populated risk, integer, decimal, boolean, and
+  review-outcome fields.
+- Policy candidates can carry successful linked outcome counts and outcome
+  impact metadata.
+- Existing outcome records remain compatible.
+- No HGL weights, policies, acceptance, broker behavior, authority, or side
+  effects change automatically.
 - Path and risk rules are respected.
 
 ## Verification
@@ -83,19 +96,25 @@ List what may change.
 
 ### Non-Goals
 
-- Nearby work this ticket must not absorb.
+- Do not recalibrate HGL.
+- Do not automatically create or activate policies.
+- Do not change outcome lifecycle, acceptance, broker behavior, external
+  integrations, runtime state, secrets, dependencies, or deployment.
 
 ### Definition Of Done
 
-- Concrete done condition.
+- Outcomes can store predicted/actual metric and governance impact for later
+  read-only policy/HGL learning.
 
 ### Evidence Required
 
-- Report, command, review, screenshot, or manual check to inspect.
+- Technical report, reviewer note, human report, verification log, CI manifest,
+  JUnit, SARIF, and evidence score.
 
 ### Expansion Rules
 
-- Stop if scope, risk, or authority changes.
+- Stop if implementation requires automatic policy activation, HGL mutation,
+  real side effects, or authority changes.
 
 ### Final Review Gate
 

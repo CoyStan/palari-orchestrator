@@ -62,6 +62,36 @@ printf 'evidence\n' >reports/evidence/OUT-9000/verification.log
 grep -Fq "outcome create: outcomes/open/OUT-0001-outcome-observed.md" "$TMP_ROOT/create.out" ||
 	fail "outcome create path missing"
 test -f outcomes/open/OUT-0001-outcome-observed.md || fail "open outcome missing"
+grep -Fq "metric_name:" outcomes/open/OUT-0001-outcome-observed.md ||
+	fail "outcome should include metric fields"
+grep -Fq "risk_predicted:" outcomes/open/OUT-0001-outcome-observed.md ||
+	fail "outcome should include risk impact fields"
+grep -Fq "review_outcome:" outcomes/open/OUT-0001-outcome-observed.md ||
+	fail "outcome should include review outcome field"
+python3 - <<'PY'
+from pathlib import Path
+
+path = Path("outcomes/open/OUT-0001-outcome-observed.md")
+text = path.read_text()
+replacements = {
+    "metric_name:\n": "metric_name: activation_rate\n",
+    "metric_before:\n": "metric_before: 0.10\n",
+    "metric_after:\n": "metric_after: 0.12\n",
+    "metric_delta:\n": "metric_delta: 0.02\n",
+    "risk_predicted:\n": "risk_predicted: R2\n",
+    "risk_actual:\n": "risk_actual: R1\n",
+    "hgl_predicted:\n": "hgl_predicted: 12\n",
+    "hgl_actual:\n": "hgl_actual: 5\n",
+    "human_decisions_predicted:\n": "human_decisions_predicted: 3\n",
+    "human_decisions_actual:\n": "human_decisions_actual: 1\n",
+    "review_outcome:\n": "review_outcome: passed\n",
+    "policy_candidate: false\n": "policy_candidate: true\n",
+    "notes:\n": "notes: first impact calibration record\n",
+}
+for old, new in replacements.items():
+    text = text.replace(old, new)
+path.write_text(text)
+PY
 
 ./bin/palari outcome list >"$TMP_ROOT/list.out"
 grep -Fq "open     OUT-0001" "$TMP_ROOT/list.out" ||
@@ -75,6 +105,8 @@ grep -Fq "status: observed" "$TMP_ROOT/show.out" ||
 	fail "outcome show missing status"
 grep -Fq "ticket: OUT-9000" "$TMP_ROOT/show.out" ||
 	fail "outcome show missing ticket link"
+grep -Fq "review_outcome: passed" "$TMP_ROOT/show.out" ||
+	fail "outcome show missing review outcome"
 
 ./bin/palari outcome lint >"$TMP_ROOT/lint-open.out"
 grep -Fq "outcome lint: ok" "$TMP_ROOT/lint-open.out" ||
@@ -118,5 +150,51 @@ fi
 grep -Fq "references missing workflow: WF-9999" "$TMP_ROOT/lint-bad.out" ||
 	fail "missing workflow diagnostic absent"
 rm -f outcomes/open/OUT-BAD-bad.md
+
+cat >outcomes/open/OUT-BAD-IMPACT-bad-impact.md <<'DOC'
+---
+id: OUT-BAD-IMPACT
+title: Bad impact outcome
+status: observed
+lifecycle: open
+workflow: WF-0001
+goal:
+ticket:
+decision:
+linked_evidence:
+metric_name: activation_rate
+metric_before: many
+metric_after: 0.12
+metric_delta: 0.02
+risk_predicted: R2
+risk_actual: R9
+hgl_predicted: 1
+hgl_actual: five
+human_decisions_predicted: 2
+human_decisions_actual: 1
+review_outcome: maybe
+rollback_used: no
+policy_candidate: yes
+notes:
+created: 2026-01-01
+updated: 2026-01-01
+---
+
+# OUT-BAD-IMPACT Bad impact outcome
+DOC
+if ./bin/palari outcome lint >"$TMP_ROOT/lint-bad-impact.out" 2>&1; then
+	fail "bad impact fields should fail outcome lint"
+fi
+grep -Fq "metric_before must be a decimal number" "$TMP_ROOT/lint-bad-impact.out" ||
+	fail "bad metric diagnostic absent"
+grep -Fq "risk_actual invalid risk: R9" "$TMP_ROOT/lint-bad-impact.out" ||
+	fail "bad risk diagnostic absent"
+grep -Fq "hgl_actual must be a non-negative integer" "$TMP_ROOT/lint-bad-impact.out" ||
+	fail "bad HGL diagnostic absent"
+grep -Fq "review_outcome invalid: maybe" "$TMP_ROOT/lint-bad-impact.out" ||
+	fail "bad review outcome diagnostic absent"
+grep -Fq "rollback_used must be true or false" "$TMP_ROOT/lint-bad-impact.out" ||
+	fail "bad rollback diagnostic absent"
+rm -f outcomes/open/OUT-BAD-IMPACT-bad-impact.md
 
 printf 'outcomes: ok\n'

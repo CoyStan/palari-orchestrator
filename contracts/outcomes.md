@@ -27,6 +27,23 @@ Outcome `lifecycle` is ledger state:
 - `open`
 - `recorded`
 
+Optional metric and governance-impact fields may be present:
+
+- `metric_name`
+- `metric_before`, `metric_after`, `metric_delta`
+- `risk_predicted`, `risk_actual`
+- `hgl_predicted`, `hgl_actual`
+- `human_decisions_predicted`, `human_decisions_actual`
+- `review_outcome`: `passed`, `failed`, `overridden`, or `uncertain`
+- `rollback_used`: `true` or `false`
+- `policy_candidate`: `true` or `false`
+- `notes`
+
+When present, lint validates risks, integer governance counts, decimal metric
+values, booleans, and review outcome labels. These fields are learning signals
+only. They do not change HGL weights, activate policies, accept work, or grant
+authority.
+
 ## References
 
 Outcome lint checks linked workflow, goal, ticket, decision, and evidence paths

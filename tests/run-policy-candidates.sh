@@ -70,6 +70,20 @@ goal:
 ticket: DOC-0001
 decision: DEC-0001
 linked_evidence:
+metric_name: docs_completion_rate
+metric_before: 0.70
+metric_after: 0.80
+metric_delta: 0.10
+risk_predicted: R1
+risk_actual: R1
+hgl_predicted: 3
+hgl_actual: 1
+human_decisions_predicted: 1
+human_decisions_actual: 1
+review_outcome: passed
+rollback_used: false
+policy_candidate: true
+notes: useful repeated docs outcome
 recorded_by: founder
 recorded_at: 2026-01-01T00:00:00Z
 created: 2026-01-01
@@ -95,6 +109,8 @@ grep -Fq "Expected HGL reduction: 3" "$TMP_ROOT/candidates.out" ||
 	fail "HGL reduction missing"
 grep -Fq "Linked outcomes: 1 recorded" "$TMP_ROOT/candidates.out" ||
 	fail "linked outcome count missing"
+grep -Fq "Successful outcomes: 1 recorded" "$TMP_ROOT/candidates.out" ||
+	fail "successful outcome count missing"
 grep -Fq "./bin/palari policy create POL-DOCS-R1-AUTO" "$TMP_ROOT/candidates.out" ||
 	fail "next policy create command missing"
 if grep -Fq "R4 security" "$TMP_ROOT/candidates.out"; then
@@ -119,7 +135,11 @@ assert candidate["decision_count"] == 3
 assert candidate["suggested_mode"] == "simulation"
 assert candidate["expected_hgl_reduction"] == 3
 assert candidate["linked_outcome_count"] == 1
+assert candidate["successful_outcome_count"] == 1
 assert candidate["linked_outcomes"][0]["id"] == "OUT-9000"
+assert candidate["linked_outcomes"][0]["review_outcome"] == "passed"
+assert candidate["linked_outcomes"][0]["metric_delta"] == "0.10"
+assert candidate["linked_outcomes"][0]["policy_candidate"] == "true"
 assert data["skipped"]["high_risk_or_governance"] == 3
 PY
 

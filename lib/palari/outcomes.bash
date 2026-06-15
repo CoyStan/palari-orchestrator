@@ -9,6 +9,21 @@ valid_outcome_id() {
 	[[ "$id" =~ ^OUT-[A-Z0-9][A-Z0-9-]*$ ]]
 }
 
+valid_optional_decimal() {
+	local value="$1"
+	[[ -z "$value" || "$value" =~ ^-?[0-9]+([.][0-9]+)?$ ]]
+}
+
+valid_optional_nonnegative_int() {
+	local value="$1"
+	[[ -z "$value" || "$value" =~ ^[0-9]+$ ]]
+}
+
+valid_optional_bool() {
+	local value="$1"
+	[[ -z "$value" || "$value" == "true" || "$value" == "false" ]]
+}
+
 outcome_dir_for_lifecycle() {
 	case "$1" in
 	open) printf '%s\n' "$OUTCOMES_OPEN_DIR" ;;
@@ -129,6 +144,20 @@ cmd_outcome_create() {
 		else
 			printf 'linked_evidence:\n'
 		fi
+		printf 'metric_name:\n'
+		printf 'metric_before:\n'
+		printf 'metric_after:\n'
+		printf 'metric_delta:\n'
+		printf 'risk_predicted:\n'
+		printf 'risk_actual:\n'
+		printf 'hgl_predicted:\n'
+		printf 'hgl_actual:\n'
+		printf 'human_decisions_predicted:\n'
+		printf 'human_decisions_actual:\n'
+		printf 'review_outcome:\n'
+		printf 'rollback_used: false\n'
+		printf 'policy_candidate: false\n'
+		printf 'notes:\n'
 		printf 'recorded_by:\n'
 		printf 'recorded_at:\n'
 		printf 'created: %s\n' "$created"
@@ -178,7 +207,7 @@ cmd_outcome_show() {
 }
 
 cmd_outcome_lint() {
-	local errors=0 file id status lifecycle workflow goal ticket decision item yaml_issue
+	local errors=0 file id status lifecycle workflow goal ticket decision item yaml_issue value
 	while IFS= read -r file; do
 		[[ -n "$file" ]] || continue
 		id="$(frontmatter_value "$file" id)"
@@ -239,6 +268,40 @@ cmd_outcome_lint() {
 				errors=$((errors + 1))
 			}
 		done < <(frontmatter_list_items "$file" linked_evidence)
+		for value in risk_predicted risk_actual; do
+			item="$(frontmatter_value "$file" "$value")"
+			if [[ -n "$item" && ! " $VALID_RISKS " == *" $item "* ]]; then
+				printf 'outcome lint: %s %s invalid risk: %s\n' "$id" "$value" "$item"
+				errors=$((errors + 1))
+			fi
+		done
+		for value in hgl_predicted hgl_actual human_decisions_predicted human_decisions_actual; do
+			item="$(frontmatter_value "$file" "$value")"
+			if ! valid_optional_nonnegative_int "$item"; then
+				printf 'outcome lint: %s %s must be a non-negative integer\n' "$id" "$value"
+				errors=$((errors + 1))
+			fi
+		done
+		for value in metric_before metric_after metric_delta; do
+			item="$(frontmatter_value "$file" "$value")"
+			if ! valid_optional_decimal "$item"; then
+				printf 'outcome lint: %s %s must be a decimal number when present\n' "$id" "$value"
+				errors=$((errors + 1))
+			fi
+		done
+		item="$(frontmatter_value "$file" review_outcome)"
+		case "$item" in "" | passed | failed | overridden | uncertain) ;; *)
+			printf 'outcome lint: %s review_outcome invalid: %s\n' "$id" "$item"
+			errors=$((errors + 1))
+			;;
+		esac
+		for value in rollback_used policy_candidate; do
+			item="$(frontmatter_value "$file" "$value")"
+			if ! valid_optional_bool "$item"; then
+				printf 'outcome lint: %s %s must be true or false when present\n' "$id" "$value"
+				errors=$((errors + 1))
+			fi
+		done
 		while IFS= read -r yaml_issue; do
 			[[ -n "$yaml_issue" ]] || continue
 			printf 'outcome lint: %s yaml safety: %s\n' "$id" "$yaml_issue"
