@@ -1,17 +1,17 @@
 ---
 id: POS-0061
 title: Correct HGL evidence weighting
-status: open
+status: in-review
 risk: R2
 priority: P0
 stream: process
 serves_goal: GOAL-0200
 model_hint: 
-claimed_by:
-claimed_at:
-claim_ref:
-claim_heartbeat_at:
-claim_expires_at:
+claimed_by: Codex
+claimed_at: 2026-06-15T11:15:47Z
+claim_ref: refs/palari/claims/POS-0061
+claim_heartbeat_at: 2026-06-15T11:15:47Z
+claim_expires_at: 2026-06-15T11:20:47Z
 allowed_paths:
   - adapters/planning/hgl.py
   - contracts/human-governance-load.md

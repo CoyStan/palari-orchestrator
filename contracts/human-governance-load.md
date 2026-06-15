@@ -42,7 +42,7 @@ ceil(
   * irreversibility_weight
   * context_weight
   * skill_scarcity_weight
-  / evidence_quality_factor
+  * evidence_quality_factor
 )
 ```
 
@@ -66,6 +66,16 @@ irreversibility: low 0.7, medium 1.0, high 1.7
 context: low 0.8, medium 1.0, high 1.4
 evidence: none_or_unknown 1.25, weak 1.15, normal 1.0, strong 0.8
 ```
+
+Evidence quality is multiplicative:
+
+- strong evidence lowers HGL
+- normal evidence is neutral
+- weak evidence raises HGL
+- none or unknown evidence raises HGL the most
+
+Unknown evidence labels default to the neutral `normal` factor so scoring stays
+deterministic while lint remains a separate concern.
 
 Skill scarcity starts simple:
 

@@ -308,7 +308,7 @@ def decision_score(risk: str, attrs: dict[str, str], scarcity: str) -> int:
         * WEIGHTS["irreversibility"].get(attrs.get("irreversibility", "medium"), 1.0)
         * WEIGHTS["context"].get(attrs.get("context", "medium"), 1.0)
         * {"covered_by_two_or_more": 0.8, "covered_by_one": 1.0, "missing_or_underleveled": 1.8}[scarcity]
-        / factor
+        * factor
     )
     return int(math.ceil(value))
 

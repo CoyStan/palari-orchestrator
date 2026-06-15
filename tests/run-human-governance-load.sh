@@ -96,6 +96,43 @@ assert required["analytics"] == "L3"
 assert required["technical_governance"] == "L4"
 PY
 
+./bin/palari workflow create WF-0003 "Evidence weighting" \
+	--goal GOAL-0100 \
+	--owner founder \
+	--risk-ceiling R5 >/dev/null
+python3 - <<'PY'
+from pathlib import Path
+
+path = Path("workflows/proposed/WF-0003-evidence-weighting.md")
+text = path.read_text()
+text = text.replace(
+    "expected_decisions:\n",
+    "expected_decisions:\n"
+    "  - R5|approve|product_strategy:L5|Strong evidence check|evidence=strong\n"
+    "  - R5|approve|product_strategy:L5|Normal evidence check|evidence=normal\n"
+    "  - R5|approve|product_strategy:L5|Unknown evidence check|evidence=unexpected_label\n"
+    "  - R5|approve|product_strategy:L5|Weak evidence check|evidence=weak\n"
+    "  - R5|approve|product_strategy:L5|No evidence check|evidence=none_or_unknown\n",
+)
+path.write_text(text)
+PY
+./bin/palari workflow adopt WF-0003 --by founder >/dev/null
+./bin/palari burden score WF-0003 --json >"$TMP_ROOT/evidence-weighting.json"
+python3 - "$TMP_ROOT/evidence-weighting.json" <<'PY'
+import json
+import sys
+
+data = json.load(open(sys.argv[1]))
+scores = {row["title"]: row["score"] for row in data["decisions"]}
+strong = scores["Strong evidence check"]
+normal = scores["Normal evidence check"]
+unknown = scores["Unknown evidence check"]
+weak = scores["Weak evidence check"]
+none = scores["No evidence check"]
+assert strong < normal < weak < none, scores
+assert unknown == normal, scores
+PY
+
 ./bin/palari workflow create WF-0002 "Privacy rollout" \
 	--goal GOAL-0100 \
 	--owner founder \
