@@ -1,7 +1,7 @@
 ---
 id: POS-0066
 title: Enforce configurable human acceptance quorum
-status: in-review
+status: accepted
 risk: R5
 priority: P0
 stream: process
@@ -74,10 +74,11 @@ verification:
 target_branch: ticket/POS-0065
 branch: ticket/POS-0066
 worktree: 
-accepted_by:
-accepted_at:
+accepted_by: HUMAN-ADMIN
+accepted_at: 2026-06-15T22:17:41Z
 created: 2026-06-15
 updated: 2026-06-15
+acceptance_mode: human
 ---
 
 # POS-0066 Enforce configurable human acceptance quorum

@@ -2,7 +2,7 @@
 
 - Ticket: POS-0066
 - Base ref: HEAD
-- Created: 2026-06-15T21:42:20Z
+- Created: 2026-06-15T22:16:54Z
 
 ## scope-check
 
@@ -42,7 +42,7 @@ Command: `./tests/run-gate-kernel.sh`
 ```text
 ...........................
 ----------------------------------------------------------------------
-Ran 27 tests in 0.092s
+Ran 27 tests in 0.088s
 
 OK
 run-gate-kernel: ok
