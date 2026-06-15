@@ -1,7 +1,7 @@
 ---
 id: POS-0071
 title: Broker evidence uses signed observation schema v1
-status: in-review
+status: accepted
 risk: R3
 priority: P1
 stream: process
@@ -10,8 +10,8 @@ model_hint:
 claimed_by: codex
 claimed_at: 2026-06-15T13:00:50Z
 claim_ref: refs/palari/claims/POS-0071
-claim_heartbeat_at: 2026-06-15T13:00:50Z
-claim_expires_at: 2026-06-15T13:05:50Z
+claim_heartbeat_at: 2026-06-15T23:26:47Z
+claim_expires_at: 2026-06-15T23:31:47Z
 allowed_paths:
   - adapters/broker/**
   - contracts/broker.md
@@ -48,9 +48,9 @@ verification:
 target_branch: main
 branch: ticket/POS-0071
 worktree: 
-accepted_by:
+accepted_by: founder
 acceptance_mode: human
-accepted_at:
+accepted_at: 2026-06-15T23:26:49Z
 created: 2026-06-15
 updated: 2026-06-15
 ---
