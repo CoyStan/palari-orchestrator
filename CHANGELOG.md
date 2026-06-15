@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Added deterministic Company OS demo fixtures (DEM-0004). `palari demo
+  --company-os` creates a local-only founder/operator demo with active
+  workflow, human coverage, missing skill, policy-candidate signal, mock broker
+  evidence, recorded outcome, and snapshot/web inspection without external
+  agents or services.
 - Added the secure governance doctor (SEC-0001). `palari doctor secure` and
   `palari doctor governance` classify weak vs stronger local governance
   posture, report ForgeGate, broker, policy, R5, and branch-protection

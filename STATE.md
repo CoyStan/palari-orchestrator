@@ -94,6 +94,15 @@ promise is visible, scoped, reviewable work with explicit human gates.
 - Obvious dangerous command patterns are refused before execution, with refusal
   evidence preserved.
 
+### Company OS Demo
+
+- `palari demo --company-os` writes deterministic local fixtures for the
+  Company AI OS shape: active workflow, human governance coverage, missing
+  skill, policy-candidate signal, mock broker evidence, recorded outcome, and
+  snapshot/web inspection.
+- The demo is local-only and does not run agents, access network services,
+  accept tickets, push, merge, deploy, or enable broker side effects.
+
 ### Outcome Ledger
 
 - Outcome artifacts under `outcomes/open` and `outcomes/recorded` record what
