@@ -66,6 +66,24 @@ Supported first-pass conditions:
 Unknown conditions are preserved in policy artifacts but produce
 `would_not_accept` with a clear reason until implemented.
 
+## Candidate Learning Signals
+
+`palari policy candidates` may use repeated low-risk decisions and recorded
+outcomes to recommend simulation-only policy candidates. Candidate confidence
+may consider:
+
+- similar successful decisions
+- human approval rate
+- human override rate
+- outcome success rate
+- rollback, invalidation, or failure rate
+- linked outcome evidence
+
+Human overrides and failed, invalidated, or rollback outcomes must reduce
+candidate confidence. R3/R4/R5 decisions must not be emitted as policy
+candidates by default. Candidate output is advisory and simulation-only; it must
+not create policy files, activate policies, accept tickets, or grant authority.
+
 ## Future Work
 
 Real policy acceptance requires a separate R5 ticket, stronger evidence, secure

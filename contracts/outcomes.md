@@ -50,6 +50,11 @@ risk estimates, evidence patterns, or simulation-only policy candidates deserve
 human review, but they must not update governance weights or policy state
 without a separate human-approved change.
 
+Recorded outcomes may also lower or raise simulation-only policy candidate
+confidence. Passed outcomes without rollback may increase confidence; failed,
+overridden, invalidated, or rollback outcomes must reduce confidence. This is
+still advisory learning only and must not activate policies or accept work.
+
 ## References
 
 Outcome lint checks linked workflow, goal, ticket, decision, and evidence paths
