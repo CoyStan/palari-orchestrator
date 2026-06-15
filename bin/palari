@@ -113,6 +113,9 @@ source "$PALARI_LIB_DIR/burden.bash"
 palari_require_module "$PALARI_LIB_DIR/policies.bash"
 # shellcheck source=lib/palari/policies.bash
 source "$PALARI_LIB_DIR/policies.bash"
+palari_require_module "$PALARI_LIB_DIR/broker.bash"
+# shellcheck source=lib/palari/broker.bash
+source "$PALARI_LIB_DIR/broker.bash"
 palari_require_module "$PALARI_LIB_DIR/decisions.bash"
 # shellcheck source=lib/palari/decisions.bash
 source "$PALARI_LIB_DIR/decisions.bash"
@@ -179,6 +182,8 @@ commands:
   policy create|list|show|lint  Manage simulation-only policy artifacts.
   policy simulate ID [--json]   Explain policy acceptance without accepting.
   policy candidates [--json]    Suggest conservative simulation policy candidates.
+  broker run ID --mock -- CMD   Capture mock broker observed-command evidence.
+  broker evidence|status        Inspect broker evidence and side-effect posture.
   decide create|list|show|lint Draft and inspect structured founder decisions.
   decide record ID --choice N --by NAME  Record a human decision outcome.
   run --dry-run [--until blocked] [--goal G] [--json]
@@ -332,6 +337,10 @@ burden)
 policy)
 	shift
 	cmd_policy "$@"
+	;;
+broker)
+	shift
+	cmd_broker "$@"
 	;;
 decide | decision)
 	shift

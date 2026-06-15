@@ -82,6 +82,18 @@ promise is visible, scoped, reviewable work with explicit human gates.
 - Candidate detection never creates or activates policy files automatically,
   and it excludes R3/R4/R5 decision classes from auto-accept suggestions.
 
+### Broker Boundary
+
+- `palari broker run TICKET-ID --mock -- COMMAND [ARGS...]` captures
+  mock broker observed-command evidence under `reports/evidence/TICKET/broker/`.
+- `palari broker evidence TICKET-ID [--json]` lists broker evidence.
+- `palari broker status` reports the current broker posture:
+  `real_side_effects_enabled: false`.
+- Broker support is mock-only. It does not load credentials, call hosted APIs,
+  enable network side effects, or grant agents direct external-write authority.
+- Obvious dangerous command patterns are refused before execution, with refusal
+  evidence preserved.
+
 ### Work Isolation
 
 - Ticket branches and worktrees for isolated work.

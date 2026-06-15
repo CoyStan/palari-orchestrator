@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Added the mock broker evidence boundary (BRK-0001). `palari broker run
+  TICKET-ID --mock -- COMMAND` records command, cwd, exit code, stdout/stderr
+  hashes, observed changed paths, and side-effect posture under
+  `reports/evidence/TICKET/broker/`; `broker evidence` and `broker status`
+  inspect the mock-only posture without enabling real side effects.
 - Added conservative policy candidate suggestions (POL-0002). `palari policy
   candidates [--json]` inspects decided R0-R2 decisions linked to tickets,
   groups repeated recommendation/chosen-option patterns, estimates rough HGL
