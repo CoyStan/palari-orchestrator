@@ -42,3 +42,26 @@ behavior, or acceptance bypasses.
 - Successful mock runs emit `decision: observed`.
 - Refused dangerous commands emit `decision: denied`.
 - Snapshot broker counts now expect one schema-v1 mock observation in the fixture.
+
+## Post-Repair Re-review
+
+Carver subagent re-reviewed POS-0071 after the POS-0072/POS-0073 broker
+boundary repairs on 2026-06-15 and found no findings.
+
+- Confirmed mock broker summaries remain on
+  `schema_version: broker-observation-v1`.
+- Confirmed structured fields remain inspectable: `broker_mode: mock`,
+  `boundary_type: observed_only`, side-effect/credential/network posture false,
+  and dangerous mock refusals recorded as `decision: denied`.
+
+Re-review verification:
+
+- `git status --short --branch`: clean, `ticket/POS-0097` ahead of origin.
+- `./tests/run-broker-mock.sh`: passed.
+- `./tests/run-company-os-snapshot.sh`: passed.
+- `./bin/palari evidence score POS-0071 --strict`: passed, `100/100`.
+- `./bin/palari scope-check POS-0071`: passed.
+- `./bin/palari report-lint POS-0071`: passed.
+
+Recommendation remains: accept POS-0071 through the normal authorized human
+gate.

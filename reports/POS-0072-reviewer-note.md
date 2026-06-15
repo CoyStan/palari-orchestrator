@@ -2,17 +2,11 @@
 
 ## Review Result
 
-Pending fresh-context review.
+Pending final fresh-context re-review after the second repair.
 
 ## Findings
 
-No independent fresh-context findings have been recorded yet. Suggested review focus:
-
-- Confirm sandbox broker mode runs commands in a disposable repo copy and does not copy changes back.
-- Confirm allowed scoped changes produce `decision: observed_allowed`.
-- Confirm forbidden or outside-scope changes produce `decision: denied_or_violation` and a nonzero broker exit.
-- Confirm evidence includes changed paths, forbidden path changes, and `patch.diff`.
-- Confirm docs/status do not claim network isolation or real side-effect authority.
+Initial and repair re-review findings are recorded below.
 
 ## Verification Reviewed
 
@@ -26,11 +20,11 @@ Pending fresh-context reviewer verification. Implementation evidence currently i
 
 ## Required Changes
 
-None recorded yet; pending fresh-context review.
+Pending final fresh-context re-review after the second repair.
 
 ## Recommendation
 
-Pending fresh-context review before acceptance.
+Pending final fresh-context re-review before acceptance.
 
 ## Evidence Notes
 
@@ -74,3 +68,68 @@ not accept-ready.
 - `./tests/run-risks.sh`
 - `./tests/run-policy-simulation.sh`
 - `bats tests/palari_acceptance.bats`
+
+## Repair Re-review Finding
+
+Popper subagent re-reviewed the first repair on 2026-06-15 and found POS-0072
+still not accept-ready.
+
+- Finding: sandbox command targets containing `..` path segments could still be
+  normalized into an otherwise allowed path and execute as `observed_allowed`.
+- Repro:
+  `./bin/palari broker sandbox POS-0072 -- sh -c 'printf "traversal\n" > adapters/../contracts/broker.md'`
+- Impact: this violated the intended fail-closed sandbox command policy. Path
+  traversal should be refused before execution, even when normalization would
+  remain inside the repository.
+
+## Second Repair Applied
+
+- Sandbox command parsing now rejects any raw `..` path segment before
+  normalization or execution.
+- Regression coverage verifies
+  `./bin/palari broker sandbox BRK-0100 -- sh -c 'printf "traversal\n" > tests/../README.md'`
+  is denied before execution.
+- The regression uses `tests/../README.md` because it normalizes to an otherwise
+  allowed file for the fixture, proving the denial is traversal-based rather
+  than only scope-based.
+- The regression checks `executed: false`, `decision: denied`,
+  `decision_reason: sandbox_command_refused`, nonzero broker exit, unchanged
+  README content, and empty `changed_paths`.
+
+## Second Repair Verification
+
+- `python3 -m py_compile adapters/broker/mock_broker.py`
+- `bash -n lib/palari/broker.bash tests/run-broker-mock.sh tests/run-sandbox.sh`
+- `./tests/run-broker-mock.sh`
+- `./tests/run-sandbox.sh`
+- Direct traversal repro against `tests/../README.md`: denied before execution.
+- `./bin/palari ci POS-0072`: passed.
+- `./bin/palari evidence score POS-0072 --strict`: passed, `100/100`.
+- `./bin/palari scope-check POS-0072`: passed.
+- `./bin/palari report-lint POS-0072`: passed.
+
+## Second Repair Re-review Finding
+
+Kierkegaard subagent re-reviewed POS-0072 after the second repair on
+2026-06-15 and found no POS-0072 code/security finding, but did not mark the
+ticket accept-ready because the live worktree had unrelated uncommitted
+reviewer-note edits for POS-0070, POS-0071, and POS-0073.
+
+- Confirmed sandbox repair rejects raw `..` before execution.
+- Confirmed regression coverage checks traversal is denied with
+  `executed: false`.
+- Confirmed a temp-copy direct traversal repro for
+  `adapters/../contracts/broker.md` was denied before execution, left the target
+  unchanged, and reported `changed_paths: []`.
+- Confirmed `./tests/run-broker-mock.sh`, `./tests/run-sandbox.sh`,
+  `./bin/palari evidence score POS-0072 --strict`,
+  `./bin/palari report-lint POS-0072`,
+  `./tests/run-policy-simulation.sh`, and
+  `bats tests/palari_acceptance.bats` passed.
+- Blocking caveat: final live `./bin/palari scope-check POS-0072` failed only
+  because out-of-scope POS-0070/POS-0071/POS-0073 reviewer-note edits were dirty
+  at the same time.
+
+Required cleanup: commit the cross-ticket reviewer-note bookkeeping, rerun
+`./bin/palari scope-check POS-0072` from a clean tree, and run final POS-0072
+re-review.

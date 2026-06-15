@@ -25,7 +25,8 @@ reports/evidence/POS-0072/
 ## Outcome
 
 - What changed: `palari broker run TICKET --sandbox -- COMMAND` and `palari broker sandbox TICKET -- COMMAND` now run commands inside a disposable repo copy, scrub obvious credential environment variables, capture changed paths, compare those paths against ticket allowed/forbidden scope, write patch/evidence artifacts, and delete the sandbox copy.
-- Review repair: sandbox execution is now narrowed to a simple `sh -c 'printf ... > relative-repo-path'` repo-file write subset, uses a temporary `HOME`/`TMPDIR`, and refuses absolute paths, path traversal, shell expansion, command chaining, pipes, redirects from files, and commands outside that subset before execution.
+- Review repair: sandbox execution is now narrowed to a simple `sh -c 'printf ... > relative-repo-path'` repo-file write subset, uses a temporary `HOME`/`TMPDIR`, and refuses absolute paths, raw `..` traversal segments, shell expansion, command chaining, pipes, redirects from files, and commands outside that subset before execution.
+- Repair re-review: an additional reviewer found that traversal targets could still normalize into allowed paths. The second repair now denies raw `..` target segments before normalization or execution, with regression coverage for `tests/../README.md`.
 - What did not change: Sandbox broker mode does not copy changes back to the real repo, does not enable real side effects, does not load credentials, does not provide network isolation, and does not claim to be a hardened security boundary.
 - Blockers: none.
 - Next action: fresh-context review, then POS-0073 can add broker permission check without execution if accept-ready.
@@ -41,6 +42,7 @@ reports/evidence/POS-0072/
   - `./tests/run-risks.sh`
   - `./tests/run-policy-simulation.sh`
   - `bats tests/palari_acceptance.bats`
+  - Direct traversal repro against `tests/../README.md`: denied before execution.
   - `./bin/palari broker status`
   - `./bin/palari lint POS-0072`
   - `./bin/palari report-lint POS-0072`

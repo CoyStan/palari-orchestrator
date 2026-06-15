@@ -46,3 +46,28 @@ simulation-only guarantees remain intact.
 - Successful mock runs now produce `status: observed`.
 - Dangerous-command refusals produce `status: denied` and `decision_reason: dangerous_command_refused`.
 - `side_effects_enabled` remains false in status and result evidence.
+
+## Post-Repair Re-review
+
+Ampere subagent re-reviewed POS-0070 after the POS-0072/POS-0073 broker
+boundary repairs on 2026-06-15 and found no blocking findings.
+
+- Confirmed broker vocabulary remains conservative and schema-compatible.
+- Confirmed sandbox-specific decisions stay in observation evidence rather than
+  widening the result schema.
+- Confirmed broker status/evidence still say no real side effects, no
+  credentials available to agents, no hosted/network API access, and no claimed
+  network isolation.
+- Confirmed the narrowed sandbox command policy refuses absolute or escaping
+  paths and allows only simple `printf` repo-copy writes.
+
+Re-review verification:
+
+- `git status --short --branch`: clean, `ticket/POS-0097` ahead of origin.
+- `./bin/palari broker status`: passed.
+- `./tests/run-broker-mock.sh`: passed.
+- `./bin/palari evidence score POS-0070 --strict`: passed, `100/100`.
+- `./bin/palari scope-check POS-0070`: passed.
+- `./bin/palari report-lint POS-0070`: passed.
+
+Recommendation remains: proceed with normal human/authorized acceptance.
