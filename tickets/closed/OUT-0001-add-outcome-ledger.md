@@ -1,7 +1,7 @@
 ---
 id: OUT-0001
 title: Add outcome ledger
-status: claimed
+status: accepted
 risk: R3
 priority: P2
 stream: process
@@ -10,8 +10,8 @@ model_hint:
 claimed_by: codex
 claimed_at: 2026-06-15T00:11:05Z
 claim_ref: refs/palari/claims/OUT-0001
-claim_heartbeat_at: 2026-06-15T00:11:05Z
-claim_expires_at: 2026-06-15T00:16:05Z
+claim_heartbeat_at: 2026-06-15T00:17:47Z
+claim_expires_at: 2026-06-15T00:22:47Z
 allowed_paths:
   - contracts/**
   - templates/**
@@ -52,8 +52,8 @@ verification:
 target_branch: main
 branch: ticket/OUT-0001
 worktree: 
-accepted_by:
-accepted_at:
+accepted_by: quetza
+accepted_at: 2026-06-15T00:17:57Z
 created: 2026-06-15
 updated: 2026-06-15
 ---
