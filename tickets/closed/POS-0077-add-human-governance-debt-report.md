@@ -1,7 +1,7 @@
 ---
 id: POS-0077
 title: Add Human Governance Debt report
-status: in-review
+status: accepted
 risk: R2
 priority: P2
 stream: process
@@ -10,8 +10,8 @@ model_hint:
 claimed_by: Codex
 claimed_at: 2026-06-15T13:56:04Z
 claim_ref: refs/palari/claims/POS-0077
-claim_heartbeat_at: 2026-06-15T13:56:04Z
-claim_expires_at: 2026-06-15T14:01:04Z
+claim_heartbeat_at: 2026-06-16T07:07:13Z
+claim_expires_at: 2026-06-16T07:12:13Z
 allowed_paths:
   - adapters/planning/**
   - lib/palari/**
@@ -49,11 +49,11 @@ verification:
 target_branch: main
 branch: ticket/POS-0077
 worktree: 
-accepted_by:
+accepted_by: founder
 acceptance_mode: human
-accepted_at:
+accepted_at: 2026-06-16T07:07:39Z
 created: 2026-06-15
-updated: 2026-06-15
+updated: 2026-06-16
 ---
 
 # POS-0077 Add Human Governance Debt report
