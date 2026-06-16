@@ -2,20 +2,19 @@
 
 ## Review Result
 
-Pending fresh-context review.
+Accept-ready after real fresh-context review.
 
 ## Findings
 
-No independent fresh-context findings have been recorded yet. Suggested review focus:
-
-- Confirm outcome creation adds the optional impact fields.
-- Confirm outcome lint validates populated metric/governance impact fields and remains backward-compatible.
-- Confirm policy candidates only carry linked outcome metadata and successful outcome counts; they do not activate policies.
-- Confirm no HGL scoring, acceptance, broker behavior, authority rules, dependencies, secrets, runtime state, or side effects changed.
+- Outcome creation adds optional metric and governance impact fields.
+- Outcome lint validates populated metric/governance impact fields and remains backward-compatible.
+- Policy candidates carry linked outcome metadata and successful outcome counts only; they do not activate policies.
+- No HGL scoring, acceptance, broker behavior, authority rule, dependency, secret, deployment, runtime-state, or side-effect changes were found.
+- Non-blocking process note: evidence manifests were stale after later stack commits and need refresh before founder acceptance.
 
 ## Verification Reviewed
 
-Pending fresh-context reviewer verification. Implementation evidence currently includes:
+Fresh-context reviewer checked the implementation and focused verification:
 
 - `bash -n lib/palari/outcomes.bash tests/run-outcomes.sh tests/run-policy-candidates.sh`
 - `./bin/palari outcome lint`
@@ -24,11 +23,11 @@ Pending fresh-context reviewer verification. Implementation evidence currently i
 
 ## Required Changes
 
-None recorded yet; pending fresh-context review.
+None.
 
 ## Recommendation
 
-Pending fresh-context review before acceptance.
+Accept-ready after refreshing evidence at current HEAD.
 
 ## Evidence Notes
 

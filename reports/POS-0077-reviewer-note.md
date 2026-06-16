@@ -2,21 +2,18 @@
 
 ## Review Result
 
-Pending fresh-context review.
+Reopened by real fresh-context review; bounded repair implemented and awaiting re-review.
 
 ## Findings
 
-No independent fresh-context findings have been recorded yet. Suggested review focus:
-
-- Confirm `palari burden debt` and `palari burden debt --json` are read-only.
-- Confirm debt items are deterministic and grounded in active workflows/humans.
-- Confirm snapshot includes only a compact debt summary, not a heavy or mutating path.
-- Confirm the report does not introduce policy acceptance, broker side effects, external integrations, new dependencies, secrets, or runtime state.
-- Confirm tests cover missing privacy skill, configured R5 human-quorum gap, weak evidence, and snapshot debt summary.
+- Real reviewer finding: the documented configured R5 human-quorum debt gap lacked a committed positive regression test.
+- Repair implemented: `tests/run-human-governance-load.sh` now configures R5 quorum as 2 while only one active qualified R5 policy approver remains, then asserts `r5_human_quorum_coverage` appears in `palari burden debt --json`.
+- Debt reporting remains read-only and grounded in active workflows/humans.
+- No policy acceptance, broker side effect, external integration, dependency, secret, deployment, or runtime-state change was made.
 
 ## Verification Reviewed
 
-Pending fresh-context reviewer verification. Implementation evidence currently includes:
+Initial implementation evidence plus repair verification:
 
 - `python3 -m py_compile adapters/planning/governance_debt.py adapters/planning/company_os_snapshot.py adapters/planning/hgl.py adapters/planning/policy_candidates.py`
 - `./bin/palari burden debt`
@@ -27,11 +24,11 @@ Pending fresh-context reviewer verification. Implementation evidence currently i
 
 ## Required Changes
 
-None recorded yet; pending fresh-context review.
+Run fresh-context re-review after the positive quorum-gap regression test.
 
 ## Recommendation
 
-Pending fresh-context review before acceptance.
+Do not accept until re-review confirms the repair.
 
 ## Evidence Notes
 

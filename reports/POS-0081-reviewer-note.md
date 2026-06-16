@@ -2,22 +2,21 @@
 
 ## Review Result
 
-Pending fresh-context review.
+Accept-ready after real fresh-context review.
 
 ## Findings
 
-No independent fresh-context findings have been recorded yet. Suggested review focus:
-
-- Confirm `palari burden calibrate` and `--json` are read-only.
-- Confirm overestimated and underestimated HGL are derived from recorded outcomes only.
-- Confirm risk mismatches use predicted-vs-actual outcome fields.
-- Confirm policy-candidate classes are suggestions only and do not activate policies.
-- Confirm evidence patterns are advisory and do not mutate HGL weights.
-- Confirm no scoring, coverage, authority, policy, broker, dependency, secret, runtime, or side-effect behavior changed.
+- `palari burden calibrate` and `--json` are read-only.
+- Overestimated and underestimated HGL are derived from recorded outcomes only.
+- Risk mismatches use predicted-vs-actual outcome fields.
+- Policy-candidate classes are suggestions only and do not activate policies.
+- Evidence patterns are advisory and do not mutate HGL weights.
+- No scoring, coverage, authority, policy, broker, dependency, secret, deployment, runtime-state, or side-effect behavior changes were found.
+- Non-blocking process note: evidence manifests were stale after later stack commits and need refresh before founder acceptance.
 
 ## Verification Reviewed
 
-Pending fresh-context reviewer verification. Implementation evidence currently includes:
+Fresh-context reviewer checked the implementation and focused verification:
 
 - `python3 -m py_compile adapters/planning/hgl_calibration.py adapters/planning/hgl.py adapters/planning/policy_candidates.py`
 - `bash -n lib/palari/burden.bash tests/run-outcomes.sh tests/run-human-governance-load.sh`
@@ -28,11 +27,11 @@ Pending fresh-context reviewer verification. Implementation evidence currently i
 
 ## Required Changes
 
-None recorded yet; pending fresh-context review.
+None.
 
 ## Recommendation
 
-Pending fresh-context review before acceptance.
+Accept-ready after refreshing evidence at current HEAD.
 
 ## Evidence Notes
 

@@ -110,7 +110,9 @@ To see the Company AI OS infrastructure shape:
 
 ```bash
 ./bin/palari demo --company-os
-./bin/palari workflow plan WF-9004
+./bin/palari workflow plan WF-9101
+./bin/palari workflow plan WF-9102
+./bin/palari workflow plan WF-9103
 ./bin/palari policy candidates
 ./bin/palari web
 ```
@@ -256,8 +258,10 @@ The quick operator loop is:
 
 ```bash
 ./bin/palari demo --company-os --force
-./bin/palari workflow plan WF-9004
-./bin/palari human coverage WF-9004
+./bin/palari workflow plan WF-9101
+./bin/palari workflow plan WF-9102
+./bin/palari workflow plan WF-9103
+./bin/palari human coverage WF-9103
 ./bin/palari policy candidates
 ./bin/palari broker evidence DPC-9001
 ./bin/palari outcome list

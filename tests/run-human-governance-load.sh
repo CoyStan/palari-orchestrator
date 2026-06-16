@@ -434,4 +434,27 @@ assert data["launch_gate"] == "green"
 assert data["autonomy_ceiling"] == "simulation_only"
 PY
 
+rm -f humans/active/HUMAN-ALICE-alice.md
+python3 - <<'PY'
+from pathlib import Path
+
+path = Path("palari.config.yaml")
+text = path.read_text()
+old = "    R5: 1"
+if old not in text:
+    raise SystemExit("expected R5 human approval quorum not found")
+path.write_text(text.replace(old, "    R5: 2", 1))
+PY
+./bin/palari burden debt --json >"$TMP_ROOT/r5-quorum-gap.json"
+python3 - "$TMP_ROOT/r5-quorum-gap.json" <<'PY'
+import json
+import sys
+
+data = json.load(open(sys.argv[1]))
+categories = {item["category"]: item for item in data["items"]}
+assert "r5_human_quorum_coverage" in categories, data
+message = categories["r5_human_quorum_coverage"]["message"]
+assert "1 qualified human(s); 2 required by config" in message, message
+PY
+
 printf 'human-governance-load: ok\n'

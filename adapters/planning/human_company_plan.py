@@ -92,7 +92,7 @@ def workflow_rows(root: pathlib.Path, args: argparse.Namespace) -> list[tuple[An
 
 
 def merge_requirement(
-    requirements: dict[tuple[str, str], Requirement],
+    requirements: dict[tuple[str, str, str, str], Requirement],
     workflow_id: str,
     risk: str,
     coverage: dict[str, Any],
@@ -100,15 +100,11 @@ def merge_requirement(
     skill = str(coverage["skill"])
     level = str(coverage["level"])
     role = role_for_skill(skill)
-    key = (role, skill)
+    key = (role, skill, level, risk)
     existing = requirements.get(key)
     if existing is None:
         existing = Requirement(skill=skill, level=level, role=role, risk=risk)
         requirements[key] = existing
-    if hgl.level_number(level) > hgl.level_number(existing.level):
-        existing.level = level
-    if hgl.risk_number(risk) > hgl.risk_number(existing.risk):
-        existing.risk = risk
     existing.workflows.add(workflow_id)
     existing.decision_count += 1
     existing.covered_by.update(str(human) for human in coverage.get("covered_by", []))
@@ -139,7 +135,7 @@ def concentration_risks(requirements: list[dict[str, Any]]) -> list[dict[str, An
 def build_plan(root: pathlib.Path, args: argparse.Namespace) -> dict[str, Any]:
     root = root.resolve()
     workflows = workflow_rows(root, args)
-    requirements: dict[tuple[str, str], Requirement] = {}
+    requirements: dict[tuple[str, str, str, str], Requirement] = {}
     for _, data in workflows:
         workflow_id = str(data.get("workflow", ""))
         for decision in data.get("decisions", []):

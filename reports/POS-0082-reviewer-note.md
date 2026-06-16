@@ -2,22 +2,21 @@
 
 ## Review Result
 
-Pending fresh-context review.
+Accept-ready after real fresh-context review.
 
 ## Findings
 
-No independent fresh-context findings have been recorded yet. Suggested review focus:
-
-- Confirm candidates remain R0-R2 and simulation-only.
-- Confirm policy candidate output includes approval, override, outcome success, rollback/failure, evidence, confidence, and reason fields.
-- Confirm human overrides reduce confidence.
-- Confirm failed, overridden, invalidated, or rollback outcomes reduce confidence.
-- Confirm no policy artifacts are created or activated.
-- Confirm no decision lifecycle, outcome lifecycle, HGL scoring, broker, authority, dependency, secret, runtime, or side-effect behavior changed.
+- Candidates remain R0-R2 and simulation-only.
+- Policy candidate output includes approval, override, outcome success, rollback/failure, evidence, confidence, and reason fields.
+- Human overrides reduce confidence.
+- Failed, overridden, invalidated, or rollback outcomes reduce confidence.
+- No policy artifacts are created or activated.
+- No decision lifecycle, outcome lifecycle, HGL scoring, broker, authority, dependency, secret, deployment, runtime-state, or side-effect behavior changes were found.
+- Non-blocking process note: evidence manifests were stale after later stack commits and need refresh before founder acceptance.
 
 ## Verification Reviewed
 
-Pending fresh-context reviewer verification. Implementation evidence currently includes:
+Fresh-context reviewer checked the implementation and focused verification:
 
 - `python3 -m py_compile adapters/planning/policy_candidates.py`
 - `bash -n tests/run-policy-candidates.sh tests/run-outcomes.sh`
@@ -26,11 +25,11 @@ Pending fresh-context reviewer verification. Implementation evidence currently i
 
 ## Required Changes
 
-None recorded yet; pending fresh-context review.
+None.
 
 ## Recommendation
 
-Pending fresh-context review before acceptance.
+Accept-ready after refreshing evidence at current HEAD.
 
 ## Evidence Notes
 

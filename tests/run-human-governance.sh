@@ -292,6 +292,12 @@ grep -Fq "human lint: ok" "$TMP_ROOT/final-lint.out" ||
 	--authority-max-risk R5 \
 	--may-approve-policy-changes >/dev/null
 ./bin/palari human adopt HUMAN-FOUNDER --by founder >/dev/null
+./bin/palari human create HUMAN-PRIVACY-LOW "Privacy Low" \
+	--skill privacy:L3 \
+	--role privacy_governor \
+	--capacity-hgl 40 \
+	--authority-max-risk R3 >/dev/null
+./bin/palari human adopt HUMAN-PRIVACY-LOW --by founder >/dev/null
 
 ./bin/palari workflow create WF-0100 "Launch governed beta" \
 	--goal GOAL-0100 \
@@ -306,6 +312,7 @@ text = text.replace(
     "expected_decisions:\n",
     "expected_decisions:\n"
     "  - R5|approve|privacy:L5|Approve privacy boundary\n"
+    "  - R3|choose|privacy:L3|Choose privacy review posture\n"
     "  - R4|approve|technical_governance:L4|Approve production controls\n"
     "  - R3|choose|product_strategy:L4,analytics:L3,operations:L3|Choose launch operating plan\n",
 )
@@ -318,6 +325,8 @@ grep -Fq "Minimum viable human company for active workflows:" "$TMP_ROOT/org-pla
 	fail "org-plan title missing"
 grep -Fq "privacy_governor L5: privacy for R5 (missing; missing)" "$TMP_ROOT/org-plan.out" ||
 	fail "org-plan privacy missing row missing"
+grep -Fq "privacy_governor L3: privacy for R3 (thin; HUMAN-PRIVACY-LOW)" "$TMP_ROOT/org-plan.out" ||
+	fail "org-plan lower-risk privacy coverage row missing"
 grep -Fq "technical_governor L4: technical_governance for R4 (missing; missing)" "$TMP_ROOT/org-plan.out" ||
 	fail "org-plan technical missing row missing"
 grep -Fq "product_governor L4: product_strategy for R3 (thin; HUMAN-FOUNDER)" "$TMP_ROOT/org-plan.out" ||
@@ -334,14 +343,19 @@ import sys
 
 data = json.load(open(sys.argv[1]))
 assert data["active_workflow_count"] == 1, data
-requirements = {(item["role"], item["skill"]): item for item in data["requirements"]}
-assert requirements[("privacy_governor", "privacy")]["status"] == "missing", requirements
-assert requirements[("technical_governor", "technical_governance")]["status"] == "missing", requirements
-assert requirements[("product_governor", "product_strategy")]["covered_by"] == ["HUMAN-FOUNDER"], requirements
-assert requirements[("analytics_reviewer", "analytics")]["status"] == "thin", requirements
-assert requirements[("operations_governor", "operations")]["status"] == "thin", requirements
+requirements = {
+    (item["role"], item["skill"], item["level"], item["risk"]): item
+    for item in data["requirements"]
+}
+assert requirements[("privacy_governor", "privacy", "L5", "R5")]["status"] == "missing", requirements
+assert requirements[("privacy_governor", "privacy", "L5", "R5")]["covered_by"] == [], requirements
+assert requirements[("privacy_governor", "privacy", "L3", "R3")]["covered_by"] == ["HUMAN-PRIVACY-LOW"], requirements
+assert requirements[("technical_governor", "technical_governance", "L4", "R4")]["status"] == "missing", requirements
+assert requirements[("product_governor", "product_strategy", "L4", "R3")]["covered_by"] == ["HUMAN-FOUNDER"], requirements
+assert requirements[("analytics_reviewer", "analytics", "L3", "R3")]["status"] == "thin", requirements
+assert requirements[("operations_governor", "operations", "L3", "R3")]["status"] == "thin", requirements
 assert data["missing_requirements"] == 2, data
-assert data["thin_requirements"] == 3, data
+assert data["thin_requirements"] == 4, data
 assert data["concentration_risks"][0]["human"] == "HUMAN-FOUNDER", data
 assert "privacy_governor" in data["recommendation"], data
 PY

@@ -2,22 +2,21 @@
 
 ## Review Result
 
-Pending fresh-context review.
+Accept-ready after real fresh-context review.
 
 ## Findings
 
-No independent fresh-context findings have been recorded yet. Suggested review focus:
-
-- Confirm `palari decide inbox` and `--json` are read-only.
-- Confirm workflow expected decisions and open decision artifacts both appear.
-- Confirm sorting is by risk, then HGL.
-- Confirm required skills, coverage status, eligible humans, and policy candidate count are present.
-- Confirm no decisions are created, recorded, moved, or accepted.
-- Confirm no workflow lifecycle, HGL scoring, policy acceptance, broker, authority, dependency, secret, runtime, or side-effect behavior changed.
+- `palari decide inbox` and `--json` are read-only.
+- Workflow expected decisions and open decision artifacts both appear.
+- Sorting is by risk, then HGL.
+- Required skills, coverage status, eligible humans, and policy candidate count are present.
+- No decisions are created, recorded, moved, or accepted.
+- No workflow lifecycle, HGL scoring, policy acceptance, broker, authority, dependency, secret, deployment, runtime-state, or side-effect behavior changes were found.
+- Non-blocking process note: evidence manifests were stale after later stack commits and need refresh before founder acceptance.
 
 ## Verification Reviewed
 
-Pending fresh-context reviewer verification. Implementation evidence currently includes:
+Fresh-context reviewer checked the implementation and focused verification:
 
 - `python3 -m py_compile adapters/planning/decision_inbox.py adapters/planning/hgl.py adapters/planning/policy_candidates.py`
 - `bash -n lib/palari/decisions.bash tests/run-decisions.sh tests/run-workflow-planning.sh`
@@ -26,11 +25,11 @@ Pending fresh-context reviewer verification. Implementation evidence currently i
 
 ## Required Changes
 
-None recorded yet; pending fresh-context review.
+None.
 
 ## Recommendation
 
-Pending fresh-context review before acceptance.
+Accept-ready after refreshing evidence at current HEAD.
 
 ## Evidence Notes
 
