@@ -2,7 +2,7 @@
 
 ## Review Result
 
-Reopened by real fresh-context review; bounded repair implemented and awaiting re-review.
+Accept-ready after bounded repair and fresh-context re-review.
 
 ## Findings
 
@@ -11,24 +11,26 @@ Reopened by real fresh-context review; bounded repair implemented and awaiting r
 - Regression coverage now creates R5 privacy:L5 and R3 privacy:L3 decisions with only R3/L3 privacy coverage, then asserts the R5/L5 row remains missing while the R3/L3 row is covered.
 - `palari human org-plan` remains read-only.
 - No human profile, workflow, authority rule, policy, broker, dependency, secret, deployment, runtime-state, or side-effect change was made.
+- Re-review confirmed requirements are keyed by role, skill, level, and risk, and lower-risk coverage no longer flows into the higher-risk row.
 
 ## Verification Reviewed
 
-Initial implementation evidence plus repair verification:
+Initial implementation evidence plus repair and re-review verification:
 
 - `python3 -m py_compile adapters/planning/human_company_plan.py adapters/planning/hgl.py`
 - `./bin/palari human org-plan`
 - `./bin/palari human org-plan --json`
 - `./tests/run-human-governance.sh`
 - `./tests/run-company-os-snapshot.sh`
+- Fresh-context re-review command evidence: `./tests/run-human-governance.sh`; `python3 -m py_compile adapters/planning/human_company_plan.py adapters/planning/hgl.py`.
 
 ## Required Changes
 
-Run fresh-context re-review after the aggregation repair.
+None.
 
 ## Recommendation
 
-Do not accept until re-review confirms the repair.
+Accept-ready after refreshing evidence at current HEAD.
 
 ## Evidence Notes
 
