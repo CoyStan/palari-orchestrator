@@ -2,37 +2,34 @@
 
 ## Review Result
 
-Pending fresh-context review.
+Accept-ready after real fresh-context review.
 
 ## Findings
 
-No independent fresh-context findings have been recorded yet. Suggested review focus:
-
-- Confirm the six requested schemas exist and describe the current workflow, human, policy, outcome, broker observation, and company OS snapshot artifact shapes.
-- Confirm the schemas are additive contracts and do not change runtime parsers, lifecycle behavior, authority behavior, or artifact migrations.
-- Confirm the policy schema remains simulation-only and does not make R3/R4/R5 policy acceptance possible.
-- Confirm the broker observation schema preserves the no-side-effect, no-credential, no-hosted-network boundary.
-- Confirm the schema fixture test validates representative generated artifacts and the live `company_os` snapshot section.
-- Confirm no dependencies, lockfiles, secrets, runtime state, deployment, or external side effects changed.
+- The six requested schemas exist for workflow, human governance profile, simulation policy, outcome, broker observation, and company OS snapshot artifacts.
+- The schemas are additive typed contracts only; they do not replace Markdown/frontmatter parsers, rewrite artifacts, grant policy authority, enable broker side effects, or change acceptance behavior.
+- `schemas/policy.schema.json` keeps `mode: simulation` and limits `risk_max` to `R0`, `R1`, or `R2`.
+- `schemas/broker-observation.schema.json` preserves the current mock boundary with `side_effects_enabled: false`, `credentials_available_to_agents: false`, and `network_or_hosted_api_access: false`.
+- `tests/run-company-os-schemas.sh` validates representative generated artifacts plus the live `company_os` snapshot section.
+- No dependency, lockfile, secret, runtime-state, deployment, or external side-effect file change was found.
 
 ## Verification Reviewed
 
-Pending fresh-context reviewer verification. Implementation evidence currently includes:
-
-- `python3 -m json.tool` on the six new schema files
-- `bash -n tests/run-company-os-schemas.sh`
 - `./tests/run-company-os-schemas.sh`
+- `./bin/palari workflow lint`
+- `./bin/palari human lint`
+- `./bin/palari policy lint`
+- `./bin/palari outcome lint`
+- Read-only git/scope inspection for the POS-0090 diff and worktree status.
 
 ## Required Changes
 
-None recorded yet; pending fresh-context review.
+None.
 
 ## Recommendation
 
-Pending fresh-context review before acceptance.
+Accept-ready after evidence is refreshed at current HEAD.
 
 ## Evidence Notes
 
-- `tests/run-company-os-schemas.sh` validates fixtures with a deterministic stdlib validator.
-- When the optional `jsonschema` package is present, the same test also validates the representative fixtures with JSON Schema draft 2020-12.
-- The test asserts policy and broker const boundaries directly so future schema edits cannot quietly broaden authority.
+- The schemas are contract/test scaffolding. Runtime enforcement still lives in Bash/Python lints in this ticket.

@@ -2,37 +2,37 @@
 
 ## Review Result
 
-Pending fresh-context review.
+Accept-ready after real fresh-context review.
 
 ## Findings
 
-No independent fresh-context findings have been recorded yet. Suggested review focus:
-
-- Confirm the contract covers Hermes, GBrain, OpenRouter, Codex, local agents, and human delegates.
-- Confirm worker types include coding agents, research agents, review agents, memory providers, model providers, workflow executors, and human delegates.
-- Confirm workers may only receive scoped packets, produce evidence/logs, and request broker actions.
-- Confirm workers may not hold credentials directly or accept work.
-- Confirm merge/deploy/send/charge/refund remain broker-permitted and broker-recorded, not worker-owned.
-- Confirm workers must declare provider/model/runtime/version/execution environment and remain auditable by Palari.
-- Confirm no real integration, network call, credential path, dependency, lockfile, broker side effect, lifecycle change, policy acceptance change, or R5 behavior change was added.
+- The Company OS Worker Adapter Contract covers future Hermes, GBrain, OpenRouter, Codex, local agents, and human delegates.
+- Worker types include coding agents, research agents, review agents, memory providers, model providers, workflow executors, and human delegates.
+- Workers may receive scoped packets, produce outputs/logs/reports/patches/evidence, and request broker actions with explicit ticket/risk/tool/action/resource context.
+- Workers must not hold company credentials directly, accept work, close tickets, satisfy human gates, or own merge/deploy/send/charge/refund authority.
+- Merge, deploy, send, charge, refund, and production/customer mutation remain broker-permitted and broker-recorded.
+- Workers must declare type, provider, model, runtime, version, and execution environment, and remain auditable by Palari.
+- No real integration, network, credential path, dependency, lockfile, broker side effect, lifecycle, policy, R5, runtime-state, secret, or deploy change was found.
 
 ## Verification Reviewed
-
-Pending fresh-context reviewer verification. Implementation evidence currently includes:
 
 - `bash -n tests/run-agent-wrapper.sh`
 - `./tests/run-agent-wrapper.sh`
 - `./bin/palari lint POS-0095`
+- `./bin/palari report-lint POS-0095`
+- `./bin/palari scope-check POS-0095`
+- `git diff --check 6d5fdec^ 6d5fdec`
+- Targeted git/contract/evidence inspection.
 
 ## Required Changes
 
-None recorded yet; pending fresh-context review.
+None.
 
 ## Recommendation
 
-Pending fresh-context review and human/founder review before acceptance.
+Accept-ready after evidence is refreshed at current HEAD.
 
 ## Evidence Notes
 
-- The existing wrapper test now asserts the new Company OS Worker Adapter Contract language.
-- The ticket remains R3/human-gated because it defines future authority boundaries.
+- Contract-only ticket. It does not prove a real external worker integration, intentionally.
+- POS-0095 remains R3/human-gated.

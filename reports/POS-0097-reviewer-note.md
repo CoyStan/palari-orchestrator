@@ -2,21 +2,17 @@
 
 ## Review Result
 
-Pending fresh-context review.
+Accept-ready after real fresh-context review.
 
 ## Findings
 
-No independent fresh-context findings have been recorded yet. Suggested review focus:
-
-- Confirm model providers are described as model capability suppliers, not authority layers.
-- Confirm routing policy is subordinate to Palari ticket scope, risk tier, policy simulation posture, broker boundary, data classification, human governance, R5 controls, evidence requirements, and review/acceptance gates.
-- Confirm the contract covers risk, data sensitivity, cost, latency, task type, historical success, allowed providers, customer data restrictions, evaluation score, and fallback availability.
-- Confirm OpenRouter remains model supply, not governance.
-- Confirm no live provider behavior, network call, credential path, dependency, lockfile, broker behavior, policy acceptance, HGL scoring, R5 control, ticket lifecycle, deployment, secrets, or runtime state changed.
+- The Governed Model Provider Contract describes model providers as model capability suppliers, not authority layers.
+- Routing policy is subordinate to Palari ticket scope, risk tier, policy simulation posture, broker boundary, data classification, human governance, R5 controls, evidence requirements, and review/acceptance gates.
+- The contract covers risk, data sensitivity, cost, latency, task type, historical success, allowed providers, customer data restrictions, evaluation score, and fallback availability.
+- OpenRouter remains model supply, not governance.
+- No live provider behavior, OpenRouter runtime behavior, network call, credential path, dependency, lockfile, broker behavior, policy acceptance, HGL scoring, R5 control, ticket lifecycle, deployment, secret, or runtime-state change was found.
 
 ## Verification Reviewed
-
-Pending fresh-context reviewer verification. Implementation evidence currently includes:
 
 - `bash -n tests/run-model-routing.sh tests/run-openrouter.sh`
 - `./tests/run-model-routing.sh`
@@ -24,18 +20,17 @@ Pending fresh-context reviewer verification. Implementation evidence currently i
 - `./bin/palari lint POS-0097`
 - `./bin/palari report-lint POS-0097`
 - `./bin/palari scope-check POS-0097`
-- `./bin/palari ci POS-0097`
+- Targeted git/contract/OpenRouter inspection.
 
 ## Required Changes
 
-None recorded yet; pending fresh-context review.
+None.
 
 ## Recommendation
 
-Pending fresh-context review and human/founder review before acceptance.
+Accept-ready after evidence is refreshed at current HEAD.
 
 ## Evidence Notes
 
-- `tests/run-model-routing.sh` now asserts the governed model-provider contract, subordinate routing authority, no provider authority decision, and every routing factor from the plan.
-- `tests/run-openrouter.sh` now asserts that OpenRouter remains model supply, not governance.
-- The ticket remains R3/human-gated because it defines future model-provider authority boundaries.
+- Contract-only ticket. It does not prove future runtime enforcement of provider routing against Palari policy, data, broker, R5, or human gates.
+- POS-0097 remains R3/human-gated.
