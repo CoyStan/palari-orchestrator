@@ -198,6 +198,9 @@ Work for as long as there is meaningful unblocked Palari-governed work that adva
 Current orientation:
 - Start by running \`git status --short --branch\`.
 - Then run \`./bin/palari status --next\` and \`./bin/palari ticket audit\`.
+- Run \`./bin/palari state\` to see landed capabilities and current repo notes.
+- Run \`./bin/palari run --dry-run --until blocked\` before choosing follow-on work.
+- After context compaction, verify the current branch and ticket \`target_branch\`; do not assume an old stacked branch or deleted worktree is still the right base.
 EOF
 	if [[ -n "$start_ticket" ]]; then
 		printf -- '- Start with ticket: %s\n' "$start_ticket"

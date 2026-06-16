@@ -3,7 +3,7 @@
 This file is the quick orientation map for collaborators and agents. Read it
 before building a feature that might already exist.
 
-Last refreshed: POS-0057, after POS-0056 merged into `origin/main`.
+Last refreshed: POS-0098, after POS-0097 merged into `origin/main`.
 
 Palari is repo-native governance for AI coding agents. It is not a generic
 agent framework, a hosted task runner, or an automatic merge bot. The core
@@ -13,10 +13,12 @@ promise is visible, scoped, reviewable work with explicit human gates.
 
 1. Run `./bin/palari status --next` to see the current gate.
 2. Run `./bin/palari state` to print this capability map.
-3. Check `CHANGELOG.md` for recent landed tickets.
-4. Check the relevant contract under `contracts/` before changing authority,
+3. Read `docs/autonomy/dogfooding-workflow.md` before starting new Palari
+   Orchestrator work after context compaction or branch cleanup.
+4. Check `CHANGELOG.md` for recent landed tickets.
+5. Check the relevant contract under `contracts/` before changing authority,
    scope, lifecycle, signed acceptance, or adapters.
-5. Create or claim a scoped ticket before implementation.
+6. Create or claim a scoped ticket before implementation.
 
 ## Shipped
 

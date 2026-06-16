@@ -1,0 +1,22 @@
+# Palari CI Evidence
+
+- Ticket: POS-0098
+- Base ref: main
+- Created: 2026-06-16T15:34:21Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0098 (12 changed path(s))
+```
+
+## lint
+
+```text
+report-lint: ok for POS-0098
+lint: ok for POS-0098
+```
+
+## stored evidence POS-0098
+
+Reused accepted ticket evidence from `reports/evidence/POS-0098`.
