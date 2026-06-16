@@ -321,15 +321,15 @@ cmd_github_ci() {
 	if [[ -n "$ticket" ]]; then
 		ticket_ids+=("$ticket")
 	else
-		if [[ "${GITHUB_HEAD_REF:-}" == ticket/* ]]; then
-			branch_ticket="${GITHUB_HEAD_REF#ticket/}"
-		else
-			branch_ticket="$(infer_ticket_from_branch || true)"
-		fi
-		[[ -n "$branch_ticket" ]] && ticket_ids+=("$branch_ticket")
-	fi
-	if ((${#ticket_ids[@]} == 0)); then
 		mapfile -t ticket_ids < <(github_ci_changed_ticket_ids "$base_ref" | sed '/^$/d' | sort -u)
+		if ((${#ticket_ids[@]} == 0)); then
+			if [[ "${GITHUB_HEAD_REF:-}" == ticket/* ]]; then
+				branch_ticket="${GITHUB_HEAD_REF#ticket/}"
+			else
+				branch_ticket="$(infer_ticket_from_branch || true)"
+			fi
+			[[ -n "$branch_ticket" ]] && ticket_ids+=("$branch_ticket")
+		fi
 	fi
 	if ((${#ticket_ids[@]} == 0)); then
 		github_ci_no_ticket_message "$base_ref"
@@ -814,7 +814,7 @@ cmd_snapshot() {
 					missing_evidence=$((missing_evidence + 1))
 				fi
 			fi
-			done < <(ticket_files)
+		done < <(ticket_files)
 	fi
 	overlaps_json="$(snapshot_overlaps_json)"
 	overlap_count="$(printf '%s' "$overlaps_json" | awk '{ count += gsub(/"left"/, "") } END { print count + 0 }')"

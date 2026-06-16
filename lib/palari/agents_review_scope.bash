@@ -902,7 +902,7 @@ scope_check_ticket_set() {
 	local base_ref="$1"
 	shift
 	local ticket_ids=("$@")
-	local file ticket_id path pattern changed_count=0 errors=0 label
+	local file ticket_id path pattern changed_count=0 errors=0 label serves_goal
 	local -a allowed=()
 	local -a forbidden=()
 	((${#ticket_ids[@]} > 0)) || die "multi-ticket scope-check requires at least one ticket"
@@ -910,6 +910,15 @@ scope_check_ticket_set() {
 		file="$(find_ticket_file "$ticket_id")" || die "ticket not found: $ticket_id"
 		while IFS= read -r pattern; do [[ -n "$pattern" ]] && allowed+=("$pattern"); done < <(frontmatter_list_items "$file" allowed_paths)
 		while IFS= read -r pattern; do [[ -n "$pattern" ]] && forbidden+=("$pattern"); done < <(frontmatter_list_items "$file" forbidden_paths)
+		allowed+=("$OPEN_DIR/$ticket_id-*" "$CLOSED_DIR/$ticket_id-*")
+		serves_goal="$(frontmatter_value "$file" serves_goal)"
+		if [[ -n "$serves_goal" ]]; then
+			allowed+=(
+				"$GOALS_ACTIVE_DIR/$serves_goal-*"
+				"$GOALS_PROPOSED_DIR/$serves_goal-*"
+				"$GOALS_CLOSED_DIR/$serves_goal-*"
+			)
+		fi
 	done
 	((${#allowed[@]} > 0)) || die "multi-ticket scope has no allowed_paths"
 	((${#forbidden[@]} > 0)) || die "multi-ticket scope has no forbidden_paths"

@@ -123,7 +123,7 @@ workflow_has_expected_decision_at_or_above() {
 workflow_has_human_decision_exception() {
 	local file="$1"
 	[[ "$(frontmatter_list_count "$file" human_decision_exceptions)" != "0" ||
-		"$(frontmatter_list_count "$file" human_decision_exception)" != "0" ]]
+	"$(frontmatter_list_count "$file" human_decision_exception)" != "0" ]]
 }
 
 cmd_workflow_create() {

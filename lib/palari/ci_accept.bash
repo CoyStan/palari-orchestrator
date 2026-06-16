@@ -39,11 +39,11 @@ ci_add_sarif_failure() {
 	local rule="$1"
 	local message="$2"
 	local rule_json message_json location_json
-	rule_json="$(printf '%s' "$rule" | json_escape)"
-	message_json="$(printf '%s' "$message" | json_escape)"
-	location_json="$(printf '%s' "${CI_SARIF_LOCATION:-palari.config.yaml}" | json_escape)"
+	rule_json="$(json_string "$rule")"
+	message_json="$(json_string "$message")"
+	location_json="$(json_string "${CI_SARIF_LOCATION:-palari.config.yaml}")"
 	[[ ! -s "$CI_SARIF_RESULTS" ]] || printf ',\n' >>"$CI_SARIF_RESULTS"
-	printf '        {"ruleId":"%s","level":"error","message":{"text":"%s"},"locations":[{"physicalLocation":{"artifactLocation":{"uri":"%s"},"region":{"startLine":1}}}]}' \
+	printf '        {"ruleId":%s,"level":"error","message":{"text":%s},"locations":[{"physicalLocation":{"artifactLocation":{"uri":%s},"region":{"startLine":1}}}]}' \
 		"$rule_json" "$message_json" "$location_json" >>"$CI_SARIF_RESULTS"
 }
 
