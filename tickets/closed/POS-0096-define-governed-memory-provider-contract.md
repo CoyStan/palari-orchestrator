@@ -1,7 +1,7 @@
 ---
 id: POS-0096
 title: Define governed memory provider contract
-status: in-review
+status: accepted
 risk: R3
 priority: P3
 stream: process
@@ -46,9 +46,9 @@ verification:
 target_branch: main
 branch: ticket/POS-0096
 worktree: 
-accepted_by:
+accepted_by: founder
 acceptance_mode: human
-accepted_at:
+accepted_at: 2026-06-16T13:46:59Z
 created: 2026-06-15
 updated: 2026-06-16
 ---
