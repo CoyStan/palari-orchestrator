@@ -1,7 +1,7 @@
 ---
 id: POS-0090
 title: Add schemas for company OS artifacts
-status: in-review
+status: accepted
 risk: R2
 priority: P2
 stream: process
@@ -49,9 +49,9 @@ verification:
 target_branch: main
 branch: ticket/POS-0090
 worktree: 
-accepted_by:
+accepted_by: founder
 acceptance_mode: human
-accepted_at:
+accepted_at: 2026-06-16T13:45:00Z
 created: 2026-06-15
 updated: 2026-06-16
 ---
