@@ -1,7 +1,7 @@
 ---
 id: POS-0082
 title: Policy candidates use outcomes and human override history
-status: in-review
+status: accepted
 risk: R2
 priority: P2
 stream: process
@@ -10,8 +10,8 @@ model_hint:
 claimed_by: Codex
 claimed_at: 2026-06-15T14:45:38Z
 claim_ref: refs/palari/claims/POS-0082
-claim_heartbeat_at: 2026-06-15T14:45:38Z
-claim_expires_at: 2026-06-15T14:50:38Z
+claim_heartbeat_at: 2026-06-16T07:10:31Z
+claim_expires_at: 2026-06-16T07:15:31Z
 allowed_paths:
   - adapters/planning/policy_candidates.py
   - contracts/policy-acceptance.md
@@ -48,11 +48,11 @@ verification:
 target_branch: main
 branch: ticket/POS-0082
 worktree: 
-accepted_by:
+accepted_by: founder
 acceptance_mode: human
-accepted_at:
+accepted_at: 2026-06-16T07:10:58Z
 created: 2026-06-15
-updated: 2026-06-15
+updated: 2026-06-16
 ---
 
 # POS-0082 Policy candidates use outcomes and human override history
