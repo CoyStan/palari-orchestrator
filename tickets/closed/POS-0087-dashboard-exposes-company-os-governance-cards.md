@@ -1,7 +1,7 @@
 ---
 id: POS-0087
 title: Dashboard exposes company OS governance cards
-status: in-review
+status: accepted
 risk: R2
 priority: P2
 stream: process
@@ -10,8 +10,8 @@ model_hint:
 claimed_by: Codex
 claimed_at: 2026-06-15T15:16:01Z
 claim_ref: refs/palari/claims/POS-0087
-claim_heartbeat_at: 2026-06-15T15:16:01Z
-claim_expires_at: 2026-06-15T15:21:01Z
+claim_heartbeat_at: 2026-06-16T07:13:23Z
+claim_expires_at: 2026-06-16T07:18:23Z
 allowed_paths:
   - adapters/web/**
   - adapters/snapshot/**
@@ -51,11 +51,11 @@ verification:
 target_branch: main
 branch: ticket/POS-0087
 worktree: 
-accepted_by:
+accepted_by: founder
 acceptance_mode: human
-accepted_at:
+accepted_at: 2026-06-16T07:14:35Z
 created: 2026-06-15
-updated: 2026-06-15
+updated: 2026-06-16
 ---
 
 # POS-0087 Dashboard exposes company OS governance cards
