@@ -10,8 +10,8 @@ model_hint:
 claimed_by: Codex
 claimed_at: 2026-06-15T16:11:56Z
 claim_ref: refs/palari/claims/POS-0090
-claim_heartbeat_at: 2026-06-15T16:25:43Z
-claim_expires_at: 2026-06-15T16:30:43Z
+claim_heartbeat_at: 2026-06-16T13:43:19Z
+claim_expires_at: 2026-06-16T13:48:19Z
 allowed_paths:
   - schemas/**
   - contracts/**
@@ -53,7 +53,7 @@ accepted_by:
 acceptance_mode: human
 accepted_at:
 created: 2026-06-15
-updated: 2026-06-15
+updated: 2026-06-16
 ---
 
 # POS-0090 Add schemas for company OS artifacts

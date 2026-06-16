@@ -10,8 +10,8 @@ model_hint:
 claimed_by: Codex
 claimed_at: 2026-06-15T16:58:08Z
 claim_ref: refs/palari/claims/POS-0097
-claim_heartbeat_at: 2026-06-15T16:58:08Z
-claim_expires_at: 2026-06-15T17:03:08Z
+claim_heartbeat_at: 2026-06-16T13:43:21Z
+claim_expires_at: 2026-06-16T13:48:21Z
 allowed_paths:
   - contracts/**
   - docs/integration/**
@@ -52,7 +52,7 @@ accepted_by:
 acceptance_mode: human
 accepted_at:
 created: 2026-06-15
-updated: 2026-06-15
+updated: 2026-06-16
 ---
 
 # POS-0097 Define governed model provider contract

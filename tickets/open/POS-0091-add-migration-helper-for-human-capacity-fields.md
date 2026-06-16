@@ -10,8 +10,8 @@ model_hint:
 claimed_by: Codex
 claimed_at: 2026-06-15T16:30:29Z
 claim_ref: refs/palari/claims/POS-0091
-claim_heartbeat_at: 2026-06-16T13:30:56Z
-claim_expires_at: 2026-06-16T13:35:56Z
+claim_heartbeat_at: 2026-06-16T13:43:20Z
+claim_expires_at: 2026-06-16T13:48:20Z
 allowed_paths:
   - lib/palari/humans.bash
   - adapters/planning/**

@@ -10,8 +10,8 @@ model_hint:
 claimed_by: Codex
 claimed_at: 2026-06-15T16:49:37Z
 claim_ref: refs/palari/claims/POS-0096
-claim_heartbeat_at: 2026-06-15T16:49:37Z
-claim_expires_at: 2026-06-15T16:54:37Z
+claim_heartbeat_at: 2026-06-16T13:43:20Z
+claim_expires_at: 2026-06-16T13:48:20Z
 allowed_paths:
   - contracts/**
   - docs/integration/**
@@ -50,7 +50,7 @@ accepted_by:
 acceptance_mode: human
 accepted_at:
 created: 2026-06-15
-updated: 2026-06-15
+updated: 2026-06-16
 ---
 
 # POS-0096 Define governed memory provider contract
