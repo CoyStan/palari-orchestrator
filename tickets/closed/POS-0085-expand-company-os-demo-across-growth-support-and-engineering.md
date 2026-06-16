@@ -1,7 +1,7 @@
 ---
 id: POS-0085
 title: Expand company OS demo across growth support and engineering
-status: in-review
+status: accepted
 risk: R2
 priority: P2
 stream: process
@@ -10,8 +10,8 @@ model_hint:
 claimed_by: Codex
 claimed_at: 2026-06-15T14:53:30Z
 claim_ref: refs/palari/claims/POS-0085
-claim_heartbeat_at: 2026-06-15T14:53:30Z
-claim_expires_at: 2026-06-15T14:58:30Z
+claim_heartbeat_at: 2026-06-16T07:11:19Z
+claim_expires_at: 2026-06-16T07:16:19Z
 allowed_paths:
   - lib/palari/demo.bash
   - tests/run-company-os-demo.sh
@@ -49,11 +49,11 @@ verification:
 target_branch: main
 branch: ticket/POS-0085
 worktree: 
-accepted_by:
+accepted_by: founder
 acceptance_mode: human
-accepted_at:
+accepted_at: 2026-06-16T07:11:51Z
 created: 2026-06-15
-updated: 2026-06-15
+updated: 2026-06-16
 ---
 
 # POS-0085 Expand company OS demo across growth support and engineering
