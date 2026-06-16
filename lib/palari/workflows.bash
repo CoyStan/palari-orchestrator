@@ -93,6 +93,39 @@ workflow_validate_decision() {
 	: "$rest"
 }
 
+workflow_risk_number() {
+	case "$1" in
+	R0) printf '0\n' ;;
+	R1) printf '1\n' ;;
+	R2) printf '2\n' ;;
+	R3) printf '3\n' ;;
+	R4) printf '4\n' ;;
+	R5) printf '5\n' ;;
+	*) printf -- '-1\n' ;;
+	esac
+}
+
+workflow_has_expected_decision_at_or_above() {
+	local file="$1" threshold="$2" item risk _kind _skills _title
+	local threshold_num decision_num
+	threshold_num="$(workflow_risk_number "$threshold")"
+	while IFS= read -r item; do
+		[[ -n "$item" ]] || continue
+		IFS='|' read -r risk _kind _skills _title _ <<<"$item"
+		decision_num="$(workflow_risk_number "$risk")"
+		if ((decision_num >= threshold_num)); then
+			return 0
+		fi
+	done < <(frontmatter_list_items "$file" expected_decisions)
+	return 1
+}
+
+workflow_has_human_decision_exception() {
+	local file="$1"
+	[[ "$(frontmatter_list_count "$file" human_decision_exceptions)" != "0" ||
+	"$(frontmatter_list_count "$file" human_decision_exception)" != "0" ]]
+}
+
 cmd_workflow_create() {
 	local id="${1:-}" title="${2:-}"
 	shift 2 || true
@@ -249,6 +282,7 @@ cmd_workflow_plan() {
 
 cmd_workflow_lint() {
 	local only="${1:-}" errors=0 state file id status goal risk item yaml_issue
+	local unit_id kind unit_risk title extra unit_risk_num
 	local -a files=()
 	if [[ -n "$only" ]]; then
 		file="$(find_workflow_file "$only")" || die "workflow not found: $only"
@@ -299,6 +333,20 @@ cmd_workflow_lint() {
 			[[ -n "$item" ]] || continue
 			workflow_validate_decision "$id" "$item" errors
 		done < <(frontmatter_list_items "$file" expected_decisions)
+		while IFS= read -r item; do
+			[[ -n "$item" ]] || continue
+			IFS='|' read -r unit_id kind unit_risk title extra <<<"$item"
+			unit_risk_num="$(workflow_risk_number "$unit_risk")"
+			if ((unit_risk_num >= 4)) && ! workflow_has_expected_decision_at_or_above "$file" "$unit_risk"; then
+				printf 'workflow lint: %s work unit %s %s requires expected decision at or above %s\n' "$id" "$unit_id" "$unit_risk" "$unit_risk"
+				errors=$((errors + 1))
+			elif ((unit_risk_num == 3)) &&
+				! workflow_has_expected_decision_at_or_above "$file" "$unit_risk" &&
+				! workflow_has_human_decision_exception "$file"; then
+				printf 'workflow lint: %s warning: work unit %s %s has no expected decision at or above %s\n' "$id" "$unit_id" "$unit_risk" "$unit_risk"
+			fi
+			: "$kind" "$title" "$extra"
+		done < <(frontmatter_list_items "$file" work_units)
 		while IFS= read -r yaml_issue; do
 			[[ -n "$yaml_issue" ]] || continue
 			printf 'workflow lint: %s yaml safety: %s\n' "$id" "$yaml_issue"

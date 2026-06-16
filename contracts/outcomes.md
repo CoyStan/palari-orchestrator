@@ -27,6 +27,34 @@ Outcome `lifecycle` is ledger state:
 - `open`
 - `recorded`
 
+Optional metric and governance-impact fields may be present:
+
+- `metric_name`
+- `metric_before`, `metric_after`, `metric_delta`
+- `risk_predicted`, `risk_actual`
+- `hgl_predicted`, `hgl_actual`
+- `human_decisions_predicted`, `human_decisions_actual`
+- `review_outcome`: `passed`, `failed`, `overridden`, or `uncertain`
+- `rollback_used`: `true` or `false`
+- `policy_candidate`: `true` or `false`
+- `notes`
+
+When present, lint validates risks, integer governance counts, decimal metric
+values, booleans, and review outcome labels. These fields are learning signals
+only. They do not change HGL weights, activate policies, accept work, or grant
+authority.
+
+Recorded outcome impact fields may feed read-only calibration reports such as
+`palari burden calibrate`. Those reports are advisory: they can show where HGL,
+risk estimates, evidence patterns, or simulation-only policy candidates deserve
+human review, but they must not update governance weights or policy state
+without a separate human-approved change.
+
+Recorded outcomes may also lower or raise simulation-only policy candidate
+confidence. Passed outcomes without rollback may increase confidence; failed,
+overridden, invalidated, or rollback outcomes must reduce confidence. This is
+still advisory learning only and must not activate policies or accept work.
+
 ## References
 
 Outcome lint checks linked workflow, goal, ticket, decision, and evidence paths

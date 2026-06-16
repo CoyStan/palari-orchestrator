@@ -115,18 +115,22 @@ def parse_frontmatter(path: Path) -> dict:
 
 
 def parse_config(root: Path) -> dict:
-    """Flat scalars and lists plus one level of nesting (gate:, memory:)."""
+    """Flat scalars, lists, one-level nesting, and simple nested maps."""
     flat: dict = {}
     nested: dict = {}
+    maps: dict = {}
     lists: dict = {}
     section = None
+    current_map = None
     current_list = None
     for raw in read_text(root / "palari.config.yaml").split("\n"):
         if not raw.strip() or raw.lstrip().startswith("#"):
             continue
-        indented = raw.startswith((" ", "\t"))
+        indent = len(raw) - len(raw.lstrip(" "))
+        indented = indent > 0 or raw.startswith("\t")
         line = raw.strip()
         if not indented:
+            current_map = None
             current_list = None
             match = re.match(r"^([A-Za-z0-9_.-]+):\s*(.*)$", line)
             if not match:
@@ -141,15 +145,20 @@ def parse_config(root: Path) -> dict:
                 section = None
                 flat[key] = strip_quotes(value)
         else:
-            if line.startswith("- ") and current_list:
+            if line.startswith("- ") and current_list and not current_map:
                 lists[current_list].append(strip_quotes(line[2:]))
                 continue
             match = re.match(r"^([A-Za-z0-9_.-]+):\s*(.*)$", line)
-            if match and section:
+            if match and section and current_map and indent >= 4:
+                value = re.sub(r"\s+#.*$", "", match.group(2)).strip()
+                maps.setdefault(section, {}).setdefault(current_map, {})[match.group(1)] = strip_quotes(value)
+                continue
+            if match and section and indent <= 2:
                 value = re.sub(r"\s+#.*$", "", match.group(2)).strip()
                 nested.setdefault(section, {})[match.group(1)] = strip_quotes(value)
+                current_map = match.group(1) if value == "" else None
                 current_list = None
-    return {"flat": flat, "nested": nested, "lists": lists}
+    return {"flat": flat, "nested": nested, "maps": maps, "lists": lists}
 
 
 def cfg(config: dict, key: str, default: str = "") -> str:
@@ -160,6 +169,48 @@ def cfg(config: dict, key: str, default: str = "") -> str:
 def cfg_nested(config: dict, section: str, key: str, default: str = "") -> str:
     value = config["nested"].get(section, {}).get(key, "")
     return value if value != "" else default
+
+
+def cfg_nested_map(config: dict, section: str, map_key: str, key: str, default: str = "") -> str:
+    value = config.get("maps", {}).get(section, {}).get(map_key, {}).get(key, "")
+    return value if value != "" else default
+
+
+def approval_quorum_for_risk(config: dict, risk: str) -> int:
+    raw = cfg_nested_map(config, "governance", "required_human_approvals", risk, "")
+    if raw == "":
+        raw = cfg_nested(config, "governance", f"required_human_approvals_{risk}", "")
+    if raw == "" and risk == "R5" and cfg_nested(config, "governance", "r5_requires_dual_human", "false") == "true":
+        raw = "2"
+    if raw == "":
+        raw = "1" if risk == "R5" else "0"
+    try:
+        return max(0, int(raw))
+    except ValueError:
+        return 1 if risk == "R5" else 0
+
+
+def human_placeholder(config: dict, index: int) -> str:
+    default_human = cfg_nested(config, "governance", "default_human_approver", "")
+    if index == 1 and default_human:
+        return default_human
+    if index == 1:
+        return "HUMAN-ONE"
+    if index == 2:
+        return "HUMAN-TWO"
+    if index == 3:
+        return "HUMAN-THREE"
+    return f"HUMAN-{index}"
+
+
+def accept_command_for_ticket(fm: dict, ticket_id: str, config: dict, by: str, prefix: str) -> str:
+    quorum = approval_quorum_for_risk(config, scalar(fm, "risk"))
+    if quorum <= 0:
+        return f"{prefix} accept {ticket_id} --by {by}"
+    command = f"{prefix} accept {ticket_id} --by {human_placeholder(config, 1)}"
+    for index in range(2, quorum + 1):
+        command += f" --co-by {human_placeholder(config, index)}"
+    return command
 
 
 def glob_to_regex(pattern: str) -> re.Pattern:
@@ -319,7 +370,13 @@ def listval(fm: dict, key: str) -> list:
 
 
 def next_action(
-    fm: dict, ticket_id: str, status: str, default_branch: str, evidence: dict, reports: dict
+    fm: dict,
+    ticket_id: str,
+    status: str,
+    default_branch: str,
+    evidence: dict,
+    reports: dict,
+    config: dict,
 ) -> dict:
     target = scalar(fm, "target_branch") or default_branch
     has_evidence = bool(
@@ -406,7 +463,7 @@ def next_action(
         return action(
             "Accept or reopen",
             "A human or authorized acceptor should accept the ticket or send it back.",
-            f"./bin/palari accept {ticket_id} --by founder",
+            accept_command_for_ticket(fm, ticket_id, config, "founder", "./bin/palari"),
             "human",
             "waiting",
         )
@@ -457,6 +514,173 @@ def inbox_category(status: str, actor: str, severity: str, label: str) -> str:
     if severity == "watch":
         return "watch"
     return "monitor"
+
+
+def company_card(card_id: str, label_text: str, value: str, status: str, detail: str) -> dict:
+    return {
+        "id": card_id,
+        "label": label_text,
+        "value": value,
+        "status": status,
+        "detail": detail,
+    }
+
+
+def build_company_dashboard_cards(company_os: dict, gate: dict) -> list[dict]:
+    """Operator-facing company OS posture cards for the web dashboard."""
+    workflows = company_os.get("workflows", {})
+    governance = company_os.get("human_governance", {})
+    autonomy = company_os.get("autonomy", {})
+    policy = company_os.get("policy", {})
+    broker = company_os.get("broker", {})
+    outcomes = company_os.get("outcomes", {})
+    company_errors = list(company_os.get("errors") or [])
+    workflow_errors = list(workflows.get("errors") or [])
+    governance_errors = list(governance.get("errors") or [])
+    policy_errors = list(policy.get("errors") or [])
+    broker_errors = list(broker.get("errors") or [])
+    outcome_errors = list(outcomes.get("errors") or [])
+
+    hgl = int(governance.get("open_hgl_estimate") or 0)
+    missing_skills = list(governance.get("missing_skills") or [])
+    bottlenecks = list(governance.get("bottlenecks") or [])
+    capacity_warnings = list(governance.get("capacity_warnings") or [])
+    r3 = int(governance.get("r3_decisions_open") or 0)
+    r4 = int(governance.get("r4_decisions_open") or 0)
+    r5 = int(governance.get("r5_decisions_open") or 0)
+    yellow = int(autonomy.get("yellow_workflows") or 0)
+    red = int(autonomy.get("red_workflows") or 0)
+    green = int(autonomy.get("green_workflows") or 0)
+    candidate_count = int(policy.get("candidates") or 0)
+    active_policies = int(policy.get("active_policies") or 0)
+    proposed_policies = int(policy.get("proposed_policies") or 0)
+    real_side_effects = bool(broker.get("real_side_effects_enabled"))
+    mock_observations = int(broker.get("mock_observations") or 0)
+    broker_tickets = list(broker.get("tickets_with_broker_evidence") or [])
+    open_outcomes = int(outcomes.get("open") or 0)
+    recorded_outcomes = int(outcomes.get("recorded") or 0)
+    invalidated_outcomes = int(outcomes.get("invalidated") or 0)
+    workflow_count = int(workflows.get("active") or 0)
+
+    first_error = (
+        workflow_errors
+        or governance_errors
+        or policy_errors
+        or broker_errors
+        or outcome_errors
+        or company_errors
+    )
+    governance_state_error = workflow_errors or governance_errors or company_errors
+    hgl_status = "bad" if missing_skills or capacity_warnings or governance_errors else ("watch" if hgl else "ok")
+    decision_status = "bad" if governance_state_error or r5 else ("watch" if r3 or r4 else "ok")
+    missing_status = "bad" if governance_state_error or missing_skills else "ok"
+    bottleneck_status = "bad" if governance_state_error else ("watch" if bottlenecks else "ok")
+    autonomy_status = "bad" if red or workflow_errors else ("watch" if yellow else "ok")
+    policy_status = "bad" if policy_errors else ("watch" if candidate_count else "ok")
+    broker_status = "bad" if real_side_effects or broker_errors else "ok"
+    outcome_status = "bad" if outcome_errors or invalidated_outcomes else ("watch" if open_outcomes else "ok")
+    if gate.get("enabled"):
+        secure_status = "ok" if gate.get("available") and gate.get("initialized") else "bad"
+        secure_value = "signed gate"
+        secure_detail = "ForgeGate is enabled; verify tickets against the signed gate section."
+    else:
+        secure_status = "watch"
+        secure_value = "honor-system"
+        secure_detail = "Signed acceptance is disabled; run doctor secure before relying on autonomous acceptance."
+
+    return [
+        company_card(
+            "human_governance_load",
+            "Human Governance Load",
+            f"{hgl} HGL",
+            hgl_status,
+            governance_errors[0]
+            if governance_errors
+            else "Open estimate across active workflows; capacity and missing skills escalate this card.",
+        ),
+        company_card(
+            "high_risk_decisions",
+            "R3/R4/R5 Decisions",
+            "unknown" if governance_state_error else f"{r3}/{r4}/{r5}",
+            decision_status,
+            governance_state_error[0]
+            if governance_state_error
+            else "Open high-risk decisions stay visible; R5 requires explicit human authority.",
+        ),
+        company_card(
+            "missing_skills",
+            "Missing Skills",
+            "unknown" if governance_state_error else str(len(missing_skills)),
+            missing_status,
+            governance_state_error[0]
+            if governance_state_error
+            else ", ".join(missing_skills[:3]) if missing_skills else "All active workflow skills are covered.",
+        ),
+        company_card(
+            "bottlenecks",
+            "Bottlenecks",
+            "unknown" if governance_state_error else str(len(bottlenecks)),
+            bottleneck_status,
+            governance_state_error[0]
+            if governance_state_error
+            else ", ".join(bottlenecks[:3]) if bottlenecks else "No active human or role bottlenecks detected.",
+        ),
+        company_card(
+            "autonomy_gates",
+            "Autonomy Gates",
+            f"{green}/{yellow}/{red}",
+            autonomy_status,
+            workflow_errors[0] if workflow_errors else "Green/yellow/red workflow gates; red and yellow states are never hidden.",
+        ),
+        company_card(
+            "policy_candidates",
+            "Policy Candidates",
+            "unknown" if policy_errors else str(candidate_count),
+            policy_status,
+            policy_errors[0]
+            if policy_errors
+            else f"Simulation-only suggestions; {active_policies} active and {proposed_policies} proposed policy files.",
+        ),
+        company_card(
+            "broker_posture",
+            "Broker Posture",
+            "unknown" if broker_errors else ("real side effects" if real_side_effects else "mock / observed-only"),
+            broker_status,
+            (
+                broker_errors[0]
+                if broker_errors
+                else
+                "Real side effects are reported; confirm a sandbox boundary before trusting broker authority."
+                if real_side_effects
+                else f"Mock/observed-only broker evidence across {len(broker_tickets)} ticket(s) and {mock_observations} observation(s)."
+            ),
+        ),
+        company_card(
+            "outcomes",
+            "Outcomes",
+            "unknown" if outcome_errors else f"{open_outcomes}/{recorded_outcomes}/{invalidated_outcomes}",
+            outcome_status,
+            outcome_errors[0]
+            if outcome_errors
+            else "Open/recorded/invalidated outcomes; invalidated outcomes require review before policy learning.",
+        ),
+        company_card(
+            "secure_posture",
+            "Secure Posture",
+            secure_value,
+            secure_status,
+            secure_detail,
+        ),
+        company_card(
+            "active_workflows",
+            "Active Workflows",
+            "unknown" if first_error else str(workflow_count),
+            "bad" if first_error else ("ok" if workflow_count else "watch"),
+            first_error[0]
+            if first_error
+            else "Adopted workflows are the source for HGL, gates, and company OS governance cards.",
+        ),
+    ]
 
 
 # ---------------------------------------------------------------- snapshot
@@ -517,7 +741,7 @@ def snapshot_dict(root: Path, *, full: bool = False) -> dict:
             "human": base_reports["human"],
             "custom": custom,
         }
-        action = next_action(fm, ticket_id, status, default_branch, evidence, reports)
+        action = next_action(fm, ticket_id, status, default_branch, evidence, reports, config)
         tickets.append(
             {
                 "id": ticket_id,
@@ -710,8 +934,15 @@ def snapshot_dict(root: Path, *, full: bool = False) -> dict:
         company_os = company_os_snapshot.build_company_os(root, config)
     else:
         company_os = {
-            "workflows": {"active": 0, "proposed": 0, "closed": 0, "items": []},
-            "humans": {"active": 0, "proposed": 0, "revoked": 0},
+            "errors": ["company OS snapshot helper unavailable"],
+            "workflows": {
+                "active": 0,
+                "proposed": 0,
+                "closed": 0,
+                "items": [],
+                "errors": ["company OS snapshot helper unavailable"],
+            },
+            "humans": {"active": 0, "proposed": 0, "revoked": 0, "coverage_gaps": []},
             "human_governance": {
                 "open_hgl_estimate": 0,
                 "r3_decisions_open": 0,
@@ -719,10 +950,29 @@ def snapshot_dict(root: Path, *, full: bool = False) -> dict:
                 "r5_decisions_open": 0,
                 "missing_skills": [],
                 "bottlenecks": [],
+                "capacity_warnings": ["company OS snapshot helper unavailable"],
+                "errors": ["company OS snapshot helper unavailable"],
             },
             "autonomy": {"green_workflows": 0, "yellow_workflows": 0, "red_workflows": 0},
-            "policy": {"simulation_only": True, "candidates": 0},
-            "broker": {"real_side_effects_enabled": False},
+            "policy": {
+                "simulation_only": True,
+                "candidates": 0,
+                "active_policies": 0,
+                "proposed_policies": 0,
+                "errors": ["company OS snapshot helper unavailable"],
+            },
+            "broker": {
+                "real_side_effects_enabled": False,
+                "mock_observations": 0,
+                "tickets_with_broker_evidence": [],
+                "errors": ["company OS snapshot helper unavailable"],
+            },
+            "outcomes": {
+                "open": 0,
+                "recorded": 0,
+                "invalidated": 0,
+                "errors": ["company OS snapshot helper unavailable"],
+            },
         }
 
     # Gate: the fast path never imports the crypto kernel in-process. When
@@ -765,6 +1015,8 @@ def snapshot_dict(root: Path, *, full: bool = False) -> dict:
                 "Fast snapshot could not run the gate kernel; run "
                 "./bin/palari gate status or ./bin/palari snapshot --json --full."
             )
+
+    company_os["dashboard_cards"] = build_company_dashboard_cards(company_os, gate)
 
     # Git + hygiene-classified dirtiness: the one subprocess.
     git_info = {"branch": "unknown", "status": "", "mode": "skipped-fast"}

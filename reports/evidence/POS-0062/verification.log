@@ -1,0 +1,50 @@
+# Palari CI Evidence
+
+- Ticket: POS-0062
+- Base ref: HEAD
+- Created: 2026-06-15T20:16:50Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0062 (0 changed path(s))
+```
+
+## lint
+
+```text
+report-lint: ok for POS-0062
+lint: ok for POS-0062
+```
+
+## verification 1
+
+Command: `./bin/palari workflow lint`
+
+```text
+workflow lint: ok
+```
+
+## verification 2
+
+Command: `./tests/run-workflows.sh`
+
+```text
+workflows: ok
+```
+
+## verification 3
+
+Command: `./tests/run-workflow-planning.sh`
+
+```text
+workflow-planning: ok
+```
+
+## verification 4
+
+Command: `./tests/run-company-os-snapshot.sh`
+
+```text
+company-os-snapshot: ok
+```

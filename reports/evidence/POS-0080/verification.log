@@ -1,0 +1,42 @@
+# Palari CI Evidence
+
+- Ticket: POS-0080
+- Base ref: local working tree
+- Created: 2026-06-16T07:08:51Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0080 (4 changed path(s))
+```
+
+## lint
+
+```text
+report-lint: ok for POS-0080
+lint: ok for POS-0080
+```
+
+## verification 1
+
+Command: `./bin/palari outcome lint`
+
+```text
+outcome lint: ok
+```
+
+## verification 2
+
+Command: `./tests/run-outcomes.sh`
+
+```text
+outcomes: ok
+```
+
+## verification 3
+
+Command: `./tests/run-policy-candidates.sh`
+
+```text
+policy-candidates: ok
+```

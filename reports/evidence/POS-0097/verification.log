@@ -1,0 +1,36 @@
+# Palari CI Evidence
+
+- Ticket: POS-0097
+- Base ref: local working tree
+- Created: 2026-06-16T13:47:23Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0097 (3 changed path(s))
+```
+
+## lint
+
+```text
+report-lint: ok for POS-0097
+lint: ok for POS-0097
+```
+
+## verification 1
+
+Command: `./tests/run-model-routing.sh`
+
+```text
+Preparing worktree (new branch 'ticket/MRT-0001')
+model-routing: ok
+```
+
+## verification 2
+
+Command: `./tests/run-openrouter.sh`
+
+```text
+Preparing worktree (new branch 'ticket/ORT-0001')
+openrouter: ok
+```

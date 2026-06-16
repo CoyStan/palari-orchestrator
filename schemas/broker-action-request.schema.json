@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/CoyStan/palari-orchestrator/schemas/broker-action-request.schema.json",
+  "title": "Palari Broker Action Request",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "request_id",
+    "actor",
+    "ticket",
+    "risk",
+    "tool",
+    "action",
+    "resource",
+    "side_effect_class",
+    "requires_human",
+    "requires_policy",
+    "allowed_by",
+    "forbidden_if"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "broker-action-request-v1"
+    },
+    "request_id": {
+      "type": "string",
+      "pattern": "^BRK-REQ-[A-Za-z0-9._:-]+$"
+    },
+    "actor": {
+      "type": "string",
+      "minLength": 1
+    },
+    "ticket": {
+      "type": "string",
+      "minLength": 1
+    },
+    "workflow": {
+      "type": "string"
+    },
+    "risk": {
+      "type": "string",
+      "enum": [
+        "R0",
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ]
+    },
+    "tool": {
+      "type": "string"
+    },
+    "action": {
+      "type": "string",
+      "minLength": 1
+    },
+    "resource": {
+      "type": "string",
+      "minLength": 1
+    },
+    "side_effect_class": {
+      "type": "string",
+      "enum": [
+        "none",
+        "local_process_observation",
+        "repo_file_read",
+        "repo_file_write",
+        "external_read",
+        "external_write",
+        "credential_access",
+        "network_access"
+      ]
+    },
+    "requires_human": {
+      "type": "boolean"
+    },
+    "requires_policy": {
+      "type": "boolean"
+    },
+    "allowed_by": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "forbidden_if": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}

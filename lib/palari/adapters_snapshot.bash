@@ -321,15 +321,15 @@ cmd_github_ci() {
 	if [[ -n "$ticket" ]]; then
 		ticket_ids+=("$ticket")
 	else
-		if [[ "${GITHUB_HEAD_REF:-}" == ticket/* ]]; then
-			branch_ticket="${GITHUB_HEAD_REF#ticket/}"
-		else
-			branch_ticket="$(infer_ticket_from_branch || true)"
-		fi
-		[[ -n "$branch_ticket" ]] && ticket_ids+=("$branch_ticket")
-	fi
-	if ((${#ticket_ids[@]} == 0)); then
 		mapfile -t ticket_ids < <(github_ci_changed_ticket_ids "$base_ref" | sed '/^$/d' | sort -u)
+		if ((${#ticket_ids[@]} == 0)); then
+			if [[ "${GITHUB_HEAD_REF:-}" == ticket/* ]]; then
+				branch_ticket="${GITHUB_HEAD_REF#ticket/}"
+			else
+				branch_ticket="$(infer_ticket_from_branch || true)"
+			fi
+			[[ -n "$branch_ticket" ]] && ticket_ids+=("$branch_ticket")
+		fi
 	fi
 	if ((${#ticket_ids[@]} == 0)); then
 		github_ci_no_ticket_message "$base_ref"
@@ -614,18 +614,14 @@ snapshot_tickets_json() {
 	while IFS= read -r file; do
 		[[ -n "$file" ]] || continue
 		[[ "$first" == "true" ]] || printf ','
-		if [[ "$mode" == "full" ]]; then
-			snapshot_ticket_json "$file" "active" "$mode"
-		else
-			snapshot_ticket_fast_json "$file" "active"
-		fi
+		snapshot_ticket_fast_json "$file" "active"
 		first="false"
 	done < <(ticket_files)
 	if [[ "$mode" == "full" ]]; then
 		while IFS= read -r file; do
 			[[ -n "$file" ]] || continue
 			[[ "$first" == "true" ]] || printf ','
-			snapshot_ticket_json "$file" "accepted" "$mode"
+			snapshot_ticket_fast_json "$file" "accepted"
 			first="false"
 		done < <(closed_ticket_files)
 	fi
@@ -745,7 +741,7 @@ snapshot_company_os_json() {
 	if command -v python3 >/dev/null 2>&1 && [[ -f "$ROOT/adapters/planning/company_os_snapshot.py" ]]; then
 		python3 -B "$ROOT/adapters/planning/company_os_snapshot.py" --root "$ROOT" 2>/dev/null && return 0
 	fi
-	printf '{"workflows":{"active":0,"proposed":0,"closed":0,"items":[]},"humans":{"active":0,"proposed":0,"revoked":0},"human_governance":{"open_hgl_estimate":0,"r3_decisions_open":0,"r4_decisions_open":0,"r5_decisions_open":0,"missing_skills":[],"bottlenecks":[]},"autonomy":{"green_workflows":0,"yellow_workflows":0,"red_workflows":0},"policy":{"simulation_only":true,"candidates":0},"broker":{"real_side_effects_enabled":false}}'
+	printf '{"errors":["company OS snapshot helper unavailable"],"workflows":{"active":0,"proposed":0,"closed":0,"items":[],"errors":["company OS snapshot helper unavailable"]},"humans":{"active":0,"proposed":0,"revoked":0,"coverage_gaps":[]},"human_governance":{"open_hgl_estimate":0,"r3_decisions_open":0,"r4_decisions_open":0,"r5_decisions_open":0,"missing_skills":[],"bottlenecks":[],"capacity_warnings":["company OS snapshot helper unavailable"],"errors":["company OS snapshot helper unavailable"]},"autonomy":{"green_workflows":0,"yellow_workflows":0,"red_workflows":0},"policy":{"simulation_only":true,"candidates":0,"active_policies":0,"proposed_policies":0,"errors":["company OS snapshot helper unavailable"]},"broker":{"real_side_effects_enabled":false,"mock_observations":0,"tickets_with_broker_evidence":[],"errors":["company OS snapshot helper unavailable"]},"outcomes":{"open":0,"recorded":0,"invalidated":0,"errors":["company OS snapshot helper unavailable"]}}'
 }
 
 cmd_snapshot() {
@@ -821,7 +817,7 @@ cmd_snapshot() {
 		done < <(ticket_files)
 	fi
 	overlaps_json="$(snapshot_overlaps_json)"
-	overlap_count="$(awk -v text="$overlaps_json" 'BEGIN { print gsub(/"left"/, "", text) }')"
+	overlap_count="$(printf '%s' "$overlaps_json" | awk '{ count += gsub(/"left"/, "") } END { print count + 0 }')"
 
 	printf '{\n'
 	printf '  "project": '

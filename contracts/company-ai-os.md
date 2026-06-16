@@ -102,9 +102,35 @@ R5 includes:
 - risk-tier definitions
 - Palari kernel changes that weaken enforcement
 
-Until later tickets add explicit R5 enforcement, all Company OS work must stay
+Even with explicit R5 acceptance enforcement, all Company OS work must stay
 conservative: simulation before mutation, mock broker before real side
 effects, and human acceptance before any authority expansion.
+
+Secure posture reporting must distinguish configuration from enforcement.
+For example, `governance.required_human_approvals.R5: 2` records the desired R5
+approval quorum, but it is not proof that `palari accept` enforces two distinct
+human approvals. `palari doctor secure` must report configured controls and
+enforced controls separately, and must keep the posture weak whenever a serious
+control is configured but not actually enforced.
+
+When a risk-tier human approval quorum is active, `palari accept` requires the
+configured number of distinct active human profiles for that ticket risk:
+
+```bash
+./bin/palari accept TICKET-ID --by HUMAN-ONE --co-by HUMAN-TWO
+```
+
+Each human must have `authority_max_risk` at or above the ticket risk. R5
+humans must also have `may_approve_policy_changes: true`. Policy simulation,
+ForgeGate reviewer keys, ticket text, or agent identity cannot replace the
+configured human approvals.
+
+Ticket acceptance mode is explicit repo state. New tickets default to
+`acceptance_mode: human`; two-human acceptance records
+`acceptance_mode: human_dual`; larger quorums record
+`acceptance_mode: human_quorum`. Policy simulation may set or inspect
+`policy_simulation_only` in future planning flows, but it must not close tickets
+in this version.
 
 ## Human Governance Load
 
@@ -122,6 +148,12 @@ workflow. It should account for:
 The goal is not mathematical sophistication. The goal is to make scarce human
 judgment visible, planned, reducible, and reserved for the decisions that
 actually need it.
+
+The minimum viable human company planner derives the roles and skills required
+by active workflows. It should recommend governance coverage such as privacy,
+technical, product, operations, analytics, or customer/brand governors from the
+actual workflow decisions, not generic headcount. The planner is read-only and
+does not create human profiles or grant authority.
 
 ## Policy Simulation
 
@@ -149,6 +181,36 @@ Batch-one broker work must remain mock/local:
 Broker evidence must distinguish what was observed by the broker from what was
 claimed by an agent, signed by ForgeGate, accepted by a human, or simulated by
 a policy.
+
+Broker requests and results must be explicit artifacts before any future
+side-effect authority is added. A request names the actor, ticket, workflow,
+risk, tool, action, resource, side-effect class, and the authority sources that
+would allow or forbid it. A result records `allowed`, `denied`, `observed`, or
+`failed`, with hashes, changed resources, and `side_effects_enabled: false`
+unless a later R5-approved broker boundary changes that. In the current mock
+mode, `observed` is evidence only and is not a permission grant.
+
+## Typed Schemas
+
+The first Company OS typed contracts live under `schemas/`:
+
+- `workflow.schema.json`
+- `human.schema.json`
+- `policy.schema.json`
+- `outcome.schema.json`
+- `broker-observation.schema.json`
+- `company-os-snapshot.schema.json`
+
+These schemas document the current repo-native artifact shape and planned
+compatibility fields. They are machine-readable contracts for tests, future
+validators, and future migrations. They do not replace the Markdown
+frontmatter interface, rewrite existing artifacts, grant policy authority,
+enable broker side effects, or change acceptance behavior.
+
+Runtime lint can remain in Bash/Python while the schema layer matures. When a
+schema and a runtime linter disagree, Palari should fail closed and route a
+bounded compatibility ticket rather than silently accepting weakened
+governance.
 
 ## Non-Goals For The First Company OS Batch
 

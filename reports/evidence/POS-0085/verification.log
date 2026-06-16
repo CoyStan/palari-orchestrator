@@ -1,0 +1,54 @@
+# Palari CI Evidence
+
+- Ticket: POS-0085
+- Base ref: local working tree
+- Created: 2026-06-16T07:11:19Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0085 (4 changed path(s))
+```
+
+## lint
+
+```text
+report-lint: ok for POS-0085
+lint: ok for POS-0085
+```
+
+## verification 1
+
+Command: `./bin/palari demo --company-os --force`
+
+```text
+demo: wrote Company OS fixtures
+goal: GOAL-0100 active
+workflow: WF-9101 growth yellow conditional autonomy
+workflow: WF-9102 support green high autonomy
+workflow: WF-9103 engineering red simulation only
+humans: founder, product/growth, technical/security, and customer/brand active
+proposed human: HUMAN-COS-PRIVACY privacy L5 not active
+missing skill: privacy:L5 active coverage
+policy candidate: run ./bin/palari policy candidates
+broker evidence: reports/evidence/DPC-9001/broker/RUN-COMPANY-OS-DEMO/summary.json
+outcome: OUT-9004 recorded
+inspect: ./bin/palari workflow plan WF-9101 && ./bin/palari workflow plan WF-9102 && ./bin/palari workflow plan WF-9103
+snapshot: ./bin/palari snapshot --json && ./bin/palari web --check
+```
+
+## verification 2
+
+Command: `./tests/run-company-os-demo.sh`
+
+```text
+company-os-demo: ok
+```
+
+## verification 3
+
+Command: `./tests/run-company-os-snapshot.sh`
+
+```text
+company-os-snapshot: ok
+```

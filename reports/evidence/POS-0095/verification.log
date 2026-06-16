@@ -1,0 +1,27 @@
+# Palari CI Evidence
+
+- Ticket: POS-0095
+- Base ref: local working tree
+- Created: 2026-06-16T13:46:05Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0095 (3 changed path(s))
+```
+
+## lint
+
+```text
+report-lint: ok for POS-0095
+lint: ok for POS-0095
+```
+
+## verification 1
+
+Command: `./tests/run-agent-wrapper.sh`
+
+```text
+Preparing worktree (new branch 'ticket/LAB-0201')
+agent-wrapper: ok
+```

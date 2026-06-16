@@ -1,0 +1,42 @@
+# Palari CI Evidence
+
+- Ticket: POS-0068
+- Base ref: HEAD
+- Created: 2026-06-15T22:37:59Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0068 (0 changed path(s))
+```
+
+## lint
+
+```text
+report-lint: ok for POS-0068
+lint: ok for POS-0068
+```
+
+## verification 1
+
+Command: `./bin/palari policy lint`
+
+```text
+policy lint: ok
+```
+
+## verification 2
+
+Command: `./tests/run-policy-simulation.sh`
+
+```text
+policy-simulation: ok
+```
+
+## verification 3
+
+Command: `./tests/run-policy-candidates.sh`
+
+```text
+policy-candidates: ok
+```

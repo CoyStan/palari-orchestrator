@@ -25,6 +25,29 @@ git config user.name "Risks Test"
 git add .
 git commit -m "risks baseline" >/dev/null
 
+./bin/palari human create HUMAN-R5A "R5 Approver A" \
+	--skill governance:L5 \
+	--role founder \
+	--capacity-hgl 60 \
+	--authority-max-risk R5 \
+	--may-approve-policy-changes >/dev/null
+./bin/palari human adopt HUMAN-R5A --by founder >/dev/null
+./bin/palari human create HUMAN-R5B "R5 Approver B" \
+	--skill governance:L5 \
+	--role founder \
+	--capacity-hgl 60 \
+	--authority-max-risk R5 \
+	--may-approve-policy-changes >/dev/null
+./bin/palari human adopt HUMAN-R5B --by founder >/dev/null
+./bin/palari human create HUMAN-R2A "R2 Approver" \
+	--skill governance:L5 \
+	--role reviewer \
+	--capacity-hgl 60 \
+	--authority-max-risk R2 >/dev/null
+./bin/palari human adopt HUMAN-R2A --by founder >/dev/null
+git add humans
+git commit -m "human governance fixtures" >/dev/null
+
 ./bin/palari ticket create RSK-0001 "Governance kernel change" \
 	--risk R5 \
 	--allowed "contracts/**" \
@@ -146,5 +169,230 @@ DOC
 ./bin/palari report-lint RSK-0001 >"$TMP_ROOT/report-with-human.out"
 grep -Fq "report-lint: ok for RSK-0001" "$TMP_ROOT/report-with-human.out" ||
 	fail "R5 report-lint should pass once human report exists"
+
+./bin/palari ticket create RSK-0003 "R5 accept gate" \
+	--risk R5 \
+	--allowed "tickets/**" \
+	--allowed "reports/**" \
+	--verify "true" >/dev/null
+./bin/palari ticket claim RSK-0003 tester --allow-overlap >/dev/null
+cat >reports/RSK-0003-technical-report.md <<'DOC'
+# RSK-0003 Technical Report
+
+## Files Changed
+
+- `tickets/open/RSK-0003-r5-accept-gate.md`
+
+## Verification
+
+- `true`
+
+## CI Evidence
+
+- `palari ci RSK-0003`
+
+## Risks / Follow-Ups
+
+- Test fixture only.
+DOC
+cat >reports/RSK-0003-reviewer-note.md <<'DOC'
+# RSK-0003 Reviewer Note
+
+## Review Result
+
+Accept-ready fixture.
+
+## Findings
+
+No blocking findings.
+
+## Verification Reviewed
+
+- `palari ci RSK-0003`
+
+## Required Changes
+
+None.
+
+## Recommendation
+
+Accept with the configured R5 human quorum.
+DOC
+mkdir -p reports/human
+cat >reports/human/RSK-0003-human-report.md <<'DOC'
+# RSK-0003 Human Report
+
+## Why This Mattered
+
+R5 acceptance must honor the configured human quorum.
+
+## What Changed
+
+Test-only fixture.
+
+## What I Should Know
+
+No production governance setting is changed by this fixture.
+
+## What To Check
+
+R5 accept refuses unsafe acceptors and accepts the configured quorum.
+
+## Recommended Next Move
+
+Keep R5 human approval quorum enforcement active.
+DOC
+./bin/palari ci RSK-0003 >/dev/null
+./bin/palari ticket ready RSK-0003 >/dev/null
+./bin/palari evidence score RSK-0003 >"$TMP_ROOT/r5-evidence-score.out"
+grep -Fq "next_action: human gate: ./bin/palari accept RSK-0003 --by HUMAN-ADMIN" "$TMP_ROOT/r5-evidence-score.out" ||
+	fail "R5 evidence score should recommend the configured default one-human accept command"
+./bin/palari snapshot --json >"$TMP_ROOT/r5-snapshot.json"
+python3 - "$TMP_ROOT/r5-snapshot.json" <<'PY'
+import json
+import sys
+
+snapshot = json.load(open(sys.argv[1]))
+tickets = {ticket["id"]: ticket for ticket in snapshot["tickets"]}
+command = tickets["RSK-0003"]["next_action"]["command"]
+assert command == "./bin/palari accept RSK-0003 --by HUMAN-ADMIN", command
+PY
+
+if ./bin/palari accept RSK-0003 --by HUMAN-R2A >"$TMP_ROOT/r5-r2-one.out" 2>&1; then
+	fail "R5 accept with an R2 acceptor should fail"
+fi
+grep -Fq "authority_max_risk R2" "$TMP_ROOT/r5-r2-one.out" ||
+	fail "R5 R2-human failure should mention the lower authority ceiling"
+
+./bin/palari accept RSK-0003 --by HUMAN-R5A >"$TMP_ROOT/r5-one.out"
+grep -Fq "accept: RSK-0003 accepted by HUMAN-R5A" "$TMP_ROOT/r5-one.out" ||
+	fail "R5 one-human accept should succeed when the configured quorum is 1"
+grep -Fq "acceptance_mode: human" tickets/closed/RSK-0003-r5-accept-gate.md ||
+	fail "R5 one-human accept should record human acceptance mode"
+
+python3 - <<'PY'
+from pathlib import Path
+path = Path("palari.config.yaml")
+text = path.read_text(encoding="utf-8")
+text = text.replace("    R5: 1", "    R5: 2", 1)
+path.write_text(text, encoding="utf-8")
+PY
+git add palari.config.yaml
+git commit -m "test R5 quorum two" >/dev/null
+
+./bin/palari ticket create RSK-0004 "R5 quorum two accept gate" \
+	--risk R5 \
+	--allowed "tickets/**" \
+	--allowed "reports/**" \
+	--verify "true" >/dev/null
+./bin/palari ticket claim RSK-0004 tester --allow-overlap >/dev/null
+cat >reports/RSK-0004-technical-report.md <<'DOC'
+# RSK-0004 Technical Report
+
+## Files Changed
+
+- `tickets/open/RSK-0004-r5-quorum-two-accept-gate.md`
+
+## Verification
+
+- `true`
+
+## CI Evidence
+
+- `palari ci RSK-0004`
+
+## Risks / Follow-Ups
+
+- Test fixture only.
+DOC
+cat >reports/RSK-0004-reviewer-note.md <<'DOC'
+# RSK-0004 Reviewer Note
+
+## Review Result
+
+Accept-ready fixture.
+
+## Findings
+
+No blocking findings.
+
+## Verification Reviewed
+
+- `palari ci RSK-0004`
+
+## Required Changes
+
+None.
+
+## Recommendation
+
+Accept with two R5-authorized humans because the fixture config sets R5 quorum to 2.
+DOC
+cat >reports/human/RSK-0004-human-report.md <<'DOC'
+# RSK-0004 Human Report
+
+## Why This Mattered
+
+The configurable quorum must still enforce two distinct humans when R5 is set to 2.
+
+## What Changed
+
+Test-only fixture.
+
+## What I Should Know
+
+No production governance setting is changed by this fixture.
+
+## What To Check
+
+R5 accept refuses unsafe acceptor combinations and accepts two R5 humans when configured.
+
+## Recommended Next Move
+
+Keep configurable quorum enforcement active.
+DOC
+./bin/palari ci RSK-0004 >/dev/null
+./bin/palari ticket ready RSK-0004 >/dev/null
+./bin/palari evidence score RSK-0004 >"$TMP_ROOT/r5-two-evidence-score.out"
+grep -Fq "next_action: human gate: ./bin/palari accept RSK-0004 --by HUMAN-ADMIN --co-by HUMAN-TWO" "$TMP_ROOT/r5-two-evidence-score.out" ||
+	fail "R5 quorum-two evidence score should recommend the two-human accept command"
+./bin/palari snapshot --json >"$TMP_ROOT/r5-two-snapshot.json"
+python3 - "$TMP_ROOT/r5-two-snapshot.json" <<'PY'
+import json
+import sys
+
+snapshot = json.load(open(sys.argv[1]))
+tickets = {ticket["id"]: ticket for ticket in snapshot["tickets"]}
+command = tickets["RSK-0004"]["next_action"]["command"]
+assert command == "./bin/palari accept RSK-0004 --by HUMAN-ADMIN --co-by HUMAN-TWO", command
+PY
+
+if ./bin/palari accept RSK-0004 --by HUMAN-R5A >"$TMP_ROOT/r5-two-one.out" 2>&1; then
+	fail "R5 accept with one human should fail when the configured quorum is 2"
+fi
+grep -Fq "R5 tickets require 2 human approval(s)" "$TMP_ROOT/r5-two-one.out" ||
+	fail "R5 quorum-two failure should name the configured approval count"
+
+if ./bin/palari accept RSK-0004 --by HUMAN-R5A --co-by human-r5a >"$TMP_ROOT/r5-same.out" 2>&1; then
+	fail "R5 accept with same human twice should fail"
+fi
+grep -Fq "distinct humans" "$TMP_ROOT/r5-same.out" ||
+	fail "R5 same-human failure should mention distinct humans"
+
+if ./bin/palari accept RSK-0004 --by HUMAN-R5A --co-by HUMAN-R2A >"$TMP_ROOT/r5-r2.out" 2>&1; then
+	fail "R5 accept with an R2 co-acceptor should fail"
+fi
+grep -Fq "authority_max_risk R2" "$TMP_ROOT/r5-r2.out" ||
+	fail "R5 R2-human failure should mention the lower authority ceiling"
+
+./bin/palari accept RSK-0004 --by HUMAN-R5A --co-by HUMAN-R5B >"$TMP_ROOT/r5-dual.out"
+grep -Fq "accept: RSK-0004 accepted by HUMAN-R5A" "$TMP_ROOT/r5-dual.out" ||
+	fail "R5 dual-human accept should succeed"
+grep -Fq "co-accepted-by: HUMAN-R5B" "$TMP_ROOT/r5-dual.out" ||
+	fail "R5 dual-human accept output should name co-acceptor"
+grep -Fq "co_accepted_by: HUMAN-R5B" tickets/closed/RSK-0004-r5-quorum-two-accept-gate.md ||
+	fail "R5 closed ticket should record co_accepted_by"
+grep -Fq "acceptance_mode: human_dual" tickets/closed/RSK-0004-r5-quorum-two-accept-gate.md ||
+	fail "R5 closed ticket should record human_dual acceptance mode"
 
 printf 'risks: ok\n'

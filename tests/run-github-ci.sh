@@ -27,9 +27,13 @@ new_repo() {
 
 create_doc_ticket() {
 	local ticket="$1"
+	local goal="${2:-}"
+	local -a goal_args=()
+	[[ -z "$goal" ]] || goal_args=(--goal "$goal")
 	./bin/palari ticket create "$ticket" "GitHub CI $ticket" \
 		--stream test \
 		--risk R1 \
+		"${goal_args[@]}" \
 		--allowed "docs/$ticket.md" \
 		--allowed "tickets/**" \
 		--allowed "reports/**" \
@@ -123,6 +127,21 @@ run_multi_ticket_case() {
 	grep -Fq "ci: ok for LAB-0305+LAB-0306" "$TMP_ROOT/multi-ticket.out"
 }
 
+run_ticket_branch_stack_case() {
+	local work
+	work="$(new_repo ticket-branch-stack)"
+	cd "$work"
+	git switch -c ticket/LAB-0310 >/dev/null
+	./bin/palari goal create GOAL-0310 "GitHub CI stack goal" --success "stacked PR CI passes" >/dev/null
+	create_doc_ticket LAB-0310 GOAL-0310
+	create_doc_ticket LAB-0311 GOAL-0310
+	printf '\n- CI repair note\n' >>goals/active/GOAL-0310-github-ci-stack-goal.md
+	commit_case "ticket branch stack"
+	GITHUB_HEAD_REF=ticket/LAB-0310 ./bin/palari github ci --base main >"$TMP_ROOT/ticket-branch-stack.out"
+	grep -Fq "github ci: tickets: LAB-0310 LAB-0311" "$TMP_ROOT/ticket-branch-stack.out"
+	grep -Fq "ci: ok for LAB-0310+LAB-0311" "$TMP_ROOT/ticket-branch-stack.out"
+}
+
 run_many_changed_closed_case() {
 	local work ticket_file i ticket
 	work="$(new_repo many-changed-closed)"
@@ -182,13 +201,31 @@ run_accepted_evidence_and_future_open_case() {
 	grep -Fq "stored evidence LAB-0307" "$aggregate_log"
 }
 
+run_failure_sarif_json_case() {
+	local work
+	work="$(new_repo failure-sarif)"
+	cd "$work"
+	git switch -c ticket/LAB-0312 >/dev/null
+	create_doc_ticket LAB-0312
+	printf 'out of scope\n' >README.md
+	commit_case "scope failure with quoted path"
+	if GITHUB_HEAD_REF=ticket/LAB-0312 ./bin/palari github ci --base main >"$TMP_ROOT/failure-sarif.out" 2>&1; then
+		printf 'github-ci: expected scope failure case to fail\n' >&2
+		exit 1
+	fi
+	grep -Fq 'scope-check: path "README.md" is outside allowed_paths' reports/evidence/LAB-0312/verification.log
+	python3 -m json.tool reports/evidence/LAB-0312/palari.sarif >/dev/null
+}
+
 run_no_ticket_case
 run_env_case
 run_branch_case
 run_changed_open_case
 run_changed_closed_case
 run_multi_ticket_case
+run_ticket_branch_stack_case
 run_many_changed_closed_case
 run_accepted_evidence_and_future_open_case
+run_failure_sarif_json_case
 
 printf 'github-ci: ok\n'

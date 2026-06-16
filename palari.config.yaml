@@ -196,7 +196,14 @@ acceptance:
   implementation_self_acceptance: forbidden
 
 governance:
-  r5_requires_dual_human: true
+  default_human_approver: HUMAN-ADMIN
+  required_human_approvals:
+    R0: 0
+    R1: 0
+    R2: 0
+    R3: 0
+    R4: 0
+    R5: 1
   policy_acceptance_enabled: false
   broker_real_side_effects_enabled: false
 

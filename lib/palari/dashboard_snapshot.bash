@@ -74,7 +74,7 @@ snapshot_next_action_values() {
 		else
 			label="Accept or reopen"
 			detail="A human or authorized acceptor should accept the ticket or send it back."
-			command="./bin/palari accept $id --by founder"
+			command="$(accept_command_for_ticket "$file" "$id" "founder" "./bin/palari")"
 			actor="human"
 			severity="waiting"
 		fi

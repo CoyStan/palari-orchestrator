@@ -39,11 +39,11 @@ ci_add_sarif_failure() {
 	local rule="$1"
 	local message="$2"
 	local rule_json message_json location_json
-	rule_json="$(printf '%s' "$rule" | json_escape)"
-	message_json="$(printf '%s' "$message" | json_escape)"
-	location_json="$(printf '%s' "${CI_SARIF_LOCATION:-palari.config.yaml}" | json_escape)"
+	rule_json="$(json_string "$rule")"
+	message_json="$(json_string "$message")"
+	location_json="$(json_string "${CI_SARIF_LOCATION:-palari.config.yaml}")"
 	[[ ! -s "$CI_SARIF_RESULTS" ]] || printf ',\n' >>"$CI_SARIF_RESULTS"
-	printf '        {"ruleId":"%s","level":"error","message":{"text":"%s"},"locations":[{"physicalLocation":{"artifactLocation":{"uri":"%s"},"region":{"startLine":1}}}]}' \
+	printf '        {"ruleId":%s,"level":"error","message":{"text":%s},"locations":[{"physicalLocation":{"artifactLocation":{"uri":%s},"region":{"startLine":1}}}]}' \
 		"$rule_json" "$message_json" "$location_json" >>"$CI_SARIF_RESULTS"
 }
 
@@ -536,29 +536,267 @@ same_actor() {
 	[[ "${left,,}" == "${right,,}" ]]
 }
 
+config_nested_map_scalar() {
+	local section="$1"
+	local map="$2"
+	local key="$3"
+	[[ -f "$CONFIG" ]] || return 1
+	awk -v section="$section" -v map="$map" -v key="$key" '
+    function clean(value) {
+      sub(/[[:space:]]#.*$/, "", value)
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
+      gsub(/^["'\'']|["'\'']$/, "", value)
+      return value
+    }
+    /^[[:space:]]*#/ || /^[[:space:]]*$/ { next }
+    /^[^[:space:]][A-Za-z0-9_.-]+:/ {
+      in_section = ($0 ~ "^[[:space:]]*" section ":")
+      in_map = 0
+      next
+    }
+    in_section && $0 ~ "^[[:space:]]{2}" map ":[[:space:]]*($|#)" {
+      in_map = 1
+      next
+    }
+    in_section && in_map && $0 ~ "^[[:space:]]{4}" key ":" {
+      value = $0
+      sub(/^[[:space:]]+/, "", value)
+      sub("^[A-Za-z0-9_.-]+:[[:space:]]*", "", value)
+      print clean(value)
+      exit
+    }
+    in_section && in_map && $0 ~ "^[[:space:]]{2}[A-Za-z0-9_.-]+:" {
+      exit
+    }
+  ' "$CONFIG"
+}
+
+cfg_nested_map() {
+	local section="$1"
+	local map="$2"
+	local key="$3"
+	local default="$4"
+	local value
+	value="$(config_nested_map_scalar "$section" "$map" "$key" || true)"
+	[[ -n "$value" ]] && printf '%s\n' "$value" || printf '%s\n' "$default"
+}
+
+accept_risk_rank() {
+	case "$1" in
+	R0) printf '0\n' ;;
+	R1) printf '1\n' ;;
+	R2) printf '2\n' ;;
+	R3) printf '3\n' ;;
+	R4) printf '4\n' ;;
+	R5) printf '5\n' ;;
+	*) printf '-1\n' ;;
+	esac
+}
+
+accept_human_approval_quorum_for_risk() {
+	local risk="$1"
+	local raw
+	raw="$(cfg_nested_map governance required_human_approvals "$risk" "")"
+	[[ -n "$raw" ]] || raw="$(cfg_nested governance "required_human_approvals_${risk}" "")"
+	if [[ -z "$raw" && "$risk" == "R5" && "$(cfg_nested governance r5_requires_dual_human false)" == "true" ]]; then
+		raw="2"
+	fi
+	if [[ -z "$raw" ]]; then
+		case "$risk" in
+		R5) raw="1" ;;
+		*) raw="0" ;;
+		esac
+	fi
+	[[ "$raw" =~ ^[0-9]+$ ]] ||
+		die "invalid governance.required_human_approvals.$risk value: $raw"
+	printf '%s\n' "$raw"
+}
+
+accept_enforces_human_quorum() {
+	local quorum
+	quorum="$(accept_human_approval_quorum_for_risk R5)"
+	((quorum >= 1))
+}
+
+accept_r5_dual_human_enforcement_enabled() {
+	local quorum
+	quorum="$(accept_human_approval_quorum_for_risk R5)"
+	((quorum >= 2))
+}
+
+accept_enforces_r5_dual_human() {
+	accept_r5_dual_human_enforcement_enabled
+}
+
+accept_placeholder_human() {
+	local default_human
+	default_human="$(cfg_nested governance default_human_approver "")"
+	if [[ "$1" == "1" && -n "$default_human" ]]; then
+		printf '%s\n' "$default_human"
+		return 0
+	fi
+	case "$1" in
+	1) printf 'HUMAN-ONE\n' ;;
+	2) printf 'HUMAN-TWO\n' ;;
+	3) printf 'HUMAN-THREE\n' ;;
+	*) printf 'HUMAN-%s\n' "$1" ;;
+	esac
+}
+
+accept_command_for_ticket() {
+	local file="$1"
+	local ticket_id="$2"
+	local by="${3:-HUMAN}"
+	local prefix="${4:-./bin/palari}"
+	local risk quorum index command
+	risk="$(frontmatter_value "$file" risk)"
+	quorum="$(accept_human_approval_quorum_for_risk "$risk")"
+	if ((quorum <= 0)); then
+		printf '%s accept %s --by %s\n' "$prefix" "$ticket_id" "$by"
+		return 0
+	fi
+	command="$prefix accept $ticket_id --by $(accept_placeholder_human 1)"
+	for ((index = 2; index <= quorum; index++)); do
+		command+=" --co-by $(accept_placeholder_human "$index")"
+	done
+	printf '%s\n' "$command"
+}
+
+accept_ensure_frontmatter_key() {
+	local file="$1" key="$2"
+	frontmatter_has_key "$file" "$key" && return 0
+	local tmp="${file}.tmp.$$"
+	awk -v key="$key" '
+    NR == 1 && $0 == "---" { in_fm = 1; print; next }
+    in_fm && $0 == "---" {
+      print key ":"
+      in_fm = 0
+      print
+      next
+    }
+    { print }
+  ' "$file" >"$tmp"
+	mv "$tmp" "$file"
+}
+
+accept_mode_for_ticket() {
+	local file="$1"
+	local mode
+	mode="$(frontmatter_value "$file" acceptance_mode)"
+	[[ -n "$mode" ]] && printf '%s\n' "$mode" || printf 'human\n'
+}
+
+accept_require_supported_mode() {
+	local mode="$1"
+	case "$mode" in
+	human | human_dual | human_quorum) return 0 ;;
+	policy_simulation_only)
+		die "policy acceptance is simulation-only in this Palari version"
+		;;
+	deny)
+		die "accept refused: acceptance_mode deny"
+		;;
+	"")
+		return 0
+		;;
+	*)
+		die "accept refused: invalid acceptance_mode: $mode"
+		;;
+	esac
+}
+
+accept_join_by_comma() {
+	local first="true" item
+	for item in "$@"; do
+		if [[ "$first" == "true" ]]; then
+			printf '%s' "$item"
+			first="false"
+		else
+			printf ',%s' "$item"
+		fi
+	done
+}
+
+accept_require_human_for_risk() {
+	local actor="$1"
+	local ticket_id="$2"
+	local ticket_risk="$3"
+	local human_file human_risk human_rank ticket_rank may_policy
+	human_file="$(find_human_file "$actor" active)" ||
+		die "accept refused: $ticket_risk acceptor $actor must be an active human profile"
+	human_risk="$(frontmatter_value "$human_file" authority_max_risk)"
+	human_rank="$(accept_risk_rank "$human_risk")"
+	ticket_rank="$(accept_risk_rank "$ticket_risk")"
+	may_policy="$(frontmatter_value "$human_file" may_approve_policy_changes)"
+	((human_rank >= ticket_rank && ticket_rank >= 0)) ||
+		die "accept refused: $ticket_risk acceptor $actor has authority_max_risk ${human_risk:-missing}; $ticket_risk required for $ticket_id"
+	[[ "$ticket_risk" != "R5" || "$may_policy" == "true" ]] ||
+		die "accept refused: R5 acceptor $actor must have may_approve_policy_changes: true"
+}
+
+accept_require_human_quorum() {
+	local ticket_id="$1" risk="$2" by="$3" claimed_by="$4" implemented_by="$5" co_bys_ref="$6"
+	local -n approval_co_bys="$co_bys_ref"
+	local quorum actor left right
+	local -a actors=()
+	quorum="$(accept_human_approval_quorum_for_risk "$risk")"
+	((quorum > 0)) || return 0
+	[[ -n "$by" ]] || die "accept requires --by NAME; acceptance must name the human or authorized reviewer"
+	actors+=("$by")
+	for actor in "${approval_co_bys[@]}"; do
+		[[ -n "$actor" ]] && actors+=("$actor")
+	done
+	((${#actors[@]} >= quorum)) ||
+		die "accept refused: $risk tickets require $quorum human approval(s); provide --by plus enough --co-by values"
+	for left in "${!actors[@]}"; do
+		for right in "${!actors[@]}"; do
+			((right > left)) || continue
+			! same_actor "${actors[$left]}" "${actors[$right]}" ||
+				die "accept refused: $risk human approval quorum requires distinct humans"
+		done
+	done
+	for actor in "${actors[@]}"; do
+		if same_actor "$actor" "$claimed_by" || same_actor "$actor" "$implemented_by"; then
+			die "accept refused: $risk acceptor $actor must not be the claimant or implementer for $ticket_id"
+		fi
+		accept_require_human_for_risk "$actor" "$ticket_id" "$risk"
+	done
+}
+
 cmd_accept() {
 	require_base_folders
 	local ticket="${1:-}"
 	shift || true
 	local by=""
+	local -a co_bys=()
 	while (($# > 0)); do
 		case "$1" in
 		--by)
 			by="$2"
 			shift 2
 			;;
+		--co-by)
+			co_bys+=("$2")
+			shift 2
+			;;
+		--by-policy | --policy | --policy-id)
+			die "policy acceptance is simulation-only in this Palari version"
+			;;
 		*) die "unknown accept option: $1" ;;
 		esac
 	done
 	[[ -n "$ticket" ]] || die "accept requires ticket ID"
 	[[ -n "$by" ]] || die "accept requires --by NAME; acceptance must name the human or authorized reviewer"
-	local file status id dest claim_ref claimed_by implemented_by self_policy
+	local file status id risk mode dest claim_ref claimed_by implemented_by self_policy human_quorum co_accepted_by acceptance_mode actor
 	file="$(find_ticket_file "$ticket")" || die "ticket not found: $ticket"
 	status="$(frontmatter_value "$file" status)"
 	id="$(frontmatter_value "$file" id)"
+	risk="$(frontmatter_value "$file" risk)"
+	mode="$(accept_mode_for_ticket "$file")"
 	[[ -n "$id" ]] || id="$ticket"
 	[[ "${file#"$ROOT"/}" == "$OPEN_DIR/"* ]] || die "ticket is already closed: $ticket"
 	[[ "$status" == "in-review" ]] || die "accept requires in-review status; current: ${status:-missing}"
+	accept_require_supported_mode "$mode"
 	claim_ref="$(frontmatter_value "$file" claim_ref)"
 	if [[ -n "$claim_ref" || -n "$(frontmatter_value "$file" claim_expires_at)" ]]; then
 		ticket_claim_expired "$file" && die "accept refused: claim lease is expired for $id; renew with \`palari ticket heartbeat $id\`"
@@ -578,24 +816,52 @@ cmd_accept() {
 	# checks below remain as UX guards only; they are not a security
 	# boundary (see contracts/signed-acceptance.md).
 	gate_require_accept "$id"
+	human_quorum="$(accept_human_approval_quorum_for_risk "$risk")"
 	self_policy="$(cfg_nested acceptance implementation_self_acceptance "forbidden")"
+	claimed_by="$(frontmatter_value "$file" claimed_by)"
+	implemented_by="$(frontmatter_value "$file" implemented_by)"
+	accept_require_human_quorum "$id" "$risk" "$by" "$claimed_by" "$implemented_by" co_bys
 	if [[ "$self_policy" == "forbidden" ]]; then
-		claimed_by="$(frontmatter_value "$file" claimed_by)"
-		implemented_by="$(frontmatter_value "$file" implemented_by)"
 		if same_actor "$by" "$claimed_by" || same_actor "$by" "$implemented_by"; then
 			die "accept refused: implementation_self_acceptance is forbidden for $id"
 		fi
+		for actor in "${co_bys[@]}"; do
+			if same_actor "$actor" "$claimed_by" || same_actor "$actor" "$implemented_by"; then
+				die "accept refused: implementation_self_acceptance is forbidden for $id"
+			fi
+		done
 	fi
-	update_frontmatter_scalars "$file" \
-		"status"$'\035'"accepted"$'\034' \
-		"accepted_by"$'\035'"$by"$'\034' \
-		"accepted_at"$'\035'"$(now_utc)"$'\034' \
-		"updated"$'\035'"$(today_utc)"$'\034'
+	if ((${#co_bys[@]} > 0)); then
+		co_accepted_by="$(accept_join_by_comma "${co_bys[@]}")"
+		if ((human_quorum > 2 || ${#co_bys[@]} > 1)); then
+			acceptance_mode="human_quorum"
+		else
+			acceptance_mode="human_dual"
+		fi
+		accept_ensure_frontmatter_key "$file" co_accepted_by
+		accept_ensure_frontmatter_key "$file" acceptance_mode
+		update_frontmatter_scalars "$file" \
+			"status"$'\035'"accepted"$'\034' \
+			"accepted_by"$'\035'"$by"$'\034' \
+			"co_accepted_by"$'\035'"$co_accepted_by"$'\034' \
+			"acceptance_mode"$'\035'"$acceptance_mode"$'\034' \
+			"accepted_at"$'\035'"$(now_utc)"$'\034' \
+			"updated"$'\035'"$(today_utc)"$'\034'
+	else
+		accept_ensure_frontmatter_key "$file" acceptance_mode
+		update_frontmatter_scalars "$file" \
+			"status"$'\035'"accepted"$'\034' \
+			"accepted_by"$'\035'"$by"$'\034' \
+			"acceptance_mode"$'\035'"human"$'\034' \
+			"accepted_at"$'\035'"$(now_utc)"$'\034' \
+			"updated"$'\035'"$(today_utc)"$'\034'
+	fi
 	dest="$ROOT/$CLOSED_DIR/$(basename "$file")"
 	mv "$file" "$dest"
 	if [[ -n "$claim_ref" ]]; then
 		git -C "$ROOT" update-ref -d "$claim_ref" >/dev/null 2>&1 || true
 	fi
 	printf 'accept: %s accepted by %s\n' "$id" "$by"
+	((${#co_bys[@]} == 0)) || printf 'co-accepted-by: %s\n' "$co_accepted_by"
 	printf 'closed: %s\n' "${dest#"$ROOT"/}"
 }

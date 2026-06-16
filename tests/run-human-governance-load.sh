@@ -17,7 +17,7 @@ mkdir -p "$WORK"
 cd "$WORK"
 chmod +x bin/palari scripts/palari tests/run-human-governance-load.sh
 rm -f tickets/open/*.md tickets/closed/*.md reports/*.md reports/human/*.md handoffs/*.md
-rm -rf reports/evidence/* .palari workflows/proposed/*.md workflows/active/*.md workflows/closed/*.md humans/proposed/*.md humans/active/*.md humans/revoked/*.md
+rm -rf reports/evidence/* .palari workflows/proposed/*.md workflows/active/*.md workflows/closed/*.md humans/proposed/*.md humans/active/*.md humans/revoked/*.md outcomes/open/*.md outcomes/recorded/*.md
 
 git init -b main >/dev/null
 git config user.email "hgl@example.invalid"
@@ -82,6 +82,61 @@ assert data["expected_decisions"]["R4"] == 1
 assert data["launch_gate"] == "yellow"
 assert data["autonomy_ceiling"] == "human_led"
 assert data["missing_skills"] == []
+assert data["capacity"]["weekly_hgl_budget"] == 80
+assert data["capacity"]["current_weekly_hgl"] == 0
+assert data["capacity"]["available_weekly_hgl"] == 80
+assert data["capacity"]["risk_capacity_failures"] == []
+PY
+
+./bin/palari burden calibrate >"$TMP_ROOT/calibration-empty.out"
+grep -Fq "Mode: read-only; no weights or policies were changed." "$TMP_ROOT/calibration-empty.out" ||
+	fail "empty calibration report should be read-only"
+grep -Fq "Outcomes considered: 0" "$TMP_ROOT/calibration-empty.out" ||
+	fail "empty calibration report should count zero outcomes"
+./bin/palari burden calibrate --json >"$TMP_ROOT/calibration-empty.json"
+python3 - "$TMP_ROOT/calibration-empty.json" <<'PY'
+import json
+import sys
+
+data = json.load(open(sys.argv[1]))
+assert data["mode"] == "read_only"
+assert data["weight_changes_applied"] is False
+assert data["policy_changes_applied"] is False
+assert data["outcomes_considered"] == 0
+assert data["overestimated_hgl"] == []
+assert data["underestimated_hgl"] == []
+assert data["risk_mismatches"] == []
+PY
+
+python3 - <<'PY'
+from pathlib import Path
+
+for path in Path("humans/active").glob("HUMAN-*.md"):
+    text = path.read_text()
+    if "id: HUMAN-ALICE" in text:
+        text = text.replace("current_weekly_hgl: 0", "current_weekly_hgl: 60")
+    if "id: HUMAN-BOB" in text:
+        text = text.replace("current_weekly_hgl: 0", "current_weekly_hgl: 20")
+    path.write_text(text)
+PY
+./bin/palari burden score WF-0001 --json >"$TMP_ROOT/no-weekly-capacity.json"
+python3 - "$TMP_ROOT/no-weekly-capacity.json" <<'PY'
+import json
+import sys
+
+data = json.load(open(sys.argv[1]))
+assert data["capacity"]["available_weekly_hgl"] == 0, data["capacity"]
+assert data["launch_gate"] == "red", data
+assert data["autonomy_ceiling"] == "simulation_only", data
+PY
+python3 - <<'PY'
+from pathlib import Path
+
+for path in Path("humans/active").glob("HUMAN-*.md"):
+    text = path.read_text()
+    text = text.replace("current_weekly_hgl: 60", "current_weekly_hgl: 0")
+    text = text.replace("current_weekly_hgl: 20", "current_weekly_hgl: 0")
+    path.write_text(text)
 PY
 
 ./bin/palari human coverage WF-0001 --json >"$TMP_ROOT/coverage.json"
@@ -94,6 +149,43 @@ required = data["required_skills"]
 assert required["product_strategy"] == "L4"
 assert required["analytics"] == "L3"
 assert required["technical_governance"] == "L4"
+PY
+
+./bin/palari workflow create WF-0003 "Evidence weighting" \
+	--goal GOAL-0100 \
+	--owner founder \
+	--risk-ceiling R5 >/dev/null
+python3 - <<'PY'
+from pathlib import Path
+
+path = Path("workflows/proposed/WF-0003-evidence-weighting.md")
+text = path.read_text()
+text = text.replace(
+    "expected_decisions:\n",
+    "expected_decisions:\n"
+    "  - R5|approve|product_strategy:L5|Strong evidence check|evidence=strong\n"
+    "  - R5|approve|product_strategy:L5|Normal evidence check|evidence=normal\n"
+    "  - R5|approve|product_strategy:L5|Unknown evidence check|evidence=unexpected_label\n"
+    "  - R5|approve|product_strategy:L5|Weak evidence check|evidence=weak\n"
+    "  - R5|approve|product_strategy:L5|No evidence check|evidence=none_or_unknown\n",
+)
+path.write_text(text)
+PY
+./bin/palari workflow adopt WF-0003 --by founder >/dev/null
+./bin/palari burden score WF-0003 --json >"$TMP_ROOT/evidence-weighting.json"
+python3 - "$TMP_ROOT/evidence-weighting.json" <<'PY'
+import json
+import sys
+
+data = json.load(open(sys.argv[1]))
+scores = {row["title"]: row["score"] for row in data["decisions"]}
+strong = scores["Strong evidence check"]
+normal = scores["Normal evidence check"]
+unknown = scores["Unknown evidence check"]
+weak = scores["Weak evidence check"]
+none = scores["No evidence check"]
+assert strong < normal < weak < none, scores
+assert unknown == normal, scores
 PY
 
 ./bin/palari workflow create WF-0002 "Privacy rollout" \
@@ -123,8 +215,246 @@ assert data["expected_decisions"]["R5"] == 1
 assert data["launch_gate"] == "red"
 assert data["autonomy_ceiling"] == "simulation_only"
 assert data["missing_skills"] == ["privacy:L5"]
+assert data["coverage_failures"] == ["privacy:L5 has no active human candidates"]
 assert data["human_governance_load"] > 20
 PY
 
-printf 'human-governance-load: ok\n'
+./bin/palari burden debt >"$TMP_ROOT/debt.out"
+grep -Fq "Human Governance Debt: high" "$TMP_ROOT/debt.out" ||
+	fail "debt report should show high debt"
+grep -Fq "privacy:L5 missing for 1 active workflow" "$TMP_ROOT/debt.out" ||
+	fail "debt report should show privacy gap"
+if grep -Fq "R5 policy/governance changes have 1 qualified human(s)" "$TMP_ROOT/debt.out"; then
+	fail "debt report should not show an R5 quorum gap when config requires one qualified human"
+fi
+grep -Fq "Highest leverage fix:" "$TMP_ROOT/debt.out" ||
+	fail "debt report should show highest leverage fix"
 
+./bin/palari burden debt --json >"$TMP_ROOT/debt.json"
+python3 - "$TMP_ROOT/debt.json" <<'PY'
+import json
+import sys
+
+data = json.load(open(sys.argv[1]))
+assert data["level"] == "high", data
+categories = {item["category"] for item in data["items"]}
+assert "missing_skill_coverage" in categories, data
+assert "r5_human_quorum_coverage" not in categories, data
+assert "weak_evidence" in categories, data
+assert data["highest_leverage_fix"], data
+PY
+
+cat >humans/active/HUMAN-PRIVACY-JR-privacy-jr.md <<'DOC'
+---
+id: HUMAN-PRIVACY-JR
+name: Privacy Junior
+status: active
+roles:
+  - privacy_reviewer
+skills:
+  - privacy:L5
+authority_max_risk: R2
+may_approve_policy_changes: false
+weekly_hgl_budget: 60
+current_weekly_hgl: 0
+max_concurrent_r3: 6
+current_open_r3: 0
+max_concurrent_r4: 2
+current_open_r4: 0
+max_concurrent_r5: 1
+current_open_r5: 0
+constraints:
+---
+
+# HUMAN-PRIVACY-JR Privacy Junior
+DOC
+
+./bin/palari burden score WF-0002 --json >"$TMP_ROOT/under-authorized.json"
+python3 - "$TMP_ROOT/under-authorized.json" <<'PY'
+import json
+import sys
+
+data = json.load(open(sys.argv[1]))
+row = data["decisions"][0]["coverage"][0]
+assert row["covered_by"] == []
+assert row["under_authorized"] == ["HUMAN-PRIVACY-JR"]
+assert row["underleveled"] == []
+assert row["at_capacity"] == []
+assert data["missing_skills"] == ["privacy:L5"]
+assert data["coverage_failures"] == ["privacy:L5 has candidates but none with R5 authority"]
+assert data["launch_gate"] == "red"
+PY
+
+rm -f humans/active/HUMAN-PRIVACY-JR-privacy-jr.md
+cat >humans/active/HUMAN-PRIVACY-NOPOLICY-privacy-no-policy.md <<'DOC'
+---
+id: HUMAN-PRIVACY-NOPOLICY
+name: Privacy No Policy
+status: active
+roles:
+  - privacy_governor
+skills:
+  - privacy:L5
+authority_max_risk: R5
+may_approve_policy_changes: false
+weekly_hgl_budget: 60
+current_weekly_hgl: 0
+max_concurrent_r3: 6
+current_open_r3: 0
+max_concurrent_r4: 2
+current_open_r4: 0
+max_concurrent_r5: 1
+current_open_r5: 0
+constraints:
+---
+
+# HUMAN-PRIVACY-NOPOLICY Privacy No Policy
+DOC
+
+./bin/palari burden score WF-0002 --json >"$TMP_ROOT/r5-no-policy.json"
+python3 - "$TMP_ROOT/r5-no-policy.json" <<'PY'
+import json
+import sys
+
+data = json.load(open(sys.argv[1]))
+row = data["decisions"][0]["coverage"][0]
+assert row["covered_by"] == []
+assert row["under_authorized"] == ["HUMAN-PRIVACY-NOPOLICY"]
+assert data["missing_skills"] == ["privacy:L5"]
+assert data["launch_gate"] == "red"
+PY
+
+rm -f humans/active/HUMAN-PRIVACY-NOPOLICY-privacy-no-policy.md
+cat >humans/active/HUMAN-PRIVACY-FULL-privacy-full.md <<'DOC'
+---
+id: HUMAN-PRIVACY-FULL
+name: Privacy Full
+status: active
+roles:
+  - privacy_governor
+skills:
+  - privacy:L5
+authority_max_risk: R5
+may_approve_policy_changes: true
+weekly_hgl_budget: 60
+current_weekly_hgl: 0
+max_concurrent_r3: 6
+current_open_r3: 0
+max_concurrent_r4: 2
+current_open_r4: 0
+max_concurrent_r5: 1
+current_open_r5: 1
+constraints:
+---
+
+# HUMAN-PRIVACY-FULL Privacy Full
+DOC
+
+./bin/palari burden score WF-0002 --json >"$TMP_ROOT/at-capacity.json"
+python3 - "$TMP_ROOT/at-capacity.json" <<'PY'
+import json
+import sys
+
+data = json.load(open(sys.argv[1]))
+row = data["decisions"][0]["coverage"][0]
+assert row["covered_by"] == []
+assert row["at_capacity"] == ["HUMAN-PRIVACY-FULL"]
+assert data["capacity"]["risk_capacity_failures"] == ["HUMAN-PRIVACY-FULL at R5 capacity"]
+assert data["coverage_failures"] == ["privacy:L5 has authorized candidates but all are at risk capacity"]
+assert data["launch_gate"] == "red"
+PY
+
+cat >humans/active/HUMAN-PRIVACY-JR-privacy-jr.md <<'DOC'
+---
+id: HUMAN-PRIVACY-JR
+name: Privacy Junior
+status: active
+roles:
+  - privacy_reviewer
+skills:
+  - privacy:L5
+authority_max_risk: R2
+may_approve_policy_changes: false
+weekly_hgl_budget: 60
+current_weekly_hgl: 0
+max_concurrent_r3: 6
+current_open_r3: 0
+max_concurrent_r4: 2
+current_open_r4: 0
+max_concurrent_r5: 1
+current_open_r5: 0
+constraints:
+---
+
+# HUMAN-PRIVACY-JR Privacy Junior
+DOC
+
+./bin/palari burden score WF-0002 --json >"$TMP_ROOT/mixed-coverage-failures.json"
+python3 - "$TMP_ROOT/mixed-coverage-failures.json" <<'PY'
+import json
+import sys
+
+data = json.load(open(sys.argv[1]))
+row = data["decisions"][0]["coverage"][0]
+assert row["covered_by"] == []
+assert row["under_authorized"] == ["HUMAN-PRIVACY-JR"]
+assert row["at_capacity"] == ["HUMAN-PRIVACY-FULL"]
+assert set(data["coverage_failures"]) == {
+    "privacy:L5 has authorized candidates but all are at risk capacity",
+    "privacy:L5 has candidates without R5 authority",
+}, data["coverage_failures"]
+assert data["launch_gate"] == "red"
+PY
+
+rm -f humans/active/HUMAN-PRIVACY-JR-privacy-jr.md
+
+python3 - <<'PY'
+from pathlib import Path
+
+path = Path("humans/active/HUMAN-PRIVACY-FULL-privacy-full.md")
+text = path.read_text()
+text = text.replace("current_open_r5: 1", "current_open_r5: 0")
+path.write_text(text)
+PY
+
+./bin/palari burden score WF-0002 --json >"$TMP_ROOT/r5-covered.json"
+python3 - "$TMP_ROOT/r5-covered.json" <<'PY'
+import json
+import sys
+
+data = json.load(open(sys.argv[1]))
+row = data["decisions"][0]["coverage"][0]
+assert row["covered_by"] == ["HUMAN-PRIVACY-FULL"]
+assert row["under_authorized"] == []
+assert row["underleveled"] == []
+assert row["at_capacity"] == []
+assert data["missing_skills"] == []
+assert data["coverage_failures"] == []
+assert data["launch_gate"] == "green"
+assert data["autonomy_ceiling"] == "simulation_only"
+PY
+
+rm -f humans/active/HUMAN-ALICE-alice.md
+python3 - <<'PY'
+from pathlib import Path
+
+path = Path("palari.config.yaml")
+text = path.read_text()
+old = "    R5: 1"
+if old not in text:
+    raise SystemExit("expected R5 human approval quorum not found")
+path.write_text(text.replace(old, "    R5: 2", 1))
+PY
+./bin/palari burden debt --json >"$TMP_ROOT/r5-quorum-gap.json"
+python3 - "$TMP_ROOT/r5-quorum-gap.json" <<'PY'
+import json
+import sys
+
+data = json.load(open(sys.argv[1]))
+categories = {item["category"]: item for item in data["items"]}
+assert "r5_human_quorum_coverage" in categories, data
+message = categories["r5_human_quorum_coverage"]["message"]
+assert "1 qualified human(s); 2 required by config" in message, message
+PY
+
+printf 'human-governance-load: ok\n'

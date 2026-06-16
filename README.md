@@ -110,7 +110,9 @@ To see the Company AI OS infrastructure shape:
 
 ```bash
 ./bin/palari demo --company-os
-./bin/palari workflow plan WF-9004
+./bin/palari workflow plan WF-9101
+./bin/palari workflow plan WF-9102
+./bin/palari workflow plan WF-9103
 ./bin/palari policy candidates
 ./bin/palari web
 ```
@@ -256,8 +258,10 @@ The quick operator loop is:
 
 ```bash
 ./bin/palari demo --company-os --force
-./bin/palari workflow plan WF-9004
-./bin/palari human coverage WF-9004
+./bin/palari workflow plan WF-9101
+./bin/palari workflow plan WF-9102
+./bin/palari workflow plan WF-9103
+./bin/palari human coverage WF-9103
 ./bin/palari policy candidates
 ./bin/palari broker evidence DPC-9001
 ./bin/palari outcome list
@@ -300,6 +304,34 @@ The gate refuses acceptance unless, for every step the layout requires:
 ./bin/palari accept T-42 --by founder   # gate verdict required
 ```
 
+For high-risk tickets, `governance.required_human_approvals` controls the
+active human-profile quorum by risk tier. A solo-founder repo can honestly set
+`R5: 1`; a team can raise it to `R5: 2` or more without changing the accept
+path.
+
+```yaml
+governance:
+  default_human_approver: HUMAN-ADMIN
+  required_human_approvals:
+    R0: 0
+    R1: 0
+    R2: 0
+    R3: 0
+    R4: 0
+    R5: 1
+```
+
+`default_human_approver` is the active profile ID shown as the first suggested
+`--by` value in status and evidence next actions.
+
+When a risk tier requires two or more humans, pass one or more `--co-by`
+values. Each required human must be a distinct active profile authorized for
+that risk:
+
+```bash
+./bin/palari accept T-42 --by HUMAN-ONE --co-by HUMAN-TWO
+```
+
 Tickets stay pure data: nothing written into a ticket can mint, widen, or
 substitute for a token, so prompt injection in a ticket grants no authority.
 The gate fails closed, refusals carry exact reasons, and the kernel ships
@@ -321,7 +353,7 @@ and replacement inventory are documented in
 | Agent packets | Specialists, reviewers, and acceptors get the right context. |
 | Scope checks | Changed files are compared against allowed and forbidden paths. |
 | CI evidence | Logs, JUnit, SARIF, and an integrity manifest are written for the ticket. |
-| Human acceptance | `palari accept` refuses missing, failed, or stale evidence and records who accepted. |
+| Human acceptance | `palari accept` refuses missing, failed, or stale evidence and records who accepted; configured risk-tier human quorums require active authorized profiles with `--by` and, when needed, repeated `--co-by`. |
 | Forge-proof gate (optional) | When enabled, acceptance requires Ed25519-signed implement, test, and review attestations that verify to the repository root key. |
 
 ## Quick Start
@@ -618,7 +650,7 @@ palari packet WEB-0002 specialist
 | `palari scope-overlaps [ID]` | Detect overlapping active ticket write scopes. |
 | `palari lint [ID]` | Validate ticket state and required reports. |
 | `palari report-lint [ID]` | Validate specialist and reviewer report structure. |
-| `palari accept ID --by NAME` | Close the ticket only after the acceptance gate is satisfied. |
+| `palari accept ID --by NAME [--co-by NAME]` | Close the ticket only after the acceptance gate is satisfied; repeat `--co-by` when the configured risk-tier human quorum is greater than one. |
 | `palari gate init` | Create the forge-proof gate root and orchestrator keys. |
 | `palari gate setup-ticket ID` | Grant implement, test, and review step tokens for a ticket. |
 | `palari gate attest-implement ID` | Sign the exact ticket diff with the implementer key. |

@@ -1169,6 +1169,29 @@ function companyMetric(labelText, value, detail = "") {
   return node;
 }
 
+function companyGovernanceCard(card) {
+  const node = document.createElement("article");
+  node.className = "company-governance-card";
+  node.dataset.state = card.status || "ok";
+
+  const head = document.createElement("div");
+  head.className = "company-card-head";
+  const labelNode = document.createElement("span");
+  labelNode.textContent = card.label || "Governance card";
+  const state = document.createElement("span");
+  state.className = "status";
+  state.classList.add(card.status || "clear");
+  state.textContent = card.status || "ok";
+  head.append(labelNode, state);
+
+  const value = document.createElement("strong");
+  value.textContent = card.value || "--";
+  const detail = document.createElement("small");
+  detail.textContent = card.detail || "";
+  node.append(head, value, detail);
+  return node;
+}
+
 function gatePill(gate) {
   const span = document.createElement("span");
   span.className = "company-gate";
@@ -1184,8 +1207,10 @@ function renderCompanyGovernance(snapshot) {
   const governance = company.human_governance || {};
   const autonomy = company.autonomy || {};
   const summary = $("#companyGovernanceSummary");
+  const cards = $("#companyGovernanceCards");
   const list = $("#companyWorkflowList");
   summary.replaceChildren();
+  cards.replaceChildren();
   list.replaceChildren();
 
   const active = workflows.active || 0;
@@ -1198,6 +1223,10 @@ function renderCompanyGovernance(snapshot) {
     companyMetric("R3/R4/R5", `${governance.r3_decisions_open || 0}/${governance.r4_decisions_open || 0}/${governance.r5_decisions_open || 0}`),
     companyMetric("Missing skills", String((governance.missing_skills || []).length), (governance.missing_skills || []).slice(0, 2).join(", "))
   );
+
+  (company.dashboard_cards || []).forEach((card) => {
+    cards.append(companyGovernanceCard(card));
+  });
 
   if (!active) {
     list.append(emptyNode("No active workflows", "Adopt a workflow to see HGL, launch gates, and autonomy posture here."));

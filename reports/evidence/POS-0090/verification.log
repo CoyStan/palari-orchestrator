@@ -1,0 +1,59 @@
+# Palari CI Evidence
+
+- Ticket: POS-0090
+- Base ref: local working tree
+- Created: 2026-06-16T13:44:46Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0090 (3 changed path(s))
+```
+
+## lint
+
+```text
+report-lint: ok for POS-0090
+lint: ok for POS-0090
+```
+
+## verification 1
+
+Command: `./bin/palari workflow lint`
+
+```text
+workflow lint: ok
+```
+
+## verification 2
+
+Command: `./bin/palari human lint`
+
+```text
+human lint: ok
+```
+
+## verification 3
+
+Command: `./bin/palari policy lint`
+
+```text
+policy lint: ok
+```
+
+## verification 4
+
+Command: `./bin/palari outcome lint`
+
+```text
+outcome lint: ok
+```
+
+## verification 5
+
+Command: `./tests/run-company-os-schemas.sh`
+
+```text
+company-os-schemas: jsonschema validation also passed
+company-os-schemas: ok
+```

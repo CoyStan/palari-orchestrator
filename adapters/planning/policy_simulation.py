@@ -10,48 +10,11 @@ import re
 from pathlib import Path
 from typing import Any
 
+from artifacts import find_frontmatter_file, frontmatter_dict as parse_frontmatter, md_files, risk_lte
+
 
 RISK_ORDER = {f"R{i}": i for i in range(6)}
-
-
-def parse_frontmatter(path: Path) -> dict[str, Any]:
-    text = path.read_text(encoding="utf-8")
-    lines = text.splitlines()
-    if not lines or lines[0] != "---":
-        return {}
-    data: dict[str, Any] = {}
-    key: str | None = None
-    for line in lines[1:]:
-        if line == "---":
-            break
-        if re.match(r"^[A-Za-z0-9_]+:", line):
-            raw_key, raw_value = line.split(":", 1)
-            key = raw_key
-            value = raw_value.strip().strip("\"'")
-            data[key] = value
-            continue
-        if key and re.match(r"^\s*-\s+", line):
-            value = re.sub(r"^\s*-\s+", "", line).strip().strip("\"'")
-            if not isinstance(data.get(key), list):
-                data[key] = []
-            data[key].append(value)
-    return data
-
-
-def md_files(root: Path, rel_dir: str) -> list[Path]:
-    directory = root / rel_dir
-    if not directory.is_dir():
-        return []
-    return sorted(path for path in directory.glob("*.md") if path.name != "README.md")
-
-
-def find_frontmatter_file(root: Path, dirs: list[str], artifact_id: str) -> tuple[Path, dict[str, Any]]:
-    for rel_dir in dirs:
-        for path in md_files(root, rel_dir):
-            data = parse_frontmatter(path)
-            if data.get("id") == artifact_id:
-                return path, data
-    raise SystemExit(f"error: artifact not found: {artifact_id}")
+DEFAULT_POLICY_RISK_MAX = "R2"
 
 
 def named_report_exists(root: Path, reports_dir: str, ticket_id: str, suffix: str) -> bool:
@@ -148,8 +111,8 @@ def evidence_score(root: Path, args: argparse.Namespace, ticket_id: str, ticket:
     return score, missing
 
 
-def risk_lte(left: str, right: str) -> bool:
-    return RISK_ORDER.get(left, 99) <= RISK_ORDER.get(right, -1)
+def policy_risk_allowed_by_default(risk: str) -> bool:
+    return risk_lte(risk, DEFAULT_POLICY_RISK_MAX)
 
 
 def no_open_decisions(root: Path, decisions_open_dir: str) -> bool:
@@ -171,7 +134,7 @@ def evaluate_condition(condition: str, context: dict[str, Any]) -> tuple[bool, s
             if context["scope_check_passed"]
             else (False, "scope-check pass marker missing")
         )
-    match = re.match(r"^risk<=(R[0-5])$", condition)
+    match = re.match(r"^risk<=(R[0-2])$", condition)
     if match:
         limit = match.group(1)
         if risk_lte(context["ticket_risk"], limit):
@@ -208,9 +171,14 @@ def simulate_policy(policy_path: Path, policy: dict[str, Any], context: dict[str
         reasons.append("policy mode is not simulation")
     risk_max = str(policy.get("risk_max", ""))
     if risk_max == "R5":
-        reasons.append("policy risk_max R5 is forbidden")
+        reasons.append("policy risk_max R5 exceeds default simulation max R2; R5 is never policy-eligible")
     elif risk_max not in RISK_ORDER:
         reasons.append(f"policy risk_max is invalid: {risk_max or 'missing'}")
+    elif not policy_risk_allowed_by_default(risk_max):
+        reasons.append(
+            f"policy risk_max {risk_max} exceeds default simulation max R2; "
+            "R3/R4/R5 remain human decision classes"
+        )
     elif not risk_lte(ticket_risk, risk_max):
         reasons.append(f"ticket risk {ticket_risk} exceeds policy risk_max {risk_max}")
 

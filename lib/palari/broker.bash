@@ -12,11 +12,15 @@ cmd_broker_run() {
 	local ticket="${1:-}"
 	shift || true
 	[[ -n "$ticket" ]] || die "broker run requires TICKET-ID"
-	local mock="false"
+	local mock="false" sandbox="false"
 	while (($# > 0)); do
 		case "$1" in
 		--mock)
 			mock="true"
+			shift
+			;;
+		--sandbox)
+			sandbox="true"
 			shift
 			;;
 		--)
@@ -26,7 +30,10 @@ cmd_broker_run() {
 		*) die "unknown broker run option before --: $1" ;;
 		esac
 	done
-	[[ "$mock" == "true" ]] || die "broker run is mock-only in this version; pass --mock"
+	if [[ "$mock" == "true" && "$sandbox" == "true" ]]; then
+		die "broker run accepts only one mode: --mock or --sandbox"
+	fi
+	[[ "$mock" == "true" || "$sandbox" == "true" ]] || die "broker run is mock/sandbox only in this version; pass --mock or --sandbox"
 	(($# > 0)) || die "broker run requires a command after --"
 	local file ticket_id out_dir run_id
 	file="$(find_ticket_file "$ticket")" || die "ticket not found: $ticket"
@@ -34,11 +41,24 @@ cmd_broker_run() {
 	[[ -n "$ticket_id" ]] || ticket_id="$ticket"
 	run_id="$(broker_run_id)"
 	out_dir="$ROOT/$EVIDENCE_DIR/$ticket_id/broker/$run_id"
-	python3 -B "$ROOT/adapters/broker/mock_broker.py" run \
+	local adapter_command="run"
+	[[ "$sandbox" == "true" ]] && adapter_command="sandbox"
+	python3 -B "$ROOT/adapters/broker/mock_broker.py" "$adapter_command" \
 		--root "$ROOT" \
 		--ticket "$ticket_id" \
 		--out "$out_dir" \
 		-- "$@"
+}
+
+cmd_broker_sandbox() {
+	local ticket="${1:-}"
+	shift || true
+	[[ -n "$ticket" ]] || die "broker sandbox requires TICKET-ID"
+	if [[ "${1:-}" == "--" ]]; then
+		shift
+	fi
+	(($# > 0)) || die "broker sandbox requires a command after --"
+	cmd_broker_run "$ticket" --sandbox -- "$@"
 }
 
 cmd_broker_evidence() {
@@ -67,14 +87,57 @@ cmd_broker_evidence() {
 	python3 -B "$ROOT/adapters/broker/mock_broker.py" "${args[@]}"
 }
 
+cmd_broker_check() {
+	local ticket="${1:-}"
+	shift || true
+	[[ -n "$ticket" ]] || die "broker check requires TICKET-ID"
+	local tool="" action="" resource="" json="false" arg
+	while (($# > 0)); do
+		arg="$1"
+		case "$arg" in
+		--tool)
+			tool="$2"
+			shift 2
+			;;
+		--action)
+			action="$2"
+			shift 2
+			;;
+		--resource)
+			resource="$2"
+			shift 2
+			;;
+		--json)
+			json="true"
+			shift
+			;;
+		*) die "unknown broker check option: $arg" ;;
+		esac
+	done
+	[[ -n "$tool" ]] || die "broker check requires --tool"
+	[[ -n "$action" ]] || die "broker check requires --action"
+	[[ -n "$resource" ]] || die "broker check requires --resource"
+	local file ticket_id args
+	file="$(find_ticket_file "$ticket")" || die "ticket not found: $ticket"
+	ticket_id="$(frontmatter_value "$file" id)"
+	[[ -n "$ticket_id" ]] || ticket_id="$ticket"
+	args=(check --root "$ROOT" --ticket "$ticket_id" --tool "$tool" --action "$action" --resource "$resource")
+	if [[ "$json" == "true" ]]; then
+		args+=(--json)
+	fi
+	python3 -B "$ROOT/adapters/broker/mock_broker.py" "${args[@]}"
+}
+
 cmd_broker_status() {
 	cat <<'STATUS'
 Broker status
-mode: mock-only
+mode: mock-and-local-sandbox
 real_side_effects_enabled: false
 credentials_available_to_agents: false
 network_or_hosted_api_access: false
-note: broker run requires --mock and records evidence under reports/evidence/TICKET/broker/.
+network_isolation_enforced: false
+note: broker run requires --mock or --sandbox and records evidence under reports/evidence/TICKET/broker/.
+sandbox_command_policy: simple_printf_redirect_only
 STATUS
 }
 
@@ -83,16 +146,22 @@ cmd_broker() {
 	shift || true
 	case "$sub" in
 	run) cmd_broker_run "$@" ;;
+	sandbox) cmd_broker_sandbox "$@" ;;
+	check) cmd_broker_check "$@" ;;
 	evidence) cmd_broker_evidence "$@" ;;
 	status | "") cmd_broker_status "$@" ;;
 	help | -h | --help)
 		cat <<'USAGE'
 usage: palari broker run TICKET-ID --mock -- COMMAND [ARGS...]
+       palari broker run TICKET-ID --sandbox -- COMMAND [ARGS...]
+       palari broker sandbox TICKET-ID -- COMMAND [ARGS...]
+       palari broker check TICKET-ID --tool TOOL --action ACTION --resource PATH [--json]
        palari broker evidence TICKET-ID [--json]
        palari broker status
 
-Broker support is mock-only. It captures observed-command evidence and keeps
-real_side_effects_enabled: false.
+Broker support is mock/local-sandbox only. It captures evidence and keeps
+real_side_effects_enabled: false. Local sandbox mode runs a constrained
+repo-file write subset in a disposable repo copy and does not copy changes back.
 USAGE
 		;;
 	*) die "unknown broker command: $sub" ;;

@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/CoyStan/palari-orchestrator/schemas/policy.schema.json",
+  "title": "Palari Simulation Policy Artifact",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "id",
+    "title",
+    "status",
+    "mode",
+    "risk_max",
+    "conditions"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^POL-[A-Z0-9][A-Z0-9-]*$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "proposed",
+        "active",
+        "revoked"
+      ]
+    },
+    "mode": {
+      "type": "string",
+      "const": "simulation"
+    },
+    "risk_max": {
+      "type": "string",
+      "enum": [
+        "R0",
+        "R1",
+        "R2"
+      ]
+    },
+    "conditions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}

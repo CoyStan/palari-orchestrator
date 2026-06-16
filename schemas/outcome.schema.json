@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/CoyStan/palari-orchestrator/schemas/outcome.schema.json",
+  "title": "Palari Outcome Artifact",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "id",
+    "title",
+    "status",
+    "lifecycle",
+    "workflow"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^OUT-[A-Z0-9][A-Z0-9-]*$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "observed",
+        "pending",
+        "invalidated"
+      ]
+    },
+    "lifecycle": {
+      "type": "string",
+      "enum": [
+        "open",
+        "recorded"
+      ]
+    },
+    "workflow": {
+      "type": "string",
+      "pattern": "^WF-[0-9]{4}$"
+    },
+    "goal": {
+      "type": "string",
+      "pattern": "^GOAL-[0-9]{4}$"
+    },
+    "ticket": {
+      "type": "string"
+    },
+    "decision": {
+      "type": "string"
+    },
+    "evidence": {
+      "type": "string"
+    },
+    "metric_name": {
+      "type": "string"
+    },
+    "metric_before": {
+      "type": "number"
+    },
+    "metric_after": {
+      "type": "number"
+    },
+    "metric_delta": {
+      "type": "number"
+    },
+    "risk_predicted": {
+      "type": "string",
+      "enum": [
+        "R0",
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ]
+    },
+    "risk_actual": {
+      "type": "string",
+      "enum": [
+        "R0",
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5"
+      ]
+    },
+    "hgl_predicted": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "hgl_actual": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "human_decisions_predicted": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "human_decisions_actual": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "review_outcome": {
+      "type": "string",
+      "enum": [
+        "passed",
+        "failed",
+        "overridden",
+        "uncertain"
+      ]
+    },
+    "rollback_used": {
+      "type": "boolean"
+    },
+    "policy_candidate": {
+      "type": "boolean"
+    },
+    "notes": {
+      "type": "string"
+    }
+  }
+}

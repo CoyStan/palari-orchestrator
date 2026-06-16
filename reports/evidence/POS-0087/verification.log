@@ -1,0 +1,1111 @@
+# Palari CI Evidence
+
+- Ticket: POS-0087
+- Base ref: local working tree
+- Created: 2026-06-16T07:13:23Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0087 (4 changed path(s))
+```
+
+## lint
+
+```text
+report-lint: ok for POS-0087
+lint: ok for POS-0087
+```
+
+## verification 1
+
+Command: `./bin/palari web --check`
+
+```text
+{
+  "project": "Palari Orchestrator",
+  "snapshot_mode": "fast",
+  "snapshot_engine": "python-fast",
+  "root": "/home/quetza/palari-orchestrator-worktrees/POS-0097",
+  "generated_at": "2026-06-16T07:13:26Z",
+  "config": {
+    "default_branch": "main",
+    "scope_overlap_policy": "block",
+    "claim_lease_seconds": "300",
+    "authority_profile": "team-safe",
+    "evidence_dir": "reports/evidence"
+  },
+  "counts": {
+    "proposals": 0,
+    "open": 0,
+    "claimed": 0,
+    "blocked": 0,
+    "needs-human": 0,
+    "in-review": 6,
+    "reopened": 0,
+    "accepted": 89
+  },
+  "proposals": [],
+  "tickets": [
+    {
+      "id": "POS-0087",
+      "title": "Dashboard exposes company OS governance cards",
+      "status": "in-review",
+      "risk": "R2",
+      "priority": "P2",
+      "stream": "process",
+      "state": "active",
+      "path": "tickets/open/POS-0087-dashboard-exposes-company-os-governance-cards.md",
+      "allowed_paths": [
+        "adapters/web/**",
+        "adapters/snapshot/**",
+        "lib/palari/adapters_snapshot.bash",
+        "lib/palari/dashboard_snapshot.bash",
+        "assets/readme/**",
+        "tests/run-dashboard-rubric.sh",
+        "tests/run-company-os-snapshot.sh",
+        "tickets/open/POS-0087-dashboard-exposes-company-os-governance-cards.md",
+        "reports/POS-0087-technical-report.md",
+        "reports/POS-0087-reviewer-note.md",
+        "reports/human/POS-0087-human-report.md",
+        "reports/evidence/POS-0087/**"
+      ],
+      "forbidden_paths": [
+        ".env",
+        ".env.*",
+        "**/.env",
+        "**/.env.*",
+        "**/secrets/**",
+        "**/*.pem",
+        "**/*.key",
+        "**/*.keystore",
+        "**/*.p12",
+        "**/id_rsa*",
+        "**/id_ed25519*",
+        "**/credentials*",
+        "**/.aws/**",
+        "**/.ssh/**",
+        "infra/prod/**",
+        "prod/**"
+      ],
+      "verification": [
+        "./bin/palari web --check",
+        "./tests/run-dashboard-rubric.sh",
+        "./tests/run-company-os-snapshot.sh"
+      ],
+      "required_reports": [],
+      "claimed_by": "Codex",
+      "claimed_at": "2026-06-15T15:16:01Z",
+      "created_by_role": "",
+      "delegated_to_role": "",
+      "accepted_by": "",
+      "accepted_at": "",
+      "implemented_by": "",
+      "claim_ref": "refs/palari/claims/POS-0087",
+      "claim_expires_at": "2026-06-16T07:18:23Z",
+      "claim_heartbeat_at": "2026-06-16T07:13:23Z",
+      "requires_review": true,
+      "requires_human_confirmation": false,
+      "serves_goal": "GOAL-0200",
+      "model_hint": "",
+      "branch": "ticket/POS-0087",
+      "worktree": "",
+      "evidence": {
+        "path": "reports/evidence/POS-0087",
+        "files": [
+          "verification.log",
+          "junit.xml",
+          "palari.sarif",
+          "manifest.json"
+        ],
+        "has_log": true,
+        "has_junit": true,
+        "has_sarif": true,
+        "has_manifest": true,
+        "file_count": 6,
+        "executor_evidence": []
+      },
+      "reports": {
+        "technical": true,
+        "reviewer": true,
+        "human": true,
+        "custom": []
+      },
+      "next_action": {
+        "label": "Accept or reopen",
+        "detail": "A human or authorized acceptor should accept the ticket or send it back.",
+        "command": "./bin/palari accept POS-0087 --by founder",
+        "actor": "human",
+        "severity": "waiting"
+      },
+      "lease": {
+        "status": "active",
+        "expires_at": "2026-06-16T07:18:23Z",
+        "seconds_remaining": 296
+      }
+    },
+    {
+      "id": "POS-0090",
+      "title": "Add schemas for company OS artifacts",
+      "status": "in-review",
+      "risk": "R2",
+      "priority": "P2",
+      "stream": "process",
+      "state": "active",
+      "path": "tickets/open/POS-0090-add-schemas-for-company-os-artifacts.md",
+      "allowed_paths": [
+        "schemas/**",
+        "contracts/**",
+        "tests/**",
+        "tickets/open/POS-0090-add-schemas-for-company-os-artifacts.md",
+        "reports/POS-0090-technical-report.md",
+        "reports/POS-0090-reviewer-note.md",
+        "reports/human/POS-0090-human-report.md",
+        "reports/evidence/POS-0090/**"
+      ],
+      "forbidden_paths": [
+        ".env",
+        ".env.*",
+        "**/.env",
+        "**/.env.*",
+        "**/secrets/**",
+        "**/*.pem",
+        "**/*.key",
+        "**/*.keystore",
+        "**/*.p12",
+        "**/id_rsa*",
+        "**/id_ed25519*",
+        "**/credentials*",
+        "**/.aws/**",
+        "**/.ssh/**",
+        "infra/prod/**",
+        "prod/**"
+      ],
+      "verification": [
+        "./bin/palari workflow lint",
+        "./bin/palari human lint",
+        "./bin/palari policy lint",
+        "./bin/palari outcome lint",
+        "./tests/run-company-os-schemas.sh"
+      ],
+      "required_reports": [],
+      "claimed_by": "Codex",
+      "claimed_at": "2026-06-15T16:11:56Z",
+      "created_by_role": "",
+      "delegated_to_role": "",
+      "accepted_by": "",
+      "accepted_at": "",
+      "implemented_by": "",
+      "claim_ref": "refs/palari/claims/POS-0090",
+      "claim_expires_at": "2026-06-15T16:30:43Z",
+      "claim_heartbeat_at": "2026-06-15T16:25:43Z",
+      "requires_review": true,
+      "requires_human_confirmation": false,
+      "serves_goal": "GOAL-0200",
+      "model_hint": "",
+      "branch": "ticket/POS-0090",
+      "worktree": "",
+      "evidence": {
+        "path": "reports/evidence/POS-0090",
+        "files": [
+          "verification.log",
+          "junit.xml",
+          "palari.sarif",
+          "manifest.json"
+        ],
+        "has_log": true,
+        "has_junit": true,
+        "has_sarif": true,
+        "has_manifest": true,
+        "file_count": 4,
+        "executor_evidence": []
+      },
+      "reports": {
+        "technical": true,
+        "reviewer": true,
+        "human": true,
+        "custom": []
+      },
+      "next_action": {
+        "label": "Accept or reopen",
+        "detail": "A human or authorized acceptor should accept the ticket or send it back.",
+        "command": "./bin/palari accept POS-0090 --by founder",
+        "actor": "human",
+        "severity": "waiting"
+      },
+      "lease": {
+        "status": "expired",
+        "expires_at": "2026-06-15T16:30:43Z",
+        "seconds_remaining": 0
+      }
+    },
+    {
+      "id": "POS-0091",
+      "title": "Add migration helper for human capacity fields",
+      "status": "in-review",
+      "risk": "R2",
+      "priority": "P2",
+      "stream": "process",
+      "state": "active",
+      "path": "tickets/open/POS-0091-add-migration-helper-for-human-capacity-fields.md",
+      "allowed_paths": [
+        "lib/palari/humans.bash",
+        "adapters/planning/**",
+        "tests/run-human-governance.sh",
+        "tickets/open/POS-0091-add-migration-helper-for-human-capacity-fields.md",
+        "reports/POS-0091-technical-report.md",
+        "reports/POS-0091-reviewer-note.md",
+        "reports/human/POS-0091-human-report.md",
+        "reports/evidence/POS-0091/**"
+      ],
+      "forbidden_paths": [
+        ".env",
+        ".env.*",
+        "**/.env",
+        "**/.env.*",
+        "**/secrets/**",
+        "**/*.pem",
+        "**/*.key",
+        "**/*.keystore",
+        "**/*.p12",
+        "**/id_rsa*",
+        "**/id_ed25519*",
+        "**/credentials*",
+        "**/.aws/**",
+        "**/.ssh/**",
+        "infra/prod/**",
+        "prod/**"
+      ],
+      "verification": [
+        "./bin/palari human lint",
+        "./tests/run-human-governance.sh"
+      ],
+      "required_reports": [],
+      "claimed_by": "Codex",
+      "claimed_at": "2026-06-15T16:30:29Z",
+      "created_by_role": "",
+      "delegated_to_role": "",
+      "accepted_by": "",
+      "accepted_at": "",
+      "implemented_by": "",
+      "claim_ref": "refs/palari/claims/POS-0091",
+      "claim_expires_at": "2026-06-15T16:42:30Z",
+      "claim_heartbeat_at": "2026-06-15T16:37:30Z",
+      "requires_review": true,
+      "requires_human_confirmation": false,
+      "serves_goal": "GOAL-0200",
+      "model_hint": "",
+      "branch": "ticket/POS-0091",
+      "worktree": "",
+      "evidence": {
+        "path": "reports/evidence/POS-0091",
+        "files": [
+          "verification.log",
+          "junit.xml",
+          "palari.sarif",
+          "manifest.json"
+        ],
+        "has_log": true,
+        "has_junit": true,
+        "has_sarif": true,
+        "has_manifest": true,
+        "file_count": 4,
+        "executor_evidence": []
+      },
+      "reports": {
+        "technical": true,
+        "reviewer": true,
+        "human": true,
+        "custom": []
+      },
+      "next_action": {
+        "label": "Accept or reopen",
+        "detail": "A human or authorized acceptor should accept the ticket or send it back.",
+        "command": "./bin/palari accept POS-0091 --by founder",
+        "actor": "human",
+        "severity": "waiting"
+      },
+      "lease": {
+        "status": "expired",
+        "expires_at": "2026-06-15T16:42:30Z",
+        "seconds_remaining": 0
+      }
+    },
+    {
+      "id": "POS-0095",
+      "title": "Define company OS worker adapter contract",
+      "status": "in-review",
+      "risk": "R3",
+      "priority": "P3",
+      "stream": "process",
+      "state": "active",
+      "path": "tickets/open/POS-0095-define-company-os-worker-adapter-contract.md",
+      "allowed_paths": [
+        "contracts/**",
+        "docs/integration/**",
+        "adapters/**",
+        "tests/run-agent-wrapper.sh",
+        "tickets/open/POS-0095-define-company-os-worker-adapter-contract.md",
+        "reports/POS-0095-technical-report.md",
+        "reports/POS-0095-reviewer-note.md",
+        "reports/human/POS-0095-human-report.md",
+        "reports/evidence/POS-0095/**"
+      ],
+      "forbidden_paths": [
+        ".env",
+        ".env.*",
+        "**/.env",
+        "**/.env.*",
+        "**/secrets/**",
+        "**/*.pem",
+        "**/*.key",
+        "**/*.keystore",
+        "**/*.p12",
+        "**/id_rsa*",
+        "**/id_ed25519*",
+        "**/credentials*",
+        "**/.aws/**",
+        "**/.ssh/**",
+        "infra/prod/**",
+        "prod/**"
+      ],
+      "verification": [
+        "./tests/run-agent-wrapper.sh"
+      ],
+      "required_reports": [],
+      "claimed_by": "Codex",
+      "claimed_at": "2026-06-15T16:40:27Z",
+      "created_by_role": "",
+      "delegated_to_role": "",
+      "accepted_by": "",
+      "accepted_at": "",
+      "implemented_by": "",
+      "claim_ref": "refs/palari/claims/POS-0095",
+      "claim_expires_at": "2026-06-15T16:48:20Z",
+      "claim_heartbeat_at": "2026-06-15T16:43:20Z",
+      "requires_review": true,
+      "requires_human_confirmation": true,
+      "serves_goal": "GOAL-0200",
+      "model_hint": "",
+      "branch": "ticket/POS-0095",
+      "worktree": "",
+      "evidence": {
+        "path": "reports/evidence/POS-0095",
+        "files": [
+          "verification.log",
+          "junit.xml",
+          "palari.sarif",
+          "manifest.json"
+        ],
+        "has_log": true,
+        "has_junit": true,
+        "has_sarif": true,
+        "has_manifest": true,
+        "file_count": 4,
+        "executor_evidence": []
+      },
+      "reports": {
+        "technical": true,
+        "reviewer": true,
+        "human": true,
+        "custom": []
+      },
+      "next_action": {
+        "label": "Accept or reopen",
+        "detail": "A human or authorized acceptor should accept the ticket or send it back.",
+        "command": "./bin/palari accept POS-0095 --by founder",
+        "actor": "human",
+        "severity": "waiting"
+      },
+      "lease": {
+        "status": "expired",
+        "expires_at": "2026-06-15T16:48:20Z",
+        "seconds_remaining": 0
+      }
+    },
+    {
+      "id": "POS-0096",
+      "title": "Define governed memory provider contract",
+      "status": "in-review",
+      "risk": "R3",
+      "priority": "P3",
+      "stream": "process",
+      "state": "active",
+      "path": "tickets/open/POS-0096-define-governed-memory-provider-contract.md",
+      "allowed_paths": [
+        "contracts/**",
+        "docs/integration/**",
+        "memory/**",
+        "tests/run-memory.sh",
+        "tickets/open/POS-0096-define-governed-memory-provider-contract.md",
+        "reports/POS-0096-technical-report.md",
+        "reports/POS-0096-reviewer-note.md",
+        "reports/human/POS-0096-human-report.md",
+        "reports/evidence/POS-0096/**"
+      ],
+      "forbidden_paths": [
+        ".env",
+        ".env.*",
+        "**/.env",
+        "**/.env.*",
+        "**/secrets/**",
+        "**/*.pem",
+        "**/*.key",
+        "**/*.keystore",
+        "**/*.p12",
+        "**/id_rsa*",
+        "**/id_ed25519*",
+        "**/credentials*",
+        "**/.aws/**",
+        "**/.ssh/**",
+        "infra/prod/**",
+        "prod/**"
+      ],
+      "verification": [
+        "./tests/run-memory.sh"
+      ],
+      "required_reports": [],
+      "claimed_by": "Codex",
+      "claimed_at": "2026-06-15T16:49:37Z",
+      "created_by_role": "",
+      "delegated_to_role": "",
+      "accepted_by": "",
+      "accepted_at": "",
+      "implemented_by": "",
+      "claim_ref": "refs/palari/claims/POS-0096",
+      "claim_expires_at": "2026-06-15T16:54:37Z",
+      "claim_heartbeat_at": "2026-06-15T16:49:37Z",
+      "requires_review": true,
+      "requires_human_confirmation": true,
+      "serves_goal": "GOAL-0200",
+      "model_hint": "",
+      "branch": "ticket/POS-0096",
+      "worktree": "",
+      "evidence": {
+        "path": "reports/evidence/POS-0096",
+        "files": [
+          "verification.log",
+          "junit.xml",
+          "palari.sarif",
+          "manifest.json"
+        ],
+        "has_log": true,
+        "has_junit": true,
+        "has_sarif": true,
+        "has_manifest": true,
+        "file_count": 4,
+        "executor_evidence": []
+      },
+      "reports": {
+        "technical": true,
+        "reviewer": true,
+        "human": true,
+        "custom": []
+      },
+      "next_action": {
+        "label": "Accept or reopen",
+        "detail": "A human or authorized acceptor should accept the ticket or send it back.",
+        "command": "./bin/palari accept POS-0096 --by founder",
+        "actor": "human",
+        "severity": "waiting"
+      },
+      "lease": {
+        "status": "expired",
+        "expires_at": "2026-06-15T16:54:37Z",
+        "seconds_remaining": 0
+      }
+    },
+    {
+      "id": "POS-0097",
+      "title": "Define governed model provider contract",
+      "status": "in-review",
+      "risk": "R3",
+      "priority": "P3",
+      "stream": "process",
+      "state": "active",
+      "path": "tickets/open/POS-0097-define-governed-model-provider-contract.md",
+      "allowed_paths": [
+        "contracts/**",
+        "docs/integration/**",
+        "adapters/openrouter/**",
+        "tests/run-model-routing.sh",
+        "tests/run-openrouter.sh",
+        "tickets/open/POS-0097-define-governed-model-provider-contract.md",
+        "reports/POS-0097-technical-report.md",
+        "reports/POS-0097-reviewer-note.md",
+        "reports/human/POS-0097-human-report.md",
+        "reports/evidence/POS-0097/**"
+      ],
+      "forbidden_paths": [
+        ".env",
+        ".env.*",
+        "**/.env",
+        "**/.env.*",
+        "**/secrets/**",
+        "**/*.pem",
+        "**/*.key",
+        "**/*.keystore",
+        "**/*.p12",
+        "**/id_rsa*",
+        "**/id_ed25519*",
+        "**/credentials*",
+        "**/.aws/**",
+        "**/.ssh/**",
+        "infra/prod/**",
+        "prod/**"
+      ],
+      "verification": [
+        "./tests/run-model-routing.sh",
+        "./tests/run-openrouter.sh"
+      ],
+      "required_reports": [],
+      "claimed_by": "Codex",
+      "claimed_at": "2026-06-15T16:58:08Z",
+      "created_by_role": "",
+      "delegated_to_role": "",
+      "accepted_by": "",
+      "accepted_at": "",
+      "implemented_by": "",
+      "claim_ref": "refs/palari/claims/POS-0097",
+      "claim_expires_at": "2026-06-15T17:03:08Z",
+      "claim_heartbeat_at": "2026-06-15T16:58:08Z",
+      "requires_review": true,
+      "requires_human_confirmation": true,
+      "serves_goal": "GOAL-0200",
+      "model_hint": "",
+      "branch": "ticket/POS-0097",
+      "worktree": "",
+      "evidence": {
+        "path": "reports/evidence/POS-0097",
+        "files": [
+          "verification.log",
+          "junit.xml",
+          "palari.sarif",
+          "manifest.json"
+        ],
+        "has_log": true,
+        "has_junit": true,
+        "has_sarif": true,
+        "has_manifest": true,
+        "file_count": 4,
+        "executor_evidence": []
+      },
+      "reports": {
+        "technical": true,
+        "reviewer": true,
+        "human": true,
+        "custom": []
+      },
+      "next_action": {
+        "label": "Accept or reopen",
+        "detail": "A human or authorized acceptor should accept the ticket or send it back.",
+        "command": "./bin/palari accept POS-0097 --by founder",
+        "actor": "human",
+        "severity": "waiting"
+      },
+      "lease": {
+        "status": "expired",
+        "expires_at": "2026-06-15T17:03:08Z",
+        "seconds_remaining": 0
+      }
+    }
+  ],
+  "operator": {
+    "has_active_work": true,
+    "next_action": {
+      "label": "Accept or reopen",
+      "detail": "A human or authorized acceptor should accept the ticket or send it back.",
+      "command": "./bin/palari accept POS-0087 --by founder",
+      "actor": "human",
+      "severity": "waiting"
+    },
+    "inbox": [
+      {
+        "ticket_id": "POS-0087",
+        "title": "Dashboard exposes company OS governance cards",
+        "status": "in-review",
+        "category": "human-gate",
+        "category_label": "Needs human decision",
+        "label": "Accept or reopen",
+        "detail": "A human or authorized acceptor should accept the ticket or send it back.",
+        "command": "./bin/palari accept POS-0087 --by founder",
+        "actor": "human",
+        "severity": "waiting"
+      },
+      {
+        "ticket_id": "POS-0090",
+        "title": "Add schemas for company OS artifacts",
+        "status": "in-review",
+        "category": "human-gate",
+        "category_label": "Needs human decision",
+        "label": "Accept or reopen",
+        "detail": "A human or authorized acceptor should accept the ticket or send it back.",
+        "command": "./bin/palari accept POS-0090 --by founder",
+        "actor": "human",
+        "severity": "waiting"
+      },
+      {
+        "ticket_id": "POS-0091",
+        "title": "Add migration helper for human capacity fields",
+        "status": "in-review",
+        "category": "human-gate",
+        "category_label": "Needs human decision",
+        "label": "Accept or reopen",
+        "detail": "A human or authorized acceptor should accept the ticket or send it back.",
+        "command": "./bin/palari accept POS-0091 --by founder",
+        "actor": "human",
+        "severity": "waiting"
+      },
+      {
+        "ticket_id": "POS-0095",
+        "title": "Define company OS worker adapter contract",
+        "status": "in-review",
+        "category": "human-gate",
+        "category_label": "Needs human decision",
+        "label": "Accept or reopen",
+        "detail": "A human or authorized acceptor should accept the ticket or send it back.",
+        "command": "./bin/palari accept POS-0095 --by founder",
+        "actor": "human",
+        "severity": "waiting"
+      },
+      {
+        "ticket_id": "POS-0096",
+        "title": "Define governed memory provider contract",
+        "status": "in-review",
+        "category": "human-gate",
+        "category_label": "Needs human decision",
+        "label": "Accept or reopen",
+        "detail": "A human or authorized acceptor should accept the ticket or send it back.",
+        "command": "./bin/palari accept POS-0096 --by founder",
+        "actor": "human",
+        "severity": "waiting"
+      },
+      {
+        "ticket_id": "POS-0097",
+        "title": "Define governed model provider contract",
+        "status": "in-review",
+        "category": "human-gate",
+        "category_label": "Needs human decision",
+        "label": "Accept or reopen",
+        "detail": "A human or authorized acceptor should accept the ticket or send it back.",
+        "command": "./bin/palari accept POS-0097 --by founder",
+        "actor": "human",
+        "severity": "waiting"
+      }
+    ],
+    "inbox_counts": {
+      "human_gate": 6,
+      "blocked": 0,
+      "review_needed": 0,
+      "evidence_needed": 0,
+      "can_continue": 0,
+      "watch": 0,
+      "monitor": 0
+    },
+    "open_decisions": []
+  },
+  "roles": {
+    "counts": {
+      "active": 7,
+      "proposed": 5,
+      "revoked": 0
+    },
+    "lint": {
+      "ok": true,
+      "issues": 0,
+      "checked": 12,
+      "mode": "shallow",
+      "command": "./bin/palari role lint",
+      "detail": "Skipped in the fast snapshot; run ./bin/palari role lint or ./bin/palari snapshot --json --full for full diagnostics."
+    },
+    "items": [
+      {
+        "id": "ROLE-ENGINEERING-LEAD",
+        "title": "Engineering Lead",
+        "status": "active",
+        "tier": "1",
+        "max_risk": "R2",
+        "path": "roles/active/ROLE-ENGINEERING-LEAD.md",
+        "allowed_paths": [
+          "src/**",
+          "tests/**",
+          "docs/**",
+          "tickets/**",
+          "reports/**",
+          "memory/**"
+        ]
+      },
+      {
+        "id": "ROLE-RESEARCH-EVALUATOR",
+        "title": "Research Evaluator",
+        "status": "active",
+        "tier": "2",
+        "max_risk": "R1",
+        "path": "roles/active/ROLE-RESEARCH-EVALUATOR.md",
+        "allowed_paths": [
+          "research/**",
+          "docs/**",
+          "tickets/**",
+          "reports/**"
+        ]
+      },
+      {
+        "id": "ROLE-RESEARCH-LEAD",
+        "title": "Research Lead",
+        "status": "active",
+        "tier": "1",
+        "max_risk": "R2",
+        "path": "roles/active/ROLE-RESEARCH-LEAD.md",
+        "allowed_paths": [
+          "research/**",
+          "docs/**",
+          "tickets/**",
+          "reports/**",
+          "memory/**"
+        ]
+      },
+      {
+        "id": "ROLE-REVIEWER",
+        "title": "Reviewer",
+        "status": "active",
+        "tier": "2",
+        "max_risk": "R2",
+        "path": "roles/active/ROLE-REVIEWER.md",
+        "allowed_paths": [
+          "src/**",
+          "tests/**",
+          "docs/**",
+          "tickets/**",
+          "reports/**"
+        ]
+      },
+      {
+        "id": "ROLE-ROOT",
+        "title": "Root Authority",
+        "status": "active",
+        "tier": "0",
+        "max_risk": "R5",
+        "path": "roles/active/ROLE-ROOT.md",
+        "allowed_paths": [
+          "**"
+        ]
+      },
+      {
+        "id": "ROLE-SAFETY-REVIEWER",
+        "title": "Safety Reviewer",
+        "status": "active",
+        "tier": "2",
+        "max_risk": "R2",
+        "path": "roles/active/ROLE-SAFETY-REVIEWER.md",
+        "allowed_paths": [
+          "research/**",
+          "docs/**",
+          "tickets/**",
+          "reports/**",
+          "memory/**"
+        ]
+      },
+      {
+        "id": "ROLE-SPECIALIST",
+        "title": "Specialist",
+        "status": "active",
+        "tier": "2",
+        "max_risk": "R1",
+        "path": "roles/active/ROLE-SPECIALIST.md",
+        "allowed_paths": [
+          "src/**",
+          "tests/**",
+          "docs/**",
+          "tickets/**",
+          "reports/**"
+        ]
+      },
+      {
+        "id": "ROLE-AUTONOMY-COORDINATOR",
+        "title": "Autonomy Coordinator",
+        "status": "proposed",
+        "tier": "1",
+        "max_risk": "R2",
+        "path": "roles/proposed/ROLE-AUTONOMY-COORDINATOR-autonomy-coordinator.md",
+        "allowed_paths": [
+          "docs/**",
+          "tickets/**",
+          "reports/**",
+          "memory/**",
+          "roles/proposed/**"
+        ]
+      },
+      {
+        "id": "ROLE-DESIGN-LEAD",
+        "title": "Design Lead",
+        "status": "proposed",
+        "tier": "1",
+        "max_risk": "R2",
+        "path": "roles/proposed/ROLE-DESIGN-LEAD-design-lead.md",
+        "allowed_paths": [
+          "adapters/web/**",
+          "assets/**",
+          "docs/**",
+          "tickets/**",
+          "reports/**"
+        ]
+      },
+      {
+        "id": "ROLE-PRODUCT-LEAD",
+        "title": "Product Lead",
+        "status": "proposed",
+        "tier": "1",
+        "max_risk": "R2",
+        "path": "roles/proposed/ROLE-PRODUCT-LEAD-product-lead.md",
+        "allowed_paths": [
+          "docs/**",
+          "tickets/**",
+          "reports/**",
+          "memory/**"
+        ]
+      },
+      {
+        "id": "ROLE-QA-LEAD",
+        "title": "QA Lead",
+        "status": "proposed",
+        "tier": "1",
+        "max_risk": "R2",
+        "path": "roles/proposed/ROLE-QA-LEAD-qa-lead.md",
+        "allowed_paths": [
+          "tests/**",
+          "docs/**",
+          "tickets/**",
+          "reports/**"
+        ]
+      },
+      {
+        "id": "ROLE-RELEASE-LEAD",
+        "title": "Release Lead",
+        "status": "proposed",
+        "tier": "1",
+        "max_risk": "R2",
+        "path": "roles/proposed/ROLE-RELEASE-LEAD-release-lead.md",
+        "allowed_paths": [
+          ".github/**",
+          "adapters/github/**",
+          "docs/**",
+          "tickets/**",
+          "reports/**",
+          "CHANGELOG.md",
+          "RELEASING.md"
+        ]
+      }
+    ]
+  },
+  "overlaps": [],
+  "workflow": {
+    "workflow_installed": true,
+    "ruleset_template": true,
+    "merge_group": true,
+    "attestation": true,
+    "sarif": true,
+    "workflow_path": ".github/workflows/palari.yml",
+    "ruleset_path": ".github/palari-required-checks.ruleset.json"
+  },
+  "memory": {
+    "enabled": true,
+    "dir": "memory",
+    "backend": "sqlite",
+    "total": 0,
+    "active": 0,
+    "proposed": 0,
+    "stale_review": 0,
+    "lint_ok": true,
+    "index_exists": false
+  },
+  "company_os": {
+    "errors": [],
+    "workflows": {
+      "active": 0,
+      "proposed": 0,
+      "closed": 0,
+      "items": [],
+      "errors": []
+    },
+    "humans": {
+      "active": 1,
+      "proposed": 0,
+      "revoked": 0,
+      "coverage_gaps": []
+    },
+    "human_governance": {
+      "open_hgl_estimate": 0,
+      "r3_decisions_open": 0,
+      "r4_decisions_open": 0,
+      "r5_decisions_open": 0,
+      "missing_skills": [],
+      "bottlenecks": [],
+      "capacity_warnings": [],
+      "errors": [],
+      "debt": {
+        "level": "none",
+        "item_count": 0,
+        "highest_leverage_fix": "No active Human Governance Debt detected for current workflows."
+      }
+    },
+    "autonomy": {
+      "green_workflows": 0,
+      "yellow_workflows": 0,
+      "red_workflows": 0
+    },
+    "policy": {
+      "simulation_only": true,
+      "candidates": 0,
+      "active_policies": 0,
+      "proposed_policies": 0,
+      "errors": []
+    },
+    "broker": {
+      "real_side_effects_enabled": false,
+      "mock_observations": 0,
+      "tickets_with_broker_evidence": [],
+      "errors": []
+    },
+    "outcomes": {
+      "open": 0,
+      "recorded": 0,
+      "invalidated": 0,
+      "errors": []
+    },
+    "dashboard_cards": [
+      {
+        "id": "human_governance_load",
+        "label": "Human Governance Load",
+        "value": "0 HGL",
+        "status": "ok",
+        "detail": "Open estimate across active workflows; capacity and missing skills escalate this card."
+      },
+      {
+        "id": "high_risk_decisions",
+        "label": "R3/R4/R5 Decisions",
+        "value": "0/0/0",
+        "status": "ok",
+        "detail": "Open high-risk decisions stay visible; R5 requires explicit human authority."
+      },
+      {
+        "id": "missing_skills",
+        "label": "Missing Skills",
+        "value": "0",
+        "status": "ok",
+        "detail": "All active workflow skills are covered."
+      },
+      {
+        "id": "bottlenecks",
+        "label": "Bottlenecks",
+        "value": "0",
+        "status": "ok",
+        "detail": "No active human or role bottlenecks detected."
+      },
+      {
+        "id": "autonomy_gates",
+        "label": "Autonomy Gates",
+        "value": "0/0/0",
+        "status": "ok",
+        "detail": "Green/yellow/red workflow gates; red and yellow states are never hidden."
+      },
+      {
+        "id": "policy_candidates",
+        "label": "Policy Candidates",
+        "value": "0",
+        "status": "ok",
+        "detail": "Simulation-only suggestions; 0 active and 0 proposed policy files."
+      },
+      {
+        "id": "broker_posture",
+        "label": "Broker Posture",
+        "value": "mock / observed-only",
+        "status": "ok",
+        "detail": "Mock/observed-only broker evidence across 0 ticket(s) and 0 observation(s)."
+      },
+      {
+        "id": "outcomes",
+        "label": "Outcomes",
+        "value": "0/0/0",
+        "status": "ok",
+        "detail": "Open/recorded/invalidated outcomes; invalidated outcomes require review before policy learning."
+      },
+      {
+        "id": "secure_posture",
+        "label": "Secure Posture",
+        "value": "honor-system",
+        "status": "watch",
+        "detail": "Signed acceptance is disabled; run doctor secure before relying on autonomous acceptance."
+      },
+      {
+        "id": "active_workflows",
+        "label": "Active Workflows",
+        "value": "0",
+        "status": "watch",
+        "detail": "Adopted workflows are the source for HGL, gates, and company OS governance cards."
+      }
+    ]
+  },
+  "gate": {
+    "available": false,
+    "enabled": false,
+    "initialized": false,
+    "layout": "layouts/palari-change.yml",
+    "max_age_seconds": 86400,
+    "root_fingerprint": "",
+    "tickets": {}
+  },
+  "health": {
+    "status_ok": true,
+    "dirty_paths": 4,
+    "generated_dirty_paths": 0,
+    "source_dirty_paths": 4,
+    "stale_claims": 0,
+    "missing_evidence": 0,
+    "overlaps": 0
+  },
+  "git": {
+    "branch": "ticket/POS-0097",
+    "status": "## ticket/POS-0097...origin/ticket/POS-0097 [ahead 23]\n M reports/evidence/POS-0087/verification.log\n M tickets/open/POS-0087-dashboard-exposes-company-os-governance-cards.md\n?? reports/evidence/POS-0087/.junit-cases.tmp\n?? reports/evidence/POS-0087/.sarif-results.tmp"
+  },
+  "palari_status": {
+    "ok": true,
+    "code": 0,
+    "stdout": "Palari Orchestration status\nroot: /home/quetza/palari-orchestrator-worktrees/POS-0097\nproject: Palari Orchestrator\nproposals: 0 proposed\ntickets: 6 active, 89 accepted\nopen:0 claimed:0 blocked:0 needs-human:0 in-review:6 reopened:0\nreports: 188 specialist/reviewer, 39 human\nevidence: 389 files\ngit: 4 changed paths in workspace (0 generated, 4 source)",
+    "stderr": ""
+  },
+  "authority": {
+    "profile": "team-safe",
+    "agent_can_commit": "true",
+    "agent_can_push_branch": "true",
+    "agent_can_open_pr": "true",
+    "agent_can_merge_main": "false",
+    "agent_can_accept": "false"
+  },
+  "commands": {
+    "status": "./bin/palari status",
+    "status_next": "./bin/palari status --next",
+    "hygiene": "./bin/palari hygiene",
+    "authority": "./bin/palari authority",
+    "ticket_audit": "./bin/palari ticket audit",
+    "lint": "./bin/palari lint",
+    "scope_overlaps": "./bin/palari scope-overlaps",
+    "ruleset": "./bin/palari github ruleset-command --repo OWNER/REPO"
+  }
+}
+```
+
+## verification 2
+
+Command: `./tests/run-dashboard-rubric.sh`
+
+```text
+dashboard-rubric: ok (structure, custody surface, contrast both themes, snapshot contract)
+```
+
+## verification 3
+
+Command: `./tests/run-company-os-snapshot.sh`
+
+```text
+company-os-snapshot: ok
+```

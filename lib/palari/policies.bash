@@ -56,9 +56,16 @@ policy_condition_known() {
 	local condition="$1"
 	[[ "$condition" == "no_open_decisions" ]] && return 0
 	[[ "$condition" == "scope_check_passed" ]] && return 0
-	[[ "$condition" =~ ^risk\<\=R[0-5]$ ]] && return 0
+	[[ "$condition" =~ ^risk\<\=R[0-2]$ ]] && return 0
 	[[ "$condition" =~ ^evidence_score\>\=[0-9]+$ ]] && return 0
 	return 1
+}
+
+policy_risk_allowed_by_default() {
+	case "$1" in
+	R0 | R1 | R2) return 0 ;;
+	*) return 1 ;;
+	esac
 }
 
 cmd_policy_create() {
@@ -94,7 +101,8 @@ cmd_policy_create() {
 	[[ -n "$risk_max" ]] || die "policy create requires --risk-max RISK"
 	[[ -n "$mode" ]] || die "policy create requires --mode simulation"
 	in_words "$risk_max" "$VALID_RISKS" || die "invalid risk max: $risk_max"
-	[[ "$risk_max" != "R5" ]] || die "policy risk-max R5 is forbidden; R5 is never policy-eligible"
+	policy_risk_allowed_by_default "$risk_max" ||
+		die "policy risk-max $risk_max exceeds default simulation max R2; R3/R4/R5 remain human decision classes"
 	[[ "$mode" == "simulation" ]] || die "policy mode must be simulation"
 	if ((${#conditions[@]} == 0)); then
 		conditions=("risk<=$risk_max" "evidence_score>=95" "scope_check_passed" "no_open_decisions")
@@ -201,8 +209,8 @@ cmd_policy_lint() {
 		if [[ -z "$risk" ]] || ! in_words "$risk" "$VALID_RISKS"; then
 			printf 'policy lint: %s invalid risk_max: %s\n' "$id" "${risk:-missing}"
 			errors=$((errors + 1))
-		elif [[ "$risk" == "R5" ]]; then
-			printf 'policy lint: %s risk_max R5 is forbidden; R5 is never policy-eligible\n' "$id"
+		elif ! policy_risk_allowed_by_default "$risk"; then
+			printf 'policy lint: %s risk_max %s exceeds default simulation max R2; R3/R4/R5 remain human decision classes\n' "$id" "$risk"
 			errors=$((errors + 1))
 		fi
 		if [[ "$(frontmatter_list_count "$file" conditions)" == "0" ]]; then
