@@ -10,7 +10,11 @@ need a safe way to detect and migrate old profiles without changing authority.
 - Added `palari human migrate-capacity --check` to report old capacity fields.
 - Added `palari human migrate-capacity --write` to migrate old capacity fields.
 - New human profiles now use only the current operational capacity fields.
-- Tests prove check mode is read-only, write mode refuses dirty repos, and
+- After review, the migration was repaired so old `capacity_open_r3/r4/r5: 0`
+  profiles keep the same HGL/workflow behavior after migration.
+- Empty old capacity keys are now detected and removed during migration.
+- Tests prove check mode is read-only, write mode refuses dirty repos,
+  migration preserves legacy-zero behavior, empty old keys are removed, and
   migrated profiles still lint.
 
 ## What I Should Know
@@ -30,5 +34,5 @@ need a safe way to detect and migrate old profiles without changing authority.
 
 ## Recommended Next Move
 
-Fresh-context review POS-0091. If accepted later, continue with the future
-integration contract phase in the plan.
+POS-0091 is accept-ready after fresh-context re-review. If accepted later,
+continue with the future integration contract phase in the plan.

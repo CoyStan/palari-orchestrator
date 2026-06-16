@@ -85,12 +85,32 @@ human_capacity_value() {
 	[[ -n "$value" ]] && printf '%s\n' "$value" || printf '%s\n' "$default"
 }
 
+human_legacy_open_capacity_value() {
+	local file="$1"
+	local current_key="$2"
+	local legacy_key="$3"
+	local default="$4"
+	local value
+	value="$(frontmatter_value "$file" "$current_key")"
+	[[ -n "$value" ]] && {
+		printf '%s\n' "$value"
+		return
+	}
+	value="$(frontmatter_value "$file" "$legacy_key")"
+	if [[ -z "$value" ]]; then
+		printf '%s\n' "$default"
+	elif [[ "$value" =~ ^[0-9]+$ && "$value" -lt 1 ]]; then
+		printf '1\n'
+	else
+		printf '%s\n' "$value"
+	fi
+}
+
 human_has_legacy_capacity() {
 	local file="$1"
-	local key value
+	local key
 	for key in capacity_weekly_hgl capacity_open_r3 capacity_open_r4 capacity_open_r5; do
-		value="$(frontmatter_value "$file" "$key")"
-		[[ -n "$value" ]] && return 0
+		frontmatter_has_key "$file" "$key" && return 0
 	done
 	return 1
 }
@@ -102,11 +122,11 @@ human_migrate_capacity_file() {
 	local need_max_r4="false" need_current_r4="false" need_max_r5="false" need_current_r5="false"
 	weekly="$(human_capacity_value "$file" weekly_hgl_budget capacity_weekly_hgl 0)"
 	current_weekly="$(human_capacity_value "$file" current_weekly_hgl "" 0)"
-	max_r3="$(human_capacity_value "$file" max_concurrent_r3 capacity_open_r3 0)"
+	max_r3="$(human_legacy_open_capacity_value "$file" max_concurrent_r3 capacity_open_r3 6)"
 	current_r3="$(human_capacity_value "$file" current_open_r3 "" 0)"
-	max_r4="$(human_capacity_value "$file" max_concurrent_r4 capacity_open_r4 0)"
+	max_r4="$(human_legacy_open_capacity_value "$file" max_concurrent_r4 capacity_open_r4 2)"
 	current_r4="$(human_capacity_value "$file" current_open_r4 "" 0)"
-	max_r5="$(human_capacity_value "$file" max_concurrent_r5 capacity_open_r5 0)"
+	max_r5="$(human_legacy_open_capacity_value "$file" max_concurrent_r5 capacity_open_r5 1)"
 	current_r5="$(human_capacity_value "$file" current_open_r5 "" 0)"
 	[[ -n "$(frontmatter_value "$file" weekly_hgl_budget)" ]] || need_weekly="true"
 	[[ -n "$(frontmatter_value "$file" current_weekly_hgl)" ]] || need_current_weekly="true"

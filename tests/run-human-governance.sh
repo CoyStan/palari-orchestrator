@@ -160,7 +160,7 @@ authority_max_risk: R4
 may_approve_policy_changes: false
 capacity_weekly_hgl: 22
 capacity_open_r3: 3
-capacity_open_r4: 1
+capacity_open_r4: 0
 capacity_open_r5: 0
 constraints:
 ---
@@ -169,6 +169,39 @@ constraints:
 DOC
 git add humans/active/HUMAN-GRACE-grace.md
 git commit -m "legacy human capacity fixture" >/dev/null
+
+./bin/palari workflow create WF-0191 "Legacy capacity migration guard" \
+	--goal GOAL-0100 \
+	--owner founder \
+	--risk-ceiling R4 >/dev/null
+python3 - <<'PY'
+from pathlib import Path
+
+path = Path("workflows/proposed/WF-0191-legacy-capacity-migration-guard.md")
+text = path.read_text()
+text = text.replace(
+    "expected_decisions:\n",
+    "expected_decisions:\n"
+    "  - R4|approve|operations:L4|Approve operations launch boundary\n",
+)
+path.write_text(text)
+PY
+./bin/palari workflow adopt WF-0191 --by founder >/dev/null
+git add workflows/active/WF-0191-legacy-capacity-migration-guard.md
+git commit -m "legacy capacity workflow fixture" >/dev/null
+
+./bin/palari burden score WF-0191 --json >"$TMP_ROOT/legacy-capacity-before.json"
+python3 - "$TMP_ROOT/legacy-capacity-before.json" <<'PY'
+import json
+import sys
+
+data = json.load(open(sys.argv[1]))
+coverage = data["decisions"][0]["coverage"][0]
+assert coverage["covered_by"] == ["HUMAN-GRACE"], data
+assert coverage["at_capacity"] == [], data
+assert data["capacity"]["risk_capacity_failures"] == [], data
+assert data["launch_gate"] == "yellow", data
+PY
 
 git_before="$(git status --porcelain | sort)"
 ./bin/palari human migrate-capacity --check >"$TMP_ROOT/migrate-check.out"
@@ -200,11 +233,30 @@ grep -Fq "current_weekly_hgl: 0" humans/active/HUMAN-GRACE-grace.md ||
 	fail "migrate write should set current_weekly_hgl"
 grep -Fq "max_concurrent_r3: 3" humans/active/HUMAN-GRACE-grace.md ||
 	fail "migrate write should set max_concurrent_r3 from legacy capacity_open_r3"
+grep -Fq "max_concurrent_r4: 1" humans/active/HUMAN-GRACE-grace.md ||
+	fail "migrate write should preserve legacy capacity_open_r4 zero as unspecified capacity"
+grep -Fq "max_concurrent_r5: 1" humans/active/HUMAN-GRACE-grace.md ||
+	fail "migrate write should preserve legacy capacity_open_r5 zero as unspecified capacity"
 grep -Fq "current_open_r5: 0" humans/active/HUMAN-GRACE-grace.md ||
 	fail "migrate write should set current_open_r5"
 if grep -Fq "capacity_" humans/active/HUMAN-GRACE-grace.md; then
 	fail "migrate write should remove deprecated capacity fields"
 fi
+./bin/palari burden score WF-0191 --json >"$TMP_ROOT/legacy-capacity-after.json"
+python3 - "$TMP_ROOT/legacy-capacity-before.json" "$TMP_ROOT/legacy-capacity-after.json" <<'PY'
+import json
+import sys
+
+before = json.load(open(sys.argv[1]))
+after = json.load(open(sys.argv[2]))
+for data in (after,):
+    coverage = data["decisions"][0]["coverage"][0]
+    assert coverage["covered_by"] == ["HUMAN-GRACE"], data
+    assert coverage["at_capacity"] == [], data
+    assert data["capacity"]["risk_capacity_failures"] == [], data
+assert before["launch_gate"] == after["launch_gate"] == "yellow", (before, after)
+assert before["coverage_failures"] == after["coverage_failures"] == [], (before, after)
+PY
 ./bin/palari human migrate-capacity --check >"$TMP_ROOT/migrate-clean.out"
 grep -Fq "ok (no deprecated capacity fields found)" "$TMP_ROOT/migrate-clean.out" ||
 	fail "migrate check should be clean after write"
@@ -212,6 +264,57 @@ grep -Fq "ok (no deprecated capacity fields found)" "$TMP_ROOT/migrate-clean.out
 grep -Fq "human lint: ok for HUMAN-GRACE" "$TMP_ROOT/migrated-lint.out" ||
 	fail "migrated profile should lint"
 rm -f humans/active/HUMAN-GRACE-grace.md
+rm -f workflows/active/WF-0191-legacy-capacity-migration-guard.md
+git add -u humans/active/HUMAN-GRACE-grace.md workflows/active/WF-0191-legacy-capacity-migration-guard.md
+git commit -m "remove legacy migration fixture" >/dev/null
+
+cat >humans/active/HUMAN-EMPTY-empty.md <<'DOC'
+---
+id: HUMAN-EMPTY
+name: Empty
+status: active
+roles:
+  - operations_governor
+skills:
+  - operations:L4
+authority_max_risk: R4
+may_approve_policy_changes: false
+capacity_weekly_hgl:
+capacity_open_r3:
+capacity_open_r4:
+capacity_open_r5:
+constraints:
+---
+
+# HUMAN-EMPTY Empty
+DOC
+git add humans/active/HUMAN-EMPTY-empty.md
+git commit -m "empty legacy capacity fixture" >/dev/null
+
+./bin/palari human migrate-capacity --check >"$TMP_ROOT/migrate-empty-check.out"
+grep -Fq "needs migration: humans/active/HUMAN-EMPTY-empty.md" "$TMP_ROOT/migrate-empty-check.out" ||
+	fail "migrate check should report empty deprecated capacity keys"
+./bin/palari human migrate-capacity --write >"$TMP_ROOT/migrate-empty-write.out"
+grep -Fq "migrated: humans/active/HUMAN-EMPTY-empty.md" "$TMP_ROOT/migrate-empty-write.out" ||
+	fail "migrate write should report empty deprecated capacity profile"
+grep -Fq "weekly_hgl_budget: 0" humans/active/HUMAN-EMPTY-empty.md ||
+	fail "empty weekly legacy capacity should migrate to default weekly budget"
+grep -Fq "max_concurrent_r3: 6" humans/active/HUMAN-EMPTY-empty.md ||
+	fail "empty legacy R3 capacity should migrate to default R3 capacity"
+grep -Fq "max_concurrent_r4: 2" humans/active/HUMAN-EMPTY-empty.md ||
+	fail "empty legacy R4 capacity should migrate to default R4 capacity"
+grep -Fq "max_concurrent_r5: 1" humans/active/HUMAN-EMPTY-empty.md ||
+	fail "empty legacy R5 capacity should migrate to default R5 capacity"
+if grep -Eq "^capacity_(weekly_hgl|open_r[345]):" humans/active/HUMAN-EMPTY-empty.md; then
+	fail "migrate write should remove empty deprecated capacity keys"
+fi
+./bin/palari human migrate-capacity --check >"$TMP_ROOT/migrate-empty-clean.out"
+grep -Fq "ok (no deprecated capacity fields found)" "$TMP_ROOT/migrate-empty-clean.out" ||
+	fail "migrate check should be clean after removing empty deprecated keys"
+./bin/palari human lint HUMAN-EMPTY >"$TMP_ROOT/migrated-empty-lint.out"
+grep -Fq "human lint: ok for HUMAN-EMPTY" "$TMP_ROOT/migrated-empty-lint.out" ||
+	fail "profile migrated from empty deprecated keys should lint"
+rm -f humans/active/HUMAN-EMPTY-empty.md
 
 cat >humans/active/HUMAN-ERIN-erin.md <<'DOC'
 ---

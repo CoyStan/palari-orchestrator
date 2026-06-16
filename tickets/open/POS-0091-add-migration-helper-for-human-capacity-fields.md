@@ -10,8 +10,8 @@ model_hint:
 claimed_by: Codex
 claimed_at: 2026-06-15T16:30:29Z
 claim_ref: refs/palari/claims/POS-0091
-claim_heartbeat_at: 2026-06-15T16:37:30Z
-claim_expires_at: 2026-06-15T16:42:30Z
+claim_heartbeat_at: 2026-06-16T13:30:56Z
+claim_expires_at: 2026-06-16T13:35:56Z
 allowed_paths:
   - lib/palari/humans.bash
   - adapters/planning/**
@@ -50,7 +50,7 @@ accepted_by:
 acceptance_mode: human
 accepted_at:
 created: 2026-06-15
-updated: 2026-06-15
+updated: 2026-06-16
 ---
 
 # POS-0091 Add migration helper for human capacity fields
