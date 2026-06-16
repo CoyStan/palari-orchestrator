@@ -2,12 +2,12 @@
 
 - Ticket: POS-0074
 - Base ref: local working tree
-- Created: 2026-06-15T13:27:07Z
+- Created: 2026-06-16T00:20:26Z
 
 ## scope-check
 
 ```text
-scope-check: ok for POS-0074 (11 changed path(s))
+scope-check: ok for POS-0074 (3 changed path(s))
 ```
 
 ## lint
@@ -22,10 +22,10 @@ lint: ok for POS-0074
 Command: `./tests/run-performance.sh`
 
 ```text
-performance: snapshot-json: 142 ms (budget 800 ms) ok
-performance: web-check: 146 ms (budget 800 ms) ok
-performance: status: 123 ms (budget 500 ms) ok
-performance: status-next: 167 ms (budget 500 ms) ok
-performance: web-check: 153 ms (budget 800 ms) ok
+performance: snapshot-json: 129 ms (budget 800 ms) ok
+performance: web-check: 118 ms (budget 800 ms) ok
+performance: status: 133 ms (budget 500 ms) ok
+performance: status-next: 118 ms (budget 500 ms) ok
+performance: web-check: 139 ms (budget 800 ms) ok
 performance: ok
 ```

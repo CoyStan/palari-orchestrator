@@ -1,7 +1,7 @@
 ---
 id: POS-0074
 title: Repair performance test pipefail assertions
-status: in-review
+status: accepted
 risk: R1
 priority: P1
 stream: process
@@ -10,8 +10,8 @@ model_hint:
 claimed_by: codex
 claimed_at: 2026-06-15T13:25:29Z
 claim_ref: refs/palari/claims/POS-0074
-claim_heartbeat_at: 2026-06-15T13:25:29Z
-claim_expires_at: 2026-06-15T13:30:29Z
+claim_heartbeat_at: 2026-06-16T00:20:57Z
+claim_expires_at: 2026-06-16T00:25:57Z
 allowed_paths:
   - tests/run-performance.sh
   - tickets/open/POS-0074-repair-performance-test-pipefail-assertions.md
@@ -44,11 +44,11 @@ verification:
 target_branch: main
 branch: ticket/POS-0074
 worktree: 
-accepted_by:
+accepted_by: founder
 acceptance_mode: human
-accepted_at:
+accepted_at: 2026-06-16T00:20:59Z
 created: 2026-06-15
-updated: 2026-06-15
+updated: 2026-06-16
 ---
 
 # POS-0074 Repair performance test pipefail assertions
