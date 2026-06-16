@@ -1,7 +1,7 @@
 ---
 id: POS-0086
 title: Add decision inbox grouped by risk skill and HGL
-status: in-review
+status: accepted
 risk: R2
 priority: P2
 stream: process
@@ -10,8 +10,8 @@ model_hint:
 claimed_by: Codex
 claimed_at: 2026-06-15T15:08:27Z
 claim_ref: refs/palari/claims/POS-0086
-claim_heartbeat_at: 2026-06-15T15:08:27Z
-claim_expires_at: 2026-06-15T15:13:27Z
+claim_heartbeat_at: 2026-06-16T07:12:38Z
+claim_expires_at: 2026-06-16T07:17:38Z
 allowed_paths:
   - adapters/planning/**
   - lib/palari/**
@@ -47,11 +47,11 @@ verification:
 target_branch: main
 branch: ticket/POS-0086
 worktree: 
-accepted_by:
+accepted_by: founder
 acceptance_mode: human
-accepted_at:
+accepted_at: 2026-06-16T07:13:01Z
 created: 2026-06-15
-updated: 2026-06-15
+updated: 2026-06-16
 ---
 
 # POS-0086 Add decision inbox grouped by risk skill and HGL
