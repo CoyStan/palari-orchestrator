@@ -2,12 +2,12 @@
 
 - Ticket: POS-0082
 - Base ref: local working tree
-- Created: 2026-06-15T14:50:55Z
+- Created: 2026-06-16T06:50:15Z
 
 ## scope-check
 
 ```text
-scope-check: ok for POS-0082 (14 changed path(s))
+scope-check: ok for POS-0082 (3 changed path(s))
 ```
 
 ## lint
