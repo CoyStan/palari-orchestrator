@@ -1,7 +1,7 @@
 ---
 id: POS-0080
 title: Outcome records include metric and governance impact
-status: in-review
+status: accepted
 risk: R2
 priority: P2
 stream: process
@@ -10,8 +10,8 @@ model_hint:
 claimed_by: Codex
 claimed_at: 2026-06-15T14:20:31Z
 claim_ref: refs/palari/claims/POS-0080
-claim_heartbeat_at: 2026-06-15T14:20:31Z
-claim_expires_at: 2026-06-15T14:25:31Z
+claim_heartbeat_at: 2026-06-16T07:08:51Z
+claim_expires_at: 2026-06-16T07:13:51Z
 allowed_paths:
   - lib/palari/outcomes.bash
   - contracts/outcomes.md
@@ -51,11 +51,11 @@ verification:
 target_branch: main
 branch: ticket/POS-0080
 worktree: 
-accepted_by:
+accepted_by: founder
 acceptance_mode: human
-accepted_at:
+accepted_at: 2026-06-16T07:09:20Z
 created: 2026-06-15
-updated: 2026-06-15
+updated: 2026-06-16
 ---
 
 # POS-0080 Outcome records include metric and governance impact

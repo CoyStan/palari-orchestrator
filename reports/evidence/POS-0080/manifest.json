@@ -4,14 +4,14 @@
   "manifest_file": "manifest.json",
   "ticket": "POS-0080",
   "base_ref": "local working tree",
-  "head_sha": "c91d5f5775394e98df3001f5f1fa948aa1f50740",
-  "created_at": "2026-06-16T06:48:52Z",
+  "head_sha": "4f1bcf7e4880f3fafdd8679603ab618f85eb36b6",
+  "created_at": "2026-06-16T07:09:14Z",
   "status": "passed",
   "tests": 5,
   "failures": 0,
   "skipped": 0,
   "artifacts": [
-    {"name":"verification.log","sha256":"8536b159e9641f542a5d41d7041b9d35d8d1f88592ebb6a8aadbf87ae9da8eaf"},
+    {"name":"verification.log","sha256":"c025ff14413f7e4c7e1e724906db1438f93660ef83861f83819b460f1b37da56"},
     {"name":"junit.xml","sha256":"205262d268e9e6ce5090c4816394e33c08c1e07c3152e35271fb9220f8eb5a6a"},
     {"name":"palari.sarif","sha256":"658c0f13c9ef92668cb137d8998af00f843f312cb052f5a96f2ba320a7a4e723"}
   ]
