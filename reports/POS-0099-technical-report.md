@@ -30,10 +30,13 @@ reports/evidence/POS-0099/
   - `status: proposed`
   - source path
   - source SHA/ref when available
+  - source manifest hash for the copied substrate files
   - target path
   - target HEAD
   - CI/hooks/force intent
-  - imported path manifest
+  - imported/write path manifest, including init-created `.gitkeep` files,
+    `AGENTS.palari.md`, `.gitignore`, lock storage, and optional CI/hooks
+    outputs
   - excluded paths
   - excluded foreign governance artifacts
   - downstream customization boundaries
@@ -42,6 +45,8 @@ reports/evidence/POS-0099/
 - A plan must be `status: approved` or `status: accepted` before adoption writes
   target files.
 - Adoption validates that the plan source and target match the current command.
+- Adoption validates that copied source content still matches the approved plan
+  before writing, so dirty source-tree edits after approval fail closed.
 - Adoption validates that approved plan flags (`with_ci`, `with_hooks`, and
   `force`) match the actual write command.
 - Approved plans must include `approved_by` and `approved_at`.
@@ -67,6 +72,11 @@ reports/evidence/POS-0099/
     writing.
   - missing approval metadata fails before writing.
   - `--force` and `--ci` command/plan mismatches fail before writing.
+- Added repair coverage after second fresh review:
+  - the generated `path_manifest` includes init-created files, lock storage,
+    `AGENTS.palari.md`, `.gitignore`, and optional CI/hooks writes.
+  - modifying source substrate files after plan approval changes
+    `source_manifest_hash` and fails before writing.
 
 ## CI Evidence
 
@@ -101,6 +111,9 @@ reports/evidence/POS-0099/
 - Second fresh-context review found two blocking gaps: command flags were not
   bound to reviewed plan flags, and blank approver metadata passed. Both were
   repaired before final review.
+- Third fresh-context review found two blocking gaps: the plan manifest did not
+  enumerate all write classes, and the approved source SHA did not catch dirty
+  source-tree edits after plan approval. Both were repaired before final review.
 
 ## Risks / Follow-Ups
 

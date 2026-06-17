@@ -1,3 +1,16 @@
+palari_init_dirs() {
+	printf '%s\n' \
+		"$PROPOSED_DIR" "$OPEN_DIR" "$CLOSED_DIR" "$REPORTS_DIR" \
+		"$HUMAN_REPORTS_DIR" "$PLANNING_REPORTS_DIR" "$EVIDENCE_DIR" \
+		"$HANDOFFS_DIR" "$ROLES_ACTIVE_DIR" "$ROLES_PROPOSED_DIR" \
+		"$ROLES_REVOKED_DIR" "$GOALS_ACTIVE_DIR" "$GOALS_PROPOSED_DIR" \
+		"$GOALS_CLOSED_DIR" "$WORKFLOWS_PROPOSED_DIR" "$WORKFLOWS_ACTIVE_DIR" \
+		"$WORKFLOWS_CLOSED_DIR" "$HUMANS_PROPOSED_DIR" "$HUMANS_ACTIVE_DIR" \
+		"$HUMANS_REVOKED_DIR" "$POLICIES_PROPOSED_DIR" "$POLICIES_ACTIVE_DIR" \
+		"$POLICIES_REVOKED_DIR" "$OUTCOMES_OPEN_DIR" "$OUTCOMES_RECORDED_DIR" \
+		"$DECISIONS_OPEN_DIR" "$DECISIONS_DECIDED_DIR"
+}
+
 cmd_init() {
 	local dir force="false" with_ci="false" with_hooks="false"
 	while (($# > 0)); do
@@ -22,10 +35,10 @@ cmd_init() {
 		*) die "unknown init option: $1" ;;
 		esac
 	done
-	for dir in "$PROPOSED_DIR" "$OPEN_DIR" "$CLOSED_DIR" "$REPORTS_DIR" "$HUMAN_REPORTS_DIR" "$PLANNING_REPORTS_DIR" "$EVIDENCE_DIR" "$HANDOFFS_DIR" "$ROLES_ACTIVE_DIR" "$ROLES_PROPOSED_DIR" "$ROLES_REVOKED_DIR" "$GOALS_ACTIVE_DIR" "$GOALS_PROPOSED_DIR" "$GOALS_CLOSED_DIR" "$WORKFLOWS_PROPOSED_DIR" "$WORKFLOWS_ACTIVE_DIR" "$WORKFLOWS_CLOSED_DIR" "$HUMANS_PROPOSED_DIR" "$HUMANS_ACTIVE_DIR" "$HUMANS_REVOKED_DIR" "$POLICIES_PROPOSED_DIR" "$POLICIES_ACTIVE_DIR" "$POLICIES_REVOKED_DIR" "$OUTCOMES_OPEN_DIR" "$OUTCOMES_RECORDED_DIR" "$DECISIONS_OPEN_DIR" "$DECISIONS_DECIDED_DIR"; do
+	while IFS= read -r dir; do
 		mkdir -p "$ROOT/$dir"
 		: >"$ROOT/$dir/.gitkeep"
-	done
+	done < <(palari_init_dirs)
 	mkdir -p "$ROOT/$STATE_DIR/locks"
 	if declare -F hygiene_ensure_gitignore >/dev/null; then
 		hygiene_ensure_gitignore
@@ -494,11 +507,50 @@ adoption_source_ref() {
 	fi
 }
 
+adoption_source_manifest_hash() {
+	(
+		cd "$ROOT"
+		for rel in "${ADOPTION_PATHS[@]}" "AGENTS.md"; do
+			if [[ -f "$rel" ]]; then
+				printf '%s\n' "$rel"
+			elif [[ -d "$rel" ]]; then
+				find "$rel" -type f | sort
+			fi
+		done |
+			while IFS= read -r file; do
+				[[ -n "$file" ]] || continue
+				printf '%s  %s\n' "$(sha256_file "$file")" "$file"
+			done
+	) | sha256_text
+}
+
 yaml_quote() {
 	local value="${1:-}"
 	value="${value//\\/\\\\}"
 	value="${value//\"/\\\"}"
 	printf '"%s"' "$value"
+}
+
+adoption_plan_write_paths() {
+	local with_ci="$1" with_hooks="$2" rel dir
+	for rel in "${ADOPTION_PATHS[@]}"; do
+		printf '  - %s/**\n' "$rel"
+	done
+	printf '  - AGENTS.md\n'
+	printf '  - AGENTS.palari.md\n'
+	while IFS= read -r dir; do
+		[[ -n "$dir" ]] || continue
+		printf '  - %s/.gitkeep\n' "$dir"
+	done < <(palari_init_dirs)
+	printf '  - %s/locks/**\n' "$STATE_DIR"
+	printf '  - .gitignore\n'
+	if [[ "$with_ci" == "true" ]]; then
+		printf '  - .github/workflows/palari.yml\n'
+		printf '  - .github/palari-required-checks.ruleset.json\n'
+	fi
+	if [[ "$with_hooks" == "true" ]]; then
+		printf '  - lefthook.yml\n'
+	fi
 }
 
 adoption_plan_required_message() {
@@ -508,7 +560,7 @@ adoption_plan_required_message() {
 }
 
 cmd_adopt_plan() {
-	local target="${1:-}" out="" with_ci="false" with_hooks="false" force="false" arg target_abs source_ref
+	local target="${1:-}" out="" with_ci="false" with_hooks="false" force="false" arg target_abs source_ref source_hash
 	shift || true
 	[[ -n "$target" ]] || die "adopt plan requires target repository path"
 	while (($# > 0)); do
@@ -546,6 +598,7 @@ cmd_adopt_plan() {
 		die "adopt target must be an existing git repository: $target_abs"
 	fi
 	source_ref="$(adoption_source_ref)"
+	source_hash="$(adoption_source_manifest_hash)"
 	mkdir -p "$(dirname "$out")"
 	{
 		printf -- '---\n'
@@ -556,6 +609,9 @@ cmd_adopt_plan() {
 		printf '\n'
 		printf 'source_sha: '
 		yaml_quote "$source_ref"
+		printf '\n'
+		printf 'source_manifest_hash: '
+		yaml_quote "$source_hash"
 		printf '\n'
 		printf 'target_path: '
 		yaml_quote "$target_abs"
@@ -569,9 +625,7 @@ cmd_adopt_plan() {
 		printf 'approved_by:\n'
 		printf 'approved_at:\n'
 		printf 'path_manifest:\n'
-		for rel in "${ADOPTION_PATHS[@]}" "AGENTS.md"; do
-			printf '  - %s\n' "$rel"
-		done
+		adoption_plan_write_paths "$with_ci" "$with_hooks"
 		printf 'excluded_paths:\n'
 		printf '  - .git/**\n'
 		printf '  - node_modules/**\n'
@@ -609,6 +663,7 @@ adoption_plan_has_list() {
 validate_adoption_plan() {
 	local plan="$1" target_abs="$2" with_ci="$3" with_hooks="$4" force="$5"
 	local status source_path target_path source_ref plan_ref approved_by approved_at plan_with_ci plan_with_hooks plan_force
+	local plan_hash source_hash
 	[[ -f "$plan" ]] || die "adopt plan not found: $plan"
 	status="$(frontmatter_value "$plan" status)"
 	[[ "$status" == "approved" || "$status" == "accepted" ]] ||
@@ -637,6 +692,10 @@ validate_adoption_plan() {
 	if [[ "$plan_ref" != "unavailable" && "$source_ref" != "unavailable" && "$plan_ref" != "$source_ref" ]]; then
 		die "adopt plan source_sha mismatch: expected $source_ref, got $plan_ref"
 	fi
+	plan_hash="$(frontmatter_value "$plan" source_manifest_hash)"
+	source_hash="$(adoption_source_manifest_hash)"
+	[[ "$plan_hash" == "$source_hash" ]] ||
+		die "adopt plan source_manifest_hash mismatch: expected $source_hash, got ${plan_hash:-missing}"
 	adoption_plan_has_list "$plan" path_manifest ||
 		die "adopt plan missing path_manifest entries"
 	adoption_plan_has_list "$plan" excluded_paths ||

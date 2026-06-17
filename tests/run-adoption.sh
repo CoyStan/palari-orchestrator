@@ -69,9 +69,18 @@ grep -Fq "status: proposed" "$TMP_ROOT/adoption-plan.md"
 grep -Fq "source_path: \"$SOURCE\"" "$TMP_ROOT/adoption-plan.md"
 grep -Fq "target_path: \"$TARGET\"" "$TMP_ROOT/adoption-plan.md"
 grep -Fq "source_sha: \"$SOURCE_SHA\"" "$TMP_ROOT/adoption-plan.md"
+grep -Fq "source_manifest_hash: " "$TMP_ROOT/adoption-plan.md"
 grep -Fq "path_manifest:" "$TMP_ROOT/adoption-plan.md"
-grep -Fq "  - bin" "$TMP_ROOT/adoption-plan.md"
-grep -Fq "  - lib" "$TMP_ROOT/adoption-plan.md"
+grep -Fq "  - bin/**" "$TMP_ROOT/adoption-plan.md"
+grep -Fq "  - lib/**" "$TMP_ROOT/adoption-plan.md"
+grep -Fq "  - AGENTS.palari.md" "$TMP_ROOT/adoption-plan.md"
+grep -Fq "  - tickets/proposed/.gitkeep" "$TMP_ROOT/adoption-plan.md"
+grep -Fq "  - reports/evidence/.gitkeep" "$TMP_ROOT/adoption-plan.md"
+grep -Fq "  - .palari/locks/**" "$TMP_ROOT/adoption-plan.md"
+grep -Fq "  - .gitignore" "$TMP_ROOT/adoption-plan.md"
+grep -Fq "  - .github/workflows/palari.yml" "$TMP_ROOT/adoption-plan.md"
+grep -Fq "  - .github/palari-required-checks.ruleset.json" "$TMP_ROOT/adoption-plan.md"
+grep -Fq "  - lefthook.yml" "$TMP_ROOT/adoption-plan.md"
 grep -Fq "excluded_paths:" "$TMP_ROOT/adoption-plan.md"
 grep -Fq "downstream_customization_boundaries:" "$TMP_ROOT/adoption-plan.md"
 grep -Fq "excluded_foreign_governance_artifacts:" "$TMP_ROOT/adoption-plan.md"
@@ -102,6 +111,20 @@ if (cd "$SOURCE" && ./bin/palari adopt "$TARGET" --ci --hooks --plan "$TMP_ROOT/
 	exit 1
 fi
 grep -Fq "adopt plan source_sha mismatch" "$TMP_ROOT/stale-source-plan.out"
+
+cp "$TMP_ROOT/adoption-plan.md" "$TMP_ROOT/dirty-source-plan.md"
+sed -i \
+	-e 's/^status: proposed$/status: approved/' \
+	-e 's/^approved_by:$/approved_by: founder/' \
+	-e 's/^approved_at:$/approved_at: 2026-06-17T00:00:00Z/' \
+	"$TMP_ROOT/dirty-source-plan.md"
+printf '\nUNAPPROVED SOURCE MUTATION\n' >>"$SOURCE/contracts/adoption.md"
+if (cd "$SOURCE" && ./bin/palari adopt "$TARGET" --ci --hooks --plan "$TMP_ROOT/dirty-source-plan.md") >"$TMP_ROOT/dirty-source-plan.out" 2>&1; then
+	printf 'adoption: expected dirty source plan to fail before write\n' >&2
+	exit 1
+fi
+grep -Fq "adopt plan source_manifest_hash mismatch" "$TMP_ROOT/dirty-source-plan.out"
+git -C "$SOURCE" checkout -- contracts/adoption.md
 
 cp "$TMP_ROOT/adoption-plan.md" "$TMP_ROOT/force-mismatch-plan.md"
 sed -i \
