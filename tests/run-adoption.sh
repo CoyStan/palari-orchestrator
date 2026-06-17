@@ -13,6 +13,13 @@ mkdir -p "$SOURCE" "$TARGET" "$DRY_TARGET"
 (cd "$REPO_ROOT" && tar --exclude .git --exclude .palari -cf - .) | (cd "$SOURCE" && tar -xf -)
 
 chmod +x "$SOURCE/bin/palari" "$SOURCE/scripts/palari" "$SOURCE/tests/run-adoption.sh"
+(cd "$SOURCE" &&
+	git init -b main >/dev/null &&
+	git config user.email "adoption-source@example.invalid" &&
+	git config user.name "Adoption Source Test" &&
+	git add . &&
+	git commit -m "source baseline" >/dev/null)
+SOURCE_SHA="$(git -C "$SOURCE" rev-parse HEAD)"
 
 cd "$TARGET"
 git init -b main >/dev/null
@@ -61,7 +68,7 @@ grep -Fq "type: bootstrap-adoption-plan" "$TMP_ROOT/adoption-plan.md"
 grep -Fq "status: proposed" "$TMP_ROOT/adoption-plan.md"
 grep -Fq "source_path: \"$SOURCE\"" "$TMP_ROOT/adoption-plan.md"
 grep -Fq "target_path: \"$TARGET\"" "$TMP_ROOT/adoption-plan.md"
-grep -Fq "source_sha:" "$TMP_ROOT/adoption-plan.md"
+grep -Fq "source_sha: \"$SOURCE_SHA\"" "$TMP_ROOT/adoption-plan.md"
 grep -Fq "path_manifest:" "$TMP_ROOT/adoption-plan.md"
 grep -Fq "  - bin" "$TMP_ROOT/adoption-plan.md"
 grep -Fq "  - lib" "$TMP_ROOT/adoption-plan.md"
@@ -74,6 +81,36 @@ if (cd "$SOURCE" && ./bin/palari adopt "$TARGET" --ci --hooks --plan "$TMP_ROOT/
 	exit 1
 fi
 grep -Fq "adopt plan must be approved before writing target files; current status: proposed" "$TMP_ROOT/proposed-plan.out"
+
+cp "$TMP_ROOT/adoption-plan.md" "$TMP_ROOT/stale-source-plan.md"
+sed -i \
+	-e 's/^status: proposed$/status: approved/' \
+	-e 's/^source_sha: .*$/source_sha: "0000000000000000000000000000000000000000"/' \
+	-e 's/^approved_by:$/approved_by: founder/' \
+	-e 's/^approved_at:$/approved_at: 2026-06-17T00:00:00Z/' \
+	"$TMP_ROOT/stale-source-plan.md"
+if (cd "$SOURCE" && ./bin/palari adopt "$TARGET" --ci --hooks --plan "$TMP_ROOT/stale-source-plan.md") >"$TMP_ROOT/stale-source-plan.out" 2>&1; then
+	printf 'adoption: expected stale source plan to fail before write\n' >&2
+	exit 1
+fi
+grep -Fq "adopt plan source_sha mismatch" "$TMP_ROOT/stale-source-plan.out"
+
+cp "$TMP_ROOT/adoption-plan.md" "$TMP_ROOT/missing-foreign-plan.md"
+awk '
+	$0 == "excluded_foreign_governance_artifacts:" { skip = 1; next }
+	skip && $0 ~ /^downstream_customization_boundaries:/ { skip = 0 }
+	!skip { print }
+' "$TMP_ROOT/adoption-plan.md" >"$TMP_ROOT/missing-foreign-plan.md"
+sed -i \
+	-e 's/^status: proposed$/status: approved/' \
+	-e 's/^approved_by:$/approved_by: founder/' \
+	-e 's/^approved_at:$/approved_at: 2026-06-17T00:00:00Z/' \
+	"$TMP_ROOT/missing-foreign-plan.md"
+if (cd "$SOURCE" && ./bin/palari adopt "$TARGET" --ci --hooks --plan "$TMP_ROOT/missing-foreign-plan.md") >"$TMP_ROOT/missing-foreign-plan.out" 2>&1; then
+	printf 'adoption: expected missing foreign governance artifact list to fail before write\n' >&2
+	exit 1
+fi
+grep -Fq "adopt plan missing excluded_foreign_governance_artifacts entries" "$TMP_ROOT/missing-foreign-plan.out"
 
 sed -i \
 	-e 's/^status: proposed$/status: approved/' \

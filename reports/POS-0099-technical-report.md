@@ -41,6 +41,8 @@ reports/evidence/POS-0099/
 - A plan must be `status: approved` or `status: accepted` before adoption writes
   target files.
 - Adoption validates that the plan source and target match the current command.
+- Adoption validates that the plan still includes foreign-governance-artifact
+  exclusions.
 - Dry-run adoption remains available without a plan as a no-write preview.
 - README and the adoption contract now describe the preview -> plan -> human
   approval -> adopt flow.
@@ -55,6 +57,10 @@ reports/evidence/POS-0099/
   - `shellcheck -x bin/palari scripts/palari tests/run-adoption.sh`
   - `shfmt -d lib/palari/init_adopt.bash tests/run-adoption.sh`
   - `git diff --check`
+- Added repair coverage after initial fresh review:
+  - stale `source_sha` in an approved plan fails before writing.
+  - missing `excluded_foreign_governance_artifacts` entries fail before
+    writing.
 
 ## CI Evidence
 
@@ -83,6 +89,9 @@ reports/evidence/POS-0099/
 - Direct manual `rsync`/shell copying outside Palari cannot be prevented by the
   CLI; this ticket makes the Palari-supported adoption path governed and
   fail-closed.
+- Initial fresh-context review found two low-severity bounded gaps: missing
+  validation for `excluded_foreign_governance_artifacts` and no stale
+  `source_sha` regression. Both were repaired before final review.
 
 ## Risks / Follow-Ups
 

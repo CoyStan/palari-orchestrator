@@ -627,6 +627,8 @@ validate_adoption_plan() {
 		die "adopt plan missing path_manifest entries"
 	adoption_plan_has_list "$plan" excluded_paths ||
 		die "adopt plan missing excluded_paths entries"
+	adoption_plan_has_list "$plan" excluded_foreign_governance_artifacts ||
+		die "adopt plan missing excluded_foreign_governance_artifacts entries"
 	adoption_plan_has_list "$plan" downstream_customization_boundaries ||
 		die "adopt plan missing downstream_customization_boundaries entries"
 }
