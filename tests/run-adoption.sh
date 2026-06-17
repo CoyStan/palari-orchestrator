@@ -8,7 +8,8 @@ trap 'rm -rf "$TMP_ROOT"' EXIT
 SOURCE="$TMP_ROOT/source"
 TARGET="$TMP_ROOT/target"
 DRY_TARGET="$TMP_ROOT/dry-target"
-mkdir -p "$SOURCE" "$TARGET" "$DRY_TARGET"
+CUSTOM_TARGET="$TMP_ROOT/custom-target"
+mkdir -p "$SOURCE" "$TARGET" "$DRY_TARGET" "$CUSTOM_TARGET"
 
 (cd "$REPO_ROOT" && tar --exclude .git --exclude .palari -cf - .) | (cd "$SOURCE" && tar -xf -)
 
@@ -35,6 +36,30 @@ Keep this file.
 DOC
 git add README.md AGENTS.md
 git commit -m "target baseline" >/dev/null
+TARGET_SHA="$(git -C "$TARGET" rev-parse HEAD)"
+
+cd "$CUSTOM_TARGET"
+git init -b main >/dev/null
+git config user.email "adoption-custom@example.invalid"
+git config user.name "Adoption Custom Test"
+cat >README.md <<'DOC'
+# Custom Target Repo
+DOC
+cat >palari.config.yaml <<'DOC'
+project_name: Custom Target
+state_dir: .custom-palari
+tickets_open_dir: custom/open
+tickets_proposed_dir: custom/proposed
+tickets_closed_dir: custom/closed
+reports_dir: custom/reports
+human_reports_dir: custom/human
+planning_reports_dir: custom/planning
+evidence_dir: custom/evidence
+handoffs_dir: custom/handoffs
+DOC
+git add README.md palari.config.yaml
+git commit -m "custom target baseline" >/dev/null
+cd "$TARGET"
 
 (cd "$SOURCE" && ./bin/palari adopt "$DRY_TARGET" --dry-run) >"$TMP_ROOT/dry-run.out" 2>"$TMP_ROOT/dry-run.err" || true
 grep -Fq "adopt target must be an existing git repository" "$TMP_ROOT/dry-run.err"
@@ -69,10 +94,12 @@ grep -Fq "status: proposed" "$TMP_ROOT/adoption-plan.md"
 grep -Fq "source_path: \"$SOURCE\"" "$TMP_ROOT/adoption-plan.md"
 grep -Fq "target_path: \"$TARGET\"" "$TMP_ROOT/adoption-plan.md"
 grep -Fq "source_sha: \"$SOURCE_SHA\"" "$TMP_ROOT/adoption-plan.md"
+grep -Fq "target_head: \"$TARGET_SHA\"" "$TMP_ROOT/adoption-plan.md"
 grep -Fq "source_manifest_hash: " "$TMP_ROOT/adoption-plan.md"
 grep -Fq "path_manifest:" "$TMP_ROOT/adoption-plan.md"
 grep -Fq "  - bin/**" "$TMP_ROOT/adoption-plan.md"
 grep -Fq "  - lib/**" "$TMP_ROOT/adoption-plan.md"
+grep -Fq "  - palari.config.yaml" "$TMP_ROOT/adoption-plan.md"
 grep -Fq "  - AGENTS.palari.md" "$TMP_ROOT/adoption-plan.md"
 grep -Fq "  - tickets/proposed/.gitkeep" "$TMP_ROOT/adoption-plan.md"
 grep -Fq "  - reports/evidence/.gitkeep" "$TMP_ROOT/adoption-plan.md"
@@ -84,6 +111,26 @@ grep -Fq "  - lefthook.yml" "$TMP_ROOT/adoption-plan.md"
 grep -Fq "excluded_paths:" "$TMP_ROOT/adoption-plan.md"
 grep -Fq "downstream_customization_boundaries:" "$TMP_ROOT/adoption-plan.md"
 grep -Fq "excluded_foreign_governance_artifacts:" "$TMP_ROOT/adoption-plan.md"
+
+(cd "$SOURCE" && ./bin/palari adopt plan "$CUSTOM_TARGET" --out "$TMP_ROOT/custom-plan.md") >"$TMP_ROOT/custom-plan.out"
+grep -Fq "  - custom/proposed/.gitkeep" "$TMP_ROOT/custom-plan.md"
+grep -Fq "  - custom/open/.gitkeep" "$TMP_ROOT/custom-plan.md"
+grep -Fq "  - custom/evidence/.gitkeep" "$TMP_ROOT/custom-plan.md"
+grep -Fq "  - .custom-palari/locks/**" "$TMP_ROOT/custom-plan.md"
+if grep -Fq "  - tickets/proposed/.gitkeep" "$TMP_ROOT/custom-plan.md"; then
+	printf 'adoption: custom target plan used source/default ticket directories\n' >&2
+	exit 1
+fi
+sed -i \
+	-e 's/^status: proposed$/status: approved/' \
+	-e 's/^approved_by:$/approved_by: founder/' \
+	-e 's/^approved_at:$/approved_at: 2026-06-17T00:00:00Z/' \
+	"$TMP_ROOT/custom-plan.md"
+(cd "$SOURCE" && ./bin/palari adopt "$CUSTOM_TARGET" --plan "$TMP_ROOT/custom-plan.md") >"$TMP_ROOT/custom-adopt.out"
+test -f "$CUSTOM_TARGET/custom/proposed/.gitkeep"
+test -f "$CUSTOM_TARGET/custom/open/.gitkeep"
+test -f "$CUSTOM_TARGET/custom/evidence/.gitkeep"
+test -d "$CUSTOM_TARGET/.custom-palari/locks"
 
 if (cd "$SOURCE" && ./bin/palari adopt "$TARGET" --ci --hooks --plan "$TMP_ROOT/adoption-plan.md") >"$TMP_ROOT/proposed-plan.out" 2>&1; then
 	printf 'adoption: expected proposed plan to fail before write\n' >&2
@@ -125,6 +172,21 @@ if (cd "$SOURCE" && ./bin/palari adopt "$TARGET" --ci --hooks --plan "$TMP_ROOT/
 fi
 grep -Fq "adopt plan source_manifest_hash mismatch" "$TMP_ROOT/dirty-source-plan.out"
 git -C "$SOURCE" checkout -- contracts/adoption.md
+
+cp "$TMP_ROOT/adoption-plan.md" "$TMP_ROOT/stale-target-plan.md"
+sed -i \
+	-e 's/^status: proposed$/status: approved/' \
+	-e 's/^approved_by:$/approved_by: founder/' \
+	-e 's/^approved_at:$/approved_at: 2026-06-17T00:00:00Z/' \
+	"$TMP_ROOT/stale-target-plan.md"
+printf '\nTarget changed after plan.\n' >>"$TARGET/README.md"
+git -C "$TARGET" commit -am "target changed after plan" >/dev/null
+if (cd "$SOURCE" && ./bin/palari adopt "$TARGET" --ci --hooks --plan "$TMP_ROOT/stale-target-plan.md") >"$TMP_ROOT/stale-target-plan.out" 2>&1; then
+	printf 'adoption: expected stale target plan to fail before write\n' >&2
+	exit 1
+fi
+grep -Fq "adopt plan target_head mismatch" "$TMP_ROOT/stale-target-plan.out"
+git -C "$TARGET" reset --hard "$TARGET_SHA" >/dev/null
 
 cp "$TMP_ROOT/adoption-plan.md" "$TMP_ROOT/force-mismatch-plan.md"
 sed -i \

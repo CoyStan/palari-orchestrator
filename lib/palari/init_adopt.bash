@@ -524,6 +524,70 @@ adoption_source_manifest_hash() {
 	) | sha256_text
 }
 
+target_config_scalar() {
+	local target_abs="$1" key="$2" default="$3" config="$target_abs/palari.config.yaml" value
+	if [[ -f "$config" ]]; then
+		value="$(
+			awk -v key="$key" '
+    $0 ~ "^[[:space:]]*" key ":" {
+      sub("^[[:space:]]*" key ":[[:space:]]*", "", $0)
+      sub(/[[:space:]]#.*$/, "", $0)
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", $0)
+      gsub(/^["'\'']|["'\'']$/, "", $0)
+      print
+      exit
+    }
+  ' "$config"
+		)"
+	fi
+	[[ -n "${value:-}" ]] && printf '%s\n' "$value" || printf '%s\n' "$default"
+}
+
+target_init_dirs() {
+	local target_abs="$1" force="$2"
+	if [[ "$force" == "true" || ! -f "$target_abs/palari.config.yaml" ]]; then
+		palari_init_dirs
+		return
+	fi
+	printf '%s\n' \
+		"$(target_config_scalar "$target_abs" tickets_proposed_dir "tickets/proposed")" \
+		"$(target_config_scalar "$target_abs" tickets_open_dir "tickets/open")" \
+		"$(target_config_scalar "$target_abs" tickets_closed_dir "tickets/closed")" \
+		"$(target_config_scalar "$target_abs" reports_dir "reports")" \
+		"$(target_config_scalar "$target_abs" human_reports_dir "reports/human")" \
+		"$(target_config_scalar "$target_abs" planning_reports_dir "reports/planning")" \
+		"$(target_config_scalar "$target_abs" evidence_dir "reports/evidence")" \
+		"$(target_config_scalar "$target_abs" handoffs_dir "handoffs")" \
+		"$(target_config_scalar "$target_abs" roles_active_dir "roles/active")" \
+		"$(target_config_scalar "$target_abs" roles_proposed_dir "roles/proposed")" \
+		"$(target_config_scalar "$target_abs" roles_revoked_dir "roles/revoked")" \
+		"$(target_config_scalar "$target_abs" goals_active_dir "goals/active")" \
+		"$(target_config_scalar "$target_abs" goals_proposed_dir "goals/proposed")" \
+		"$(target_config_scalar "$target_abs" goals_closed_dir "goals/closed")" \
+		"$(target_config_scalar "$target_abs" workflows_proposed_dir "workflows/proposed")" \
+		"$(target_config_scalar "$target_abs" workflows_active_dir "workflows/active")" \
+		"$(target_config_scalar "$target_abs" workflows_closed_dir "workflows/closed")" \
+		"$(target_config_scalar "$target_abs" humans_proposed_dir "humans/proposed")" \
+		"$(target_config_scalar "$target_abs" humans_active_dir "humans/active")" \
+		"$(target_config_scalar "$target_abs" humans_revoked_dir "humans/revoked")" \
+		"$(target_config_scalar "$target_abs" policies_proposed_dir "policies/proposed")" \
+		"$(target_config_scalar "$target_abs" policies_active_dir "policies/active")" \
+		"$(target_config_scalar "$target_abs" policies_revoked_dir "policies/revoked")" \
+		"$(target_config_scalar "$target_abs" outcomes_open_dir "outcomes/open")" \
+		"$(target_config_scalar "$target_abs" outcomes_recorded_dir "outcomes/recorded")" \
+		"$(target_config_scalar "$target_abs" decisions_open_dir "decisions/open")" \
+		"$(target_config_scalar "$target_abs" decisions_decided_dir "decisions/decided")"
+}
+
+target_state_dir() {
+	local target_abs="$1" force="$2"
+	if [[ "$force" == "true" || ! -f "$target_abs/palari.config.yaml" ]]; then
+		printf '%s\n' "$STATE_DIR"
+	else
+		target_config_scalar "$target_abs" state_dir ".palari"
+	fi
+}
+
 yaml_quote() {
 	local value="${1:-}"
 	value="${value//\\/\\\\}"
@@ -532,17 +596,22 @@ yaml_quote() {
 }
 
 adoption_plan_write_paths() {
-	local with_ci="$1" with_hooks="$2" rel dir
+	local target_abs="$1" with_ci="$2" with_hooks="$3" force="$4" rel dir state_dir
 	for rel in "${ADOPTION_PATHS[@]}"; do
-		printf '  - %s/**\n' "$rel"
+		if [[ -d "$ROOT/$rel" ]]; then
+			printf '  - %s/**\n' "$rel"
+		else
+			printf '  - %s\n' "$rel"
+		fi
 	done
 	printf '  - AGENTS.md\n'
 	printf '  - AGENTS.palari.md\n'
 	while IFS= read -r dir; do
 		[[ -n "$dir" ]] || continue
 		printf '  - %s/.gitkeep\n' "$dir"
-	done < <(palari_init_dirs)
-	printf '  - %s/locks/**\n' "$STATE_DIR"
+	done < <(target_init_dirs "$target_abs" "$force")
+	state_dir="$(target_state_dir "$target_abs" "$force")"
+	printf '  - %s/locks/**\n' "$state_dir"
 	printf '  - .gitignore\n'
 	if [[ "$with_ci" == "true" ]]; then
 		printf '  - .github/workflows/palari.yml\n'
@@ -625,7 +694,7 @@ cmd_adopt_plan() {
 		printf 'approved_by:\n'
 		printf 'approved_at:\n'
 		printf 'path_manifest:\n'
-		adoption_plan_write_paths "$with_ci" "$with_hooks"
+		adoption_plan_write_paths "$target_abs" "$with_ci" "$with_hooks" "$force"
 		printf 'excluded_paths:\n'
 		printf '  - .git/**\n'
 		printf '  - node_modules/**\n'
@@ -663,6 +732,7 @@ adoption_plan_has_list() {
 validate_adoption_plan() {
 	local plan="$1" target_abs="$2" with_ci="$3" with_hooks="$4" force="$5"
 	local status source_path target_path source_ref plan_ref approved_by approved_at plan_with_ci plan_with_hooks plan_force
+	local plan_target_head current_target_head
 	local plan_hash source_hash
 	[[ -f "$plan" ]] || die "adopt plan not found: $plan"
 	status="$(frontmatter_value "$plan" status)"
@@ -678,6 +748,11 @@ validate_adoption_plan() {
 		die "adopt plan source mismatch: expected $ROOT, got ${source_path:-missing}"
 	[[ "$target_path" == "$target_abs" ]] ||
 		die "adopt plan target mismatch: expected $target_abs, got ${target_path:-missing}"
+	plan_target_head="$(frontmatter_value "$plan" target_head)"
+	current_target_head="$(git -C "$target_abs" rev-parse HEAD 2>/dev/null || printf 'unavailable')"
+	if [[ "$plan_target_head" != "unavailable" && "$current_target_head" != "unavailable" && "$plan_target_head" != "$current_target_head" ]]; then
+		die "adopt plan target_head mismatch: expected $current_target_head, got $plan_target_head"
+	fi
 	plan_with_ci="$(frontmatter_value "$plan" with_ci)"
 	plan_with_hooks="$(frontmatter_value "$plan" with_hooks)"
 	plan_force="$(frontmatter_value "$plan" force)"

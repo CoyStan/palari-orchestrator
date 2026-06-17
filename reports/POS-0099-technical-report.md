@@ -35,8 +35,8 @@ reports/evidence/POS-0099/
   - target HEAD
   - CI/hooks/force intent
   - imported/write path manifest, including init-created `.gitkeep` files,
-    `AGENTS.palari.md`, `.gitignore`, lock storage, and optional CI/hooks
-    outputs
+    target-configured Palari directories, `AGENTS.palari.md`, `.gitignore`,
+    lock storage, and optional CI/hooks outputs
   - excluded paths
   - excluded foreign governance artifacts
   - downstream customization boundaries
@@ -45,6 +45,8 @@ reports/evidence/POS-0099/
 - A plan must be `status: approved` or `status: accepted` before adoption writes
   target files.
 - Adoption validates that the plan source and target match the current command.
+- Adoption validates that the target repository HEAD still matches the reviewed
+  plan before writing.
 - Adoption validates that copied source content still matches the approved plan
   before writing, so dirty source-tree edits after approval fail closed.
 - Adoption validates that approved plan flags (`with_ci`, `with_hooks`, and
@@ -77,6 +79,11 @@ reports/evidence/POS-0099/
     `AGENTS.palari.md`, `.gitignore`, and optional CI/hooks writes.
   - modifying source substrate files after plan approval changes
     `source_manifest_hash` and fails before writing.
+- Added repair coverage after a timed fresh-review probe:
+  - committing to the target repo after plan generation changes `target_head`
+    and fails before writing.
+  - plans for targets with existing custom Palari directory config list the
+    effective target-configured init directories, not the source/default ones.
 
 ## CI Evidence
 
@@ -114,6 +121,10 @@ reports/evidence/POS-0099/
 - Third fresh-context review found two blocking gaps: the plan manifest did not
   enumerate all write classes, and the approved source SHA did not catch dirty
   source-tree edits after plan approval. Both were repaired before final review.
+- A later fresh-context review timed out before a final verdict, but surfaced two
+  concrete probes: target `HEAD` drift after plan generation was not rejected,
+  and custom target Palari directory config made the path manifest inaccurate.
+  Both were repaired before final review.
 
 ## Risks / Follow-Ups
 
