@@ -1,3 +1,6 @@
+# shellcheck shell=bash
+# shellcheck disable=SC2153 # This module is sourced after core.bash, which defines shared globals.
+
 cmd_init() {
 	local dir force="false" with_ci="false" with_hooks="false"
 	while (($# > 0)); do
@@ -538,11 +541,142 @@ copy_agent_contract() {
 	fi
 }
 
+write_session_file() {
+	local rel="$1"
+	local force="$2"
+	local dry_run="$3"
+	local dest="$4"
+	if [[ -e "$dest" && "$force" != "true" ]]; then
+		printf 'adopt: kept existing %s\n' "$rel"
+		return 0
+	fi
+	if [[ -e "$dest" ]]; then
+		printf 'adopt: overwrite %s\n' "$rel"
+	else
+		printf 'adopt: write %s\n' "$rel"
+	fi
+	if [[ "$dry_run" == "true" ]]; then
+		return 0
+	fi
+	mkdir -p "$(dirname "$dest")"
+	cat >"$dest"
+}
+
+write_governance_session_config() {
+	local target="$1"
+	local force="$2"
+	local dry_run="$3"
+	local project_name
+	project_name="$(basename "$target")"
+	write_session_file "palari.config.yaml" "$force" "$dry_run" "$target/palari.config.yaml" <<EOF
+project_name: "$project_name"
+default_branch: main
+tickets_open_dir: tickets/open
+tickets_proposed_dir: tickets/proposed
+tickets_closed_dir: tickets/closed
+reports_dir: reports
+human_reports_dir: reports/human
+planning_reports_dir: reports/planning
+evidence_dir: reports/evidence
+handoffs_dir: handoffs
+state_dir: .palari
+worktree_base: ../$project_name-worktrees
+require_serves_goal: warn
+scope_overlap_policy: block
+model_routing_enabled: true
+authority_profile: team-safe
+gate:
+  enabled: false
+default_forbidden_paths:
+  - ".env"
+  - ".env.*"
+  - "**/.env"
+  - "**/.env.*"
+  - "**/secrets/**"
+  - "**/*.pem"
+  - "**/*.key"
+  - "**/*.keystore"
+  - "**/*.p12"
+  - "**/id_rsa*"
+  - "**/id_ed25519*"
+  - "**/credentials*"
+  - "**/.aws/**"
+  - "**/.ssh/**"
+  - "infra/prod/**"
+  - "prod/**"
+session:
+  mode: governance-only
+  orchestrator_source: "$ROOT"
+  note: "Use the external Palari checkout for commands; do not vendor Palari internals into this repository."
+EOF
+}
+
+write_governance_session_agent_contract() {
+	local target="$1"
+	local force="$2"
+	local dry_run="$3"
+	local dest="$target/AGENTS.md"
+	local alt="$target/AGENTS.palari.md"
+	local rel="AGENTS.md"
+	if [[ -e "$dest" && "$force" != "true" ]]; then
+		rel="AGENTS.palari.md"
+		dest="$alt"
+	fi
+	write_session_file "$rel" "$force" "$dry_run" "$dest" <<EOF
+# Palari Governance Session
+
+This repository uses Palari governance-session scaffolding without vendoring the
+Palari orchestrator runtime.
+
+## Operating Rules
+
+- Treat tickets, goals, decisions, workflows, humans, reports, handoffs, and
+  evidence as the governance source of truth for AI-assisted work.
+- Use scoped tickets before changing product files.
+- Keep evidence under reports/evidence and specialist/reviewer notes under
+  reports.
+- Do not copy upstream Palari internals into this repository, including
+  lib/palari, adapters, gate, research, upstream tests, vendor data, or POS/COS
+  report history.
+- When Palari commands are needed, run them from the external orchestrator
+  checkout with PALARI_ROOT pointing at this repository.
+
+## External Command Pattern
+
+\`\`\`bash
+PALARI_ROOT=$(shell_quote "$target") \\
+PALARI_LIB_DIR=$(shell_quote "$ROOT/lib/palari") \\
+$(shell_quote "$ROOT/bin/palari") status
+\`\`\`
+EOF
+}
+
+cmd_adopt_governance_only() {
+	local target_abs="$1"
+	local force="$2"
+	local dry_run="$3"
+	printf 'adopt: mode governance-only\n'
+	write_governance_session_config "$target_abs" "$force" "$dry_run"
+	write_governance_session_agent_contract "$target_abs" "$force" "$dry_run"
+	if [[ "$dry_run" == "true" ]]; then
+		printf 'adopt: dry-run complete\n'
+		return 0
+	fi
+	PALARI_ROOT="$target_abs" PALARI_LIB_DIR="$ROOT/lib/palari" "$ROOT/bin/palari" init >/dev/null
+	printf 'adopt: ok governance-only\n'
+	printf 'next:\n'
+	printf '  cd %s\n' "$(shell_quote "$target_abs")"
+	printf '  PALARI_ROOT=%s PALARI_LIB_DIR=%s %s status\n' \
+		"$(shell_quote "$target_abs")" "$(shell_quote "$ROOT/lib/palari")" "$(shell_quote "$ROOT/bin/palari")"
+	printf '  PALARI_ROOT=%s PALARI_LIB_DIR=%s %s propose create APP-PROP-0001 "First scoped change" --intent "Describe the change you want."\n' \
+		"$(shell_quote "$target_abs")" "$(shell_quote "$ROOT/lib/palari")" "$(shell_quote "$ROOT/bin/palari")"
+}
+
 cmd_adopt() {
 	local target="${1:-}"
 	shift || true
 	[[ -n "$target" ]] || die "adopt requires target repository path"
-	local with_ci="false" with_hooks="false" force="false" dry_run="false" arg target_abs rel
+	local with_ci="false" with_hooks="false" force="false" dry_run="false" governance_only="false" arg target_abs rel
 	while (($# > 0)); do
 		arg="$1"
 		case "$arg" in
@@ -567,6 +701,10 @@ cmd_adopt() {
 			dry_run="true"
 			shift
 			;;
+		--governance-only | --session-only)
+			governance_only="true"
+			shift
+			;;
 		*) die "unknown adopt option: $arg" ;;
 		esac
 	done
@@ -577,6 +715,12 @@ cmd_adopt() {
 	fi
 	printf 'adopt: source %s\n' "$ROOT"
 	printf 'adopt: target %s\n' "$target_abs"
+	if [[ "$governance_only" == "true" ]]; then
+		[[ "$with_ci" == "false" ]] || die "adopt --governance-only cannot install CI; use full adopt when the target needs local Palari runtime"
+		[[ "$with_hooks" == "false" ]] || die "adopt --governance-only cannot install hooks; use full adopt when the target needs local Palari runtime"
+		cmd_adopt_governance_only "$target_abs" "$force" "$dry_run"
+		return 0
+	fi
 	for rel in "${ADOPTION_PATHS[@]}"; do
 		copy_adoption_path "$rel" "$target_abs" "$force" "$dry_run"
 	done

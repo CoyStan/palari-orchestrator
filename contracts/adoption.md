@@ -18,6 +18,12 @@ An adoption flow is clean when it:
 - remains portable Bash, Markdown, and git
 - avoids product-specific Palari app preferences
 
+For repositories that only need a governed AI session, `palari adopt TARGET
+--governance-only` creates target-owned governance scaffolding without copying
+the Palari runtime. That mode must not write upstream package internals such as
+`bin`, `lib/palari`, `adapters`, `gate`, `research`, upstream tests, vendor
+data, or POS/COS report history into the target.
+
 ## Required Checks
 
 Every adoption-flow change should run:
@@ -38,6 +44,13 @@ After adoption, this should work in the target repository:
 ./bin/palari status
 ./bin/palari propose create APP-PROP-0001 "First scoped change" \
   --intent "Describe the change you want."
+```
+
+After governance-only adoption, commands run from the external Palari checkout:
+
+```bash
+PALARI_ROOT=/path/to/repo PALARI_LIB_DIR=/path/to/palari-orchestrator/lib/palari \
+  /path/to/palari-orchestrator/bin/palari status
 ```
 
 ## Non-Goals
