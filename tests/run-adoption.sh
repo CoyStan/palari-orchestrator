@@ -146,18 +146,42 @@ if (cd "$SOURCE" && ./bin/palari adopt "$TARGET" --ci --hooks --plan "$TMP_ROOT/
 fi
 grep -Fq "adopt plan missing approved_by" "$TMP_ROOT/missing-approval-plan.out"
 
-cp "$TMP_ROOT/adoption-plan.md" "$TMP_ROOT/stale-source-plan.md"
+PLAN_COMMIT_TARGET="$TMP_ROOT/plan-commit-target"
+mkdir -p "$PLAN_COMMIT_TARGET"
+(cd "$PLAN_COMMIT_TARGET" &&
+	git init -b main >/dev/null &&
+	git config user.email "adoption-plan-target@example.invalid" &&
+	git config user.name "Adoption Plan Target Test" &&
+	printf '# Plan Commit Target\n' >README.md &&
+	git add README.md &&
+	git commit -m "plan target baseline" >/dev/null)
+(cd "$SOURCE" && ./bin/palari adopt plan "$PLAN_COMMIT_TARGET" --out ADOPTION-PLAN.md) >"$TMP_ROOT/source-plan.out"
 sed -i \
 	-e 's/^status: proposed$/status: approved/' \
-	-e 's/^source_sha: .*$/source_sha: "0000000000000000000000000000000000000000"/' \
 	-e 's/^approved_by:$/approved_by: founder/' \
 	-e 's/^approved_at:$/approved_at: 2026-06-17T00:00:00Z/' \
-	"$TMP_ROOT/stale-source-plan.md"
-if (cd "$SOURCE" && ./bin/palari adopt "$TARGET" --ci --hooks --plan "$TMP_ROOT/stale-source-plan.md") >"$TMP_ROOT/stale-source-plan.out" 2>&1; then
-	printf 'adoption: expected stale source plan to fail before write\n' >&2
+	"$SOURCE/ADOPTION-PLAN.md"
+(cd "$SOURCE" &&
+	git add ADOPTION-PLAN.md &&
+	git commit -m "approve adoption plan" >/dev/null &&
+	./bin/palari adopt "$PLAN_COMMIT_TARGET" --plan ADOPTION-PLAN.md) >"$TMP_ROOT/source-plan-adopt.out"
+grep -Fq "adopt: ok" "$TMP_ROOT/source-plan-adopt.out"
+git -C "$SOURCE" reset --hard "$SOURCE_SHA" >/dev/null
+
+cp "$TMP_ROOT/adoption-plan.md" "$TMP_ROOT/committed-source-plan.md"
+sed -i \
+	-e 's/^status: proposed$/status: approved/' \
+	-e 's/^approved_by:$/approved_by: founder/' \
+	-e 's/^approved_at:$/approved_at: 2026-06-17T00:00:00Z/' \
+	"$TMP_ROOT/committed-source-plan.md"
+printf '\nCOMMITTED SOURCE MUTATION\n' >>"$SOURCE/contracts/adoption.md"
+git -C "$SOURCE" commit -am "source changed after plan" >/dev/null
+if (cd "$SOURCE" && ./bin/palari adopt "$TARGET" --ci --hooks --plan "$TMP_ROOT/committed-source-plan.md") >"$TMP_ROOT/committed-source-plan.out" 2>&1; then
+	printf 'adoption: expected committed source mutation to fail before write\n' >&2
 	exit 1
 fi
-grep -Fq "adopt plan source_sha mismatch" "$TMP_ROOT/stale-source-plan.out"
+grep -Fq "adopt plan source_manifest_hash mismatch" "$TMP_ROOT/committed-source-plan.out"
+git -C "$SOURCE" reset --hard "$SOURCE_SHA" >/dev/null
 
 cp "$TMP_ROOT/adoption-plan.md" "$TMP_ROOT/dirty-source-plan.md"
 sed -i \
@@ -211,6 +235,28 @@ if (cd "$SOURCE" && ./bin/palari adopt "$TARGET" --hooks --plan "$TMP_ROOT/ci-mi
 	exit 1
 fi
 grep -Fq "adopt plan with_ci mismatch: expected false, got true" "$TMP_ROOT/ci-mismatch-plan.out"
+
+cp "$TMP_ROOT/adoption-plan.md" "$TMP_ROOT/path-manifest-mismatch-plan.md"
+awk '
+	$0 == "path_manifest:" {
+		print
+		print "  - bin/**"
+		skip = 1
+		next
+	}
+	skip && $0 ~ /^excluded_paths:/ { skip = 0 }
+	!skip { print }
+' "$TMP_ROOT/adoption-plan.md" >"$TMP_ROOT/path-manifest-mismatch-plan.md"
+sed -i \
+	-e 's/^status: proposed$/status: approved/' \
+	-e 's/^approved_by:$/approved_by: founder/' \
+	-e 's/^approved_at:$/approved_at: 2026-06-17T00:00:00Z/' \
+	"$TMP_ROOT/path-manifest-mismatch-plan.md"
+if (cd "$SOURCE" && ./bin/palari adopt "$TARGET" --ci --hooks --plan "$TMP_ROOT/path-manifest-mismatch-plan.md") >"$TMP_ROOT/path-manifest-mismatch-plan.out" 2>&1; then
+	printf 'adoption: expected path manifest mismatch to fail before write\n' >&2
+	exit 1
+fi
+grep -Fq "adopt plan path_manifest mismatch" "$TMP_ROOT/path-manifest-mismatch-plan.out"
 
 cp "$TMP_ROOT/adoption-plan.md" "$TMP_ROOT/missing-foreign-plan.md"
 awk '

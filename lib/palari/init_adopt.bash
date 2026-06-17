@@ -719,21 +719,40 @@ cmd_adopt_plan() {
 	printf 'adopt plan: %s\n' "$out"
 }
 
-adoption_plan_has_list() {
+adoption_plan_list_items() {
 	local plan="$1" key="$2"
 	awk -v key="$key" '
     $0 == key ":" { in_list = 1; next }
     in_list && $0 ~ /^[^[:space:]][A-Za-z0-9_]+:/ { exit }
-    in_list && $0 ~ /^[[:space:]]*-[[:space:]]+/ { found = 1; exit }
-    END { exit !found }
+    in_list && $0 ~ /^[[:space:]]*-[[:space:]]+/ {
+      sub(/^[[:space:]]*-[[:space:]]+/, "", $0)
+      print
+    }
   ' "$plan"
+}
+
+adoption_plan_has_list() {
+	local plan="$1" key="$2"
+	[[ -n "$(adoption_plan_list_items "$plan" "$key")" ]]
+}
+
+adoption_expected_path_manifest_hash() {
+	local target_abs="$1" with_ci="$2" with_hooks="$3" force="$4"
+	adoption_plan_write_paths "$target_abs" "$with_ci" "$with_hooks" "$force" |
+		sed 's/^[[:space:]]*-[[:space:]]*//' |
+		sha256_text
+}
+
+adoption_plan_path_manifest_hash() {
+	local plan="$1"
+	adoption_plan_list_items "$plan" path_manifest | sha256_text
 }
 
 validate_adoption_plan() {
 	local plan="$1" target_abs="$2" with_ci="$3" with_hooks="$4" force="$5"
 	local status source_path target_path source_ref plan_ref approved_by approved_at plan_with_ci plan_with_hooks plan_force
 	local plan_target_head current_target_head
-	local plan_hash source_hash
+	local plan_hash source_hash expected_path_hash plan_path_hash
 	[[ -f "$plan" ]] || die "adopt plan not found: $plan"
 	status="$(frontmatter_value "$plan" status)"
 	[[ "$status" == "approved" || "$status" == "accepted" ]] ||
@@ -764,15 +783,18 @@ validate_adoption_plan() {
 		die "adopt plan force mismatch: expected $force, got ${plan_force:-missing}"
 	plan_ref="$(frontmatter_value "$plan" source_sha)"
 	source_ref="$(adoption_source_ref)"
-	if [[ "$plan_ref" != "unavailable" && "$source_ref" != "unavailable" && "$plan_ref" != "$source_ref" ]]; then
-		die "adopt plan source_sha mismatch: expected $source_ref, got $plan_ref"
-	fi
+	[[ -n "$plan_ref" ]] || die "adopt plan missing source_sha"
+	: "$source_ref"
 	plan_hash="$(frontmatter_value "$plan" source_manifest_hash)"
 	source_hash="$(adoption_source_manifest_hash)"
 	[[ "$plan_hash" == "$source_hash" ]] ||
 		die "adopt plan source_manifest_hash mismatch: expected $source_hash, got ${plan_hash:-missing}"
 	adoption_plan_has_list "$plan" path_manifest ||
 		die "adopt plan missing path_manifest entries"
+	expected_path_hash="$(adoption_expected_path_manifest_hash "$target_abs" "$with_ci" "$with_hooks" "$force")"
+	plan_path_hash="$(adoption_plan_path_manifest_hash "$plan")"
+	[[ "$plan_path_hash" == "$expected_path_hash" ]] ||
+		die "adopt plan path_manifest mismatch"
 	adoption_plan_has_list "$plan" excluded_paths ||
 		die "adopt plan missing excluded_paths entries"
 	adoption_plan_has_list "$plan" excluded_foreign_governance_artifacts ||

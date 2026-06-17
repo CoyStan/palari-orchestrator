@@ -49,6 +49,8 @@ reports/evidence/POS-0099/
   plan before writing.
 - Adoption validates that copied source content still matches the approved plan
   before writing, so dirty source-tree edits after approval fail closed.
+- Adoption validates that the reviewed path manifest exactly matches the writes
+  implied by the command flags and target config.
 - Adoption validates that approved plan flags (`with_ci`, `with_hooks`, and
   `force`) match the actual write command.
 - Approved plans must include `approved_by` and `approved_at`.
@@ -69,7 +71,8 @@ reports/evidence/POS-0099/
   - `shfmt -d lib/palari/init_adopt.bash tests/run-adoption.sh`
   - `git diff --check`
 - Added repair coverage after initial fresh review:
-  - stale `source_sha` in an approved plan fails before writing.
+  - source substrate changes after plan approval fail before writing through
+    `source_manifest_hash`.
   - missing `excluded_foreign_governance_artifacts` entries fail before
     writing.
   - missing approval metadata fails before writing.
@@ -84,6 +87,11 @@ reports/evidence/POS-0099/
     and fails before writing.
   - plans for targets with existing custom Palari directory config list the
     effective target-configured init directories, not the source/default ones.
+- Added repair coverage after a second timed fresh-review probe:
+  - committing only the approved plan artifact in the source repo does not block
+    adoption when copied substrate content is unchanged.
+  - trimming the reviewed path manifest while keeping command flags unchanged
+    fails before writing.
 
 ## CI Evidence
 
@@ -113,8 +121,8 @@ reports/evidence/POS-0099/
   CLI; this ticket makes the Palari-supported adoption path governed and
   fail-closed.
 - Initial fresh-context review found two low-severity bounded gaps: missing
-  validation for `excluded_foreign_governance_artifacts` and no stale
-  `source_sha` regression. Both were repaired before final review.
+  validation for `excluded_foreign_governance_artifacts` and no source-content
+  drift regression. Both were repaired before final review.
 - Second fresh-context review found two blocking gaps: command flags were not
   bound to reviewed plan flags, and blank approver metadata passed. Both were
   repaired before final review.
@@ -125,6 +133,11 @@ reports/evidence/POS-0099/
   concrete probes: target `HEAD` drift after plan generation was not rejected,
   and custom target Palari directory config made the path manifest inaccurate.
   Both were repaired before final review.
+- Another fresh-context review timed out before a final verdict, but surfaced two
+  concrete probes: the path manifest could be truncated without blocking writes,
+  and committing the approved plan artifact itself changed `source_sha` even
+  though copied source content was unchanged. Both were repaired before final
+  review.
 
 ## Risks / Follow-Ups
 
