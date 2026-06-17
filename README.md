@@ -375,7 +375,10 @@ real ticket first.
 Adopt it in another repo:
 
 ```bash
-./bin/palari adopt /path/to/repo
+./bin/palari adopt /path/to/repo --dry-run
+./bin/palari adopt plan /path/to/repo --out ADOPTION-PLAN.md
+# human reviews ADOPTION-PLAN.md, then marks status: approved
+./bin/palari adopt /path/to/repo --plan ADOPTION-PLAN.md
 cd /path/to/repo
 ./bin/palari doctor
 ./bin/palari status
@@ -384,7 +387,9 @@ cd /path/to/repo
 Add optional GitHub and local hook adapters:
 
 ```bash
-./bin/palari adopt /path/to/repo --ci --hooks
+./bin/palari adopt plan /path/to/repo --ci --hooks --out ADOPTION-PLAN.md
+# human reviews ADOPTION-PLAN.md, then marks status: approved
+./bin/palari adopt /path/to/repo --ci --hooks --plan ADOPTION-PLAN.md
 ```
 
 The workflow file alone does not protect merges. Install the ruleset when you
@@ -403,7 +408,9 @@ claiming ticket-governed agent work.
 
 `adopt` refuses non-git targets, keeps existing files by default, writes
 `AGENTS.palari.md` instead of overwriting an existing `AGENTS.md`, runs
-`palari init`, and finishes with `palari doctor`.
+`palari init`, and finishes with `palari doctor`. Non-dry-run adoption requires
+an approved bootstrap/adoption plan artifact so large repo mutations have a
+durable source, target, path manifest, exclusions, and human approval record.
 
 ## First Ticket
 
@@ -592,7 +599,8 @@ palari packet WEB-0002 specialist
 | Command | Purpose |
 | --- | --- |
 | `palari init` | Create the ticket, report, and handoff directories expected by the workflow. |
-| `palari adopt /path/to/repo` | Copy Palari into an existing git repo, initialize it, and run the doctor. |
+| `palari adopt plan /path/to/repo --out ADOPTION-PLAN.md` | Write a reviewable bootstrap/adoption plan with source, target, path manifest, and exclusions. |
+| `palari adopt /path/to/repo --plan ADOPTION-PLAN.md` | Copy Palari into an existing git repo only after the plan is approved, then initialize it and run the doctor. |
 | `palari demo [--force] [--agent-refusal|--company-os]` | Create local sample tickets, reports, evidence, or Company OS fixtures for the operator console. |
 | `palari doctor` | Check whether the current repo has the required Palari files and directories. |
 | `palari doctor lifecycle` | Explain the next action for active tickets. |
@@ -687,7 +695,7 @@ ship as adapters:
 - GitHub Actions: `palari init --ci` writes `.github/workflows/palari.yml`.
 - GitHub rulesets: `palari init --ci` writes `.github/palari-required-checks.ruleset.json`.
 - GitHub ticket discovery: `palari github ci` fails closed when no PR ticket is discoverable and prints the allowed ticketed and repo-only paths.
-- Adoption: `palari adopt TARGET` copies the portable package into an existing git repository and runs `palari doctor`.
+- Adoption: `palari adopt TARGET --dry-run` previews the copy, `palari adopt plan TARGET --out FILE` writes the governed bootstrap/adoption artifact, and `palari adopt TARGET --plan FILE` copies the portable package into an existing git repository only after that artifact is approved.
 - Local demo: `palari demo` writes `DEM-0001` and `DEM-0002` sample fixtures so first-time users can inspect the console without an agent runner. `palari demo --agent-refusal` writes `DEM-0003`, a blocked mock-executor refusal fixture with preserved evidence.
 - Local hooks: `palari init --hooks` writes `lefthook.yml` for fast advisory checks.
 - Lead proposals: `palari propose create`, `palari propose packet`, and `palari propose adopt` separate planning authority from implementation authority.

@@ -48,7 +48,40 @@ grep -Fq "adopt: source $SOURCE" "$TMP_ROOT/wrapper-from-target.out"
 grep -Fq "adopt: target $TARGET" "$TMP_ROOT/wrapper-from-target.out"
 grep -Fq "adopt: dry-run complete" "$TMP_ROOT/wrapper-from-target.out"
 
-(cd "$SOURCE" && ./bin/palari adopt "$TARGET" --ci --hooks) >"$TMP_ROOT/adopt.out"
+if (cd "$SOURCE" && ./bin/palari adopt "$TARGET" --ci --hooks) >"$TMP_ROOT/unplanned-adopt.out" 2>&1; then
+	printf 'adoption: expected non-dry-run adopt without approved plan to fail\n' >&2
+	exit 1
+fi
+grep -Fq "adopt requires approved bootstrap/adoption plan before writing target files" "$TMP_ROOT/unplanned-adopt.out"
+
+(cd "$SOURCE" && ./bin/palari adopt plan "$TARGET" --ci --hooks --out "$TMP_ROOT/adoption-plan.md") >"$TMP_ROOT/plan.out"
+grep -Fq "adopt plan: $TMP_ROOT/adoption-plan.md" "$TMP_ROOT/plan.out"
+test -f "$TMP_ROOT/adoption-plan.md"
+grep -Fq "type: bootstrap-adoption-plan" "$TMP_ROOT/adoption-plan.md"
+grep -Fq "status: proposed" "$TMP_ROOT/adoption-plan.md"
+grep -Fq "source_path: \"$SOURCE\"" "$TMP_ROOT/adoption-plan.md"
+grep -Fq "target_path: \"$TARGET\"" "$TMP_ROOT/adoption-plan.md"
+grep -Fq "source_sha:" "$TMP_ROOT/adoption-plan.md"
+grep -Fq "path_manifest:" "$TMP_ROOT/adoption-plan.md"
+grep -Fq "  - bin" "$TMP_ROOT/adoption-plan.md"
+grep -Fq "  - lib" "$TMP_ROOT/adoption-plan.md"
+grep -Fq "excluded_paths:" "$TMP_ROOT/adoption-plan.md"
+grep -Fq "downstream_customization_boundaries:" "$TMP_ROOT/adoption-plan.md"
+grep -Fq "excluded_foreign_governance_artifacts:" "$TMP_ROOT/adoption-plan.md"
+
+if (cd "$SOURCE" && ./bin/palari adopt "$TARGET" --ci --hooks --plan "$TMP_ROOT/adoption-plan.md") >"$TMP_ROOT/proposed-plan.out" 2>&1; then
+	printf 'adoption: expected proposed plan to fail before write\n' >&2
+	exit 1
+fi
+grep -Fq "adopt plan must be approved before writing target files; current status: proposed" "$TMP_ROOT/proposed-plan.out"
+
+sed -i \
+	-e 's/^status: proposed$/status: approved/' \
+	-e 's/^approved_by:$/approved_by: founder/' \
+	-e 's/^approved_at:$/approved_at: 2026-06-17T00:00:00Z/' \
+	"$TMP_ROOT/adoption-plan.md"
+
+(cd "$SOURCE" && ./bin/palari adopt "$TARGET" --ci --hooks --plan "$TMP_ROOT/adoption-plan.md") >"$TMP_ROOT/adopt.out"
 grep -Fq "adopt: source $SOURCE" "$TMP_ROOT/adopt.out"
 grep -Fq "adopt: target $TARGET" "$TMP_ROOT/adopt.out"
 grep -Fq "adopt: kept existing AGENTS.md" "$TMP_ROOT/adopt.out"
@@ -106,5 +139,11 @@ grep -Fq "adopt: kept existing bin" "$TMP_ROOT/re-adopt-dry-run.out"
 grep -Fq "adopt: kept existing lib" "$TMP_ROOT/re-adopt-dry-run.out"
 grep -Fq "adopt: kept existing AGENTS.palari.md" "$TMP_ROOT/re-adopt-dry-run.out"
 grep -Fq "adopt: dry-run complete" "$TMP_ROOT/re-adopt-dry-run.out"
+
+if (cd "$SOURCE" && ./bin/palari adopt "$TARGET" --plan "$TMP_ROOT/missing-plan.md") >"$TMP_ROOT/missing-plan.out" 2>&1; then
+	printf 'adoption: expected missing plan to fail\n' >&2
+	exit 1
+fi
+grep -Fq "adopt plan not found: $TMP_ROOT/missing-plan.md" "$TMP_ROOT/missing-plan.out"
 
 printf 'adoption: ok\n'

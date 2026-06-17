@@ -486,6 +486,151 @@ adoption_target_abs() {
 	(cd "$target" && pwd)
 }
 
+adoption_source_ref() {
+	if git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+		git -C "$ROOT" rev-parse HEAD
+	else
+		printf 'unavailable\n'
+	fi
+}
+
+yaml_quote() {
+	local value="${1:-}"
+	value="${value//\\/\\\\}"
+	value="${value//\"/\\\"}"
+	printf '"%s"' "$value"
+}
+
+adoption_plan_required_message() {
+	printf 'adopt requires approved bootstrap/adoption plan before writing target files.\n' >&2
+	printf 'run: ./bin/palari adopt plan TARGET --out ADOPTION-PLAN.md\n' >&2
+	printf 'then have a human mark status: approved and rerun adopt with --plan ADOPTION-PLAN.md\n' >&2
+}
+
+cmd_adopt_plan() {
+	local target="${1:-}" out="" with_ci="false" with_hooks="false" force="false" arg target_abs source_ref
+	shift || true
+	[[ -n "$target" ]] || die "adopt plan requires target repository path"
+	while (($# > 0)); do
+		arg="$1"
+		case "$arg" in
+		--out)
+			out="${2:-}"
+			[[ -n "$out" ]] || die "adopt plan --out requires a path"
+			shift 2
+			;;
+		--ci)
+			with_ci="true"
+			shift
+			;;
+		--hooks)
+			with_hooks="true"
+			shift
+			;;
+		--all)
+			with_ci="true"
+			with_hooks="true"
+			shift
+			;;
+		--force)
+			force="true"
+			shift
+			;;
+		*) die "unknown adopt plan option: $arg" ;;
+		esac
+	done
+	[[ -n "$out" ]] || die "adopt plan requires --out PATH"
+	target_abs="$(adoption_target_abs "$target")"
+	[[ "$target_abs" != "$ROOT" ]] || die "adopt target is this Palari package; run ./bin/palari init instead"
+	if ! git -C "$target_abs" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+		die "adopt target must be an existing git repository: $target_abs"
+	fi
+	source_ref="$(adoption_source_ref)"
+	mkdir -p "$(dirname "$out")"
+	{
+		printf -- '---\n'
+		printf 'type: bootstrap-adoption-plan\n'
+		printf 'status: proposed\n'
+		printf 'source_path: '
+		yaml_quote "$ROOT"
+		printf '\n'
+		printf 'source_sha: '
+		yaml_quote "$source_ref"
+		printf '\n'
+		printf 'target_path: '
+		yaml_quote "$target_abs"
+		printf '\n'
+		printf 'target_head: '
+		yaml_quote "$(git -C "$target_abs" rev-parse HEAD 2>/dev/null || printf 'unavailable')"
+		printf '\n'
+		printf 'with_ci: %s\n' "$with_ci"
+		printf 'with_hooks: %s\n' "$with_hooks"
+		printf 'force: %s\n' "$force"
+		printf 'approved_by:\n'
+		printf 'approved_at:\n'
+		printf 'path_manifest:\n'
+		for rel in "${ADOPTION_PATHS[@]}" "AGENTS.md"; do
+			printf '  - %s\n' "$rel"
+		done
+		printf 'excluded_paths:\n'
+		printf '  - .git/**\n'
+		printf '  - node_modules/**\n'
+		printf '  - dist/**\n'
+		printf '  - .env\n'
+		printf '  - .env.*\n'
+		printf 'excluded_foreign_governance_artifacts:\n'
+		printf '  - tickets/closed/**\n'
+		printf '  - reports/**\n'
+		printf '  - reports/evidence/**\n'
+		printf '  - reports/human/**\n'
+		printf '  - memory/**\n'
+		printf 'downstream_customization_boundaries:\n'
+		printf '  - Palari substrate files may be installed.\n'
+		printf '  - Existing product source files must not be edited by adoption.\n'
+		printf '  - Existing AGENTS.md is preserved unless --force is explicit.\n'
+		printf -- '---\n\n'
+		printf '# Palari Bootstrap Adoption Plan\n\n'
+		printf 'Review this plan before running non-dry-run adoption.\n\n'
+		printf 'To approve, a human should change `status: proposed` to `status: approved` and fill `approved_by` and `approved_at`.\n'
+	} >"$out"
+	printf 'adopt plan: %s\n' "$out"
+}
+
+adoption_plan_has_list() {
+	local plan="$1" key="$2"
+	awk -v key="$key" '
+    $0 == key ":" { in_list = 1; next }
+    in_list && $0 ~ /^[^[:space:]][A-Za-z0-9_]+:/ { exit }
+    in_list && $0 ~ /^[[:space:]]*-[[:space:]]+/ { found = 1; exit }
+    END { exit !found }
+  ' "$plan"
+}
+
+validate_adoption_plan() {
+	local plan="$1" target_abs="$2" status source_path target_path source_ref plan_ref
+	[[ -f "$plan" ]] || die "adopt plan not found: $plan"
+	status="$(frontmatter_value "$plan" status)"
+	[[ "$status" == "approved" || "$status" == "accepted" ]] ||
+		die "adopt plan must be approved before writing target files; current status: ${status:-missing}"
+	source_path="$(frontmatter_value "$plan" source_path)"
+	target_path="$(frontmatter_value "$plan" target_path)"
+	[[ "$source_path" == "$ROOT" ]] ||
+		die "adopt plan source mismatch: expected $ROOT, got ${source_path:-missing}"
+	[[ "$target_path" == "$target_abs" ]] ||
+		die "adopt plan target mismatch: expected $target_abs, got ${target_path:-missing}"
+	plan_ref="$(frontmatter_value "$plan" source_sha)"
+	source_ref="$(adoption_source_ref)"
+	if [[ "$plan_ref" != "unavailable" && "$source_ref" != "unavailable" && "$plan_ref" != "$source_ref" ]]; then
+		die "adopt plan source_sha mismatch: expected $source_ref, got $plan_ref"
+	fi
+	adoption_plan_has_list "$plan" path_manifest ||
+		die "adopt plan missing path_manifest entries"
+	adoption_plan_has_list "$plan" excluded_paths ||
+		die "adopt plan missing excluded_paths entries"
+	adoption_plan_has_list "$plan" downstream_customization_boundaries ||
+		die "adopt plan missing downstream_customization_boundaries entries"
+}
+
 copy_adoption_path() {
 	local rel="$1"
 	local target="$2"
@@ -541,8 +686,12 @@ copy_agent_contract() {
 cmd_adopt() {
 	local target="${1:-}"
 	shift || true
+	if [[ "$target" == "plan" ]]; then
+		cmd_adopt_plan "$@"
+		return
+	fi
 	[[ -n "$target" ]] || die "adopt requires target repository path"
-	local with_ci="false" with_hooks="false" force="false" dry_run="false" arg target_abs rel
+	local with_ci="false" with_hooks="false" force="false" dry_run="false" plan="" arg target_abs rel
 	while (($# > 0)); do
 		arg="$1"
 		case "$arg" in
@@ -567,6 +716,11 @@ cmd_adopt() {
 			dry_run="true"
 			shift
 			;;
+		--plan)
+			plan="${2:-}"
+			[[ -n "$plan" ]] || die "adopt --plan requires a path"
+			shift 2
+			;;
 		*) die "unknown adopt option: $arg" ;;
 		esac
 	done
@@ -574,6 +728,13 @@ cmd_adopt() {
 	[[ "$target_abs" != "$ROOT" ]] || die "adopt target is this Palari package; run ./bin/palari init instead"
 	if ! git -C "$target_abs" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
 		die "adopt target must be an existing git repository: $target_abs"
+	fi
+	if [[ "$dry_run" != "true" ]]; then
+		if [[ -z "$plan" ]]; then
+			adoption_plan_required_message
+			return 2
+		fi
+		validate_adoption_plan "$plan" "$target_abs"
 	fi
 	printf 'adopt: source %s\n' "$ROOT"
 	printf 'adopt: target %s\n' "$target_abs"

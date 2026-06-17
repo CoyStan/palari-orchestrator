@@ -8,6 +8,11 @@ source tree or guessing which files matter.
 An adoption flow is clean when it:
 
 - has one primary command
+- supports a dry-run preview before writes
+- writes a bootstrap/adoption plan artifact before non-dry-run adoption
+- refuses non-dry-run adoption until that plan is explicitly approved
+- records source path, source ref, target path, imported path manifest,
+  excluded paths, and downstream customization boundaries in the plan
 - refuses unsafe targets
 - does not overwrite existing repo files unless `--force` is explicit
 - creates the required Palari directories
@@ -29,7 +34,17 @@ tests/run-cli-structure.sh
 shellcheck -x bin/palari scripts/palari tests/run-adoption.sh
 ```
 
-## User Promise
+## User Flow
+
+Before writing Palari into the target repository:
+
+```bash
+./bin/palari adopt /path/to/repo --dry-run
+./bin/palari adopt plan /path/to/repo --out ADOPTION-PLAN.md
+# human reviews ADOPTION-PLAN.md, then marks status: approved
+./bin/palari adopt /path/to/repo --plan ADOPTION-PLAN.md
+cd /path/to/repo
+```
 
 After adoption, this should work in the target repository:
 
