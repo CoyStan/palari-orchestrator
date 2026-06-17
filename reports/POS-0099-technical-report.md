@@ -12,6 +12,7 @@
 
 ```text
 README.md
+bin/palari
 contracts/adoption.md
 lib/palari/init_adopt.bash
 tests/run-adoption.sh
@@ -41,6 +42,9 @@ reports/evidence/POS-0099/
 - A plan must be `status: approved` or `status: accepted` before adoption writes
   target files.
 - Adoption validates that the plan source and target match the current command.
+- Adoption validates that approved plan flags (`with_ci`, `with_hooks`, and
+  `force`) match the actual write command.
+- Approved plans must include `approved_by` and `approved_at`.
 - Adoption validates that the plan still includes foreign-governance-artifact
   exclusions.
 - Dry-run adoption remains available without a plan as a no-write preview.
@@ -61,6 +65,8 @@ reports/evidence/POS-0099/
   - stale `source_sha` in an approved plan fails before writing.
   - missing `excluded_foreign_governance_artifacts` entries fail before
     writing.
+  - missing approval metadata fails before writing.
+  - `--force` and `--ci` command/plan mismatches fail before writing.
 
 ## CI Evidence
 
@@ -92,6 +98,9 @@ reports/evidence/POS-0099/
 - Initial fresh-context review found two low-severity bounded gaps: missing
   validation for `excluded_foreign_governance_artifacts` and no stale
   `source_sha` regression. Both were repaired before final review.
+- Second fresh-context review found two blocking gaps: command flags were not
+  bound to reviewed plan flags, and blank approver metadata passed. Both were
+  repaired before final review.
 
 ## Risks / Follow-Ups
 

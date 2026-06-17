@@ -82,6 +82,14 @@ if (cd "$SOURCE" && ./bin/palari adopt "$TARGET" --ci --hooks --plan "$TMP_ROOT/
 fi
 grep -Fq "adopt plan must be approved before writing target files; current status: proposed" "$TMP_ROOT/proposed-plan.out"
 
+cp "$TMP_ROOT/adoption-plan.md" "$TMP_ROOT/missing-approval-plan.md"
+sed -i 's/^status: proposed$/status: approved/' "$TMP_ROOT/missing-approval-plan.md"
+if (cd "$SOURCE" && ./bin/palari adopt "$TARGET" --ci --hooks --plan "$TMP_ROOT/missing-approval-plan.md") >"$TMP_ROOT/missing-approval-plan.out" 2>&1; then
+	printf 'adoption: expected missing approval metadata to fail before write\n' >&2
+	exit 1
+fi
+grep -Fq "adopt plan missing approved_by" "$TMP_ROOT/missing-approval-plan.out"
+
 cp "$TMP_ROOT/adoption-plan.md" "$TMP_ROOT/stale-source-plan.md"
 sed -i \
 	-e 's/^status: proposed$/status: approved/' \
@@ -94,6 +102,30 @@ if (cd "$SOURCE" && ./bin/palari adopt "$TARGET" --ci --hooks --plan "$TMP_ROOT/
 	exit 1
 fi
 grep -Fq "adopt plan source_sha mismatch" "$TMP_ROOT/stale-source-plan.out"
+
+cp "$TMP_ROOT/adoption-plan.md" "$TMP_ROOT/force-mismatch-plan.md"
+sed -i \
+	-e 's/^status: proposed$/status: approved/' \
+	-e 's/^approved_by:$/approved_by: founder/' \
+	-e 's/^approved_at:$/approved_at: 2026-06-17T00:00:00Z/' \
+	"$TMP_ROOT/force-mismatch-plan.md"
+if (cd "$SOURCE" && ./bin/palari adopt "$TARGET" --ci --hooks --force --plan "$TMP_ROOT/force-mismatch-plan.md") >"$TMP_ROOT/force-mismatch-plan.out" 2>&1; then
+	printf 'adoption: expected force mismatch to fail before write\n' >&2
+	exit 1
+fi
+grep -Fq "adopt plan force mismatch: expected true, got false" "$TMP_ROOT/force-mismatch-plan.out"
+
+cp "$TMP_ROOT/adoption-plan.md" "$TMP_ROOT/ci-mismatch-plan.md"
+sed -i \
+	-e 's/^status: proposed$/status: approved/' \
+	-e 's/^approved_by:$/approved_by: founder/' \
+	-e 's/^approved_at:$/approved_at: 2026-06-17T00:00:00Z/' \
+	"$TMP_ROOT/ci-mismatch-plan.md"
+if (cd "$SOURCE" && ./bin/palari adopt "$TARGET" --hooks --plan "$TMP_ROOT/ci-mismatch-plan.md") >"$TMP_ROOT/ci-mismatch-plan.out" 2>&1; then
+	printf 'adoption: expected ci mismatch to fail before write\n' >&2
+	exit 1
+fi
+grep -Fq "adopt plan with_ci mismatch: expected false, got true" "$TMP_ROOT/ci-mismatch-plan.out"
 
 cp "$TMP_ROOT/adoption-plan.md" "$TMP_ROOT/missing-foreign-plan.md"
 awk '

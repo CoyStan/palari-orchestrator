@@ -607,17 +607,31 @@ adoption_plan_has_list() {
 }
 
 validate_adoption_plan() {
-	local plan="$1" target_abs="$2" status source_path target_path source_ref plan_ref
+	local plan="$1" target_abs="$2" with_ci="$3" with_hooks="$4" force="$5"
+	local status source_path target_path source_ref plan_ref approved_by approved_at plan_with_ci plan_with_hooks plan_force
 	[[ -f "$plan" ]] || die "adopt plan not found: $plan"
 	status="$(frontmatter_value "$plan" status)"
 	[[ "$status" == "approved" || "$status" == "accepted" ]] ||
 		die "adopt plan must be approved before writing target files; current status: ${status:-missing}"
+	approved_by="$(frontmatter_value "$plan" approved_by)"
+	approved_at="$(frontmatter_value "$plan" approved_at)"
+	[[ -n "$approved_by" ]] || die "adopt plan missing approved_by"
+	[[ -n "$approved_at" ]] || die "adopt plan missing approved_at"
 	source_path="$(frontmatter_value "$plan" source_path)"
 	target_path="$(frontmatter_value "$plan" target_path)"
 	[[ "$source_path" == "$ROOT" ]] ||
 		die "adopt plan source mismatch: expected $ROOT, got ${source_path:-missing}"
 	[[ "$target_path" == "$target_abs" ]] ||
 		die "adopt plan target mismatch: expected $target_abs, got ${target_path:-missing}"
+	plan_with_ci="$(frontmatter_value "$plan" with_ci)"
+	plan_with_hooks="$(frontmatter_value "$plan" with_hooks)"
+	plan_force="$(frontmatter_value "$plan" force)"
+	[[ "$plan_with_ci" == "$with_ci" ]] ||
+		die "adopt plan with_ci mismatch: expected $with_ci, got ${plan_with_ci:-missing}"
+	[[ "$plan_with_hooks" == "$with_hooks" ]] ||
+		die "adopt plan with_hooks mismatch: expected $with_hooks, got ${plan_with_hooks:-missing}"
+	[[ "$plan_force" == "$force" ]] ||
+		die "adopt plan force mismatch: expected $force, got ${plan_force:-missing}"
 	plan_ref="$(frontmatter_value "$plan" source_sha)"
 	source_ref="$(adoption_source_ref)"
 	if [[ "$plan_ref" != "unavailable" && "$source_ref" != "unavailable" && "$plan_ref" != "$source_ref" ]]; then
@@ -736,7 +750,7 @@ cmd_adopt() {
 			adoption_plan_required_message
 			return 2
 		fi
-		validate_adoption_plan "$plan" "$target_abs"
+		validate_adoption_plan "$plan" "$target_abs" "$with_ci" "$with_hooks" "$force"
 	fi
 	printf 'adopt: source %s\n' "$ROOT"
 	printf 'adopt: target %s\n' "$target_abs"
