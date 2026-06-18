@@ -1,7 +1,7 @@
 ---
 id: POS-0104
 title: Evidence truthfulness expected failures skips
-status: in-review
+status: accepted
 risk: R3
 priority: P2
 stream: process
@@ -10,8 +10,8 @@ model_hint:
 claimed_by: Codex
 claimed_at: 2026-06-18T11:40:08Z
 claim_ref: refs/palari/claims/POS-0104
-claim_heartbeat_at: 2026-06-18T12:01:03Z
-claim_expires_at: 2026-06-18T12:06:03Z
+claim_heartbeat_at: 2026-06-18T13:36:02Z
+claim_expires_at: 2026-06-18T14:36:02Z
 allowed_paths:
   - bin/palari
   - lib/palari/ci_accept.bash
@@ -55,9 +55,9 @@ verification:
 target_branch: ticket/POS-0103
 branch: ticket/POS-0104
 worktree: 
-accepted_by:
+accepted_by: founder
 acceptance_mode: human
-accepted_at:
+accepted_at: 2026-06-18T13:36:06Z
 created: 2026-06-18
 updated: 2026-06-18
 ---
