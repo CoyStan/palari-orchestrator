@@ -1,17 +1,17 @@
 ---
 id: POS-0105
 title: Downstream Adoption Boundaries
-status: open
+status: claimed
 risk: R3
 priority: P2
 stream: process
 serves_goal: 
 model_hint: 
-claimed_by:
-claimed_at:
-claim_ref:
-claim_heartbeat_at:
-claim_expires_at:
+claimed_by: Codex
+claimed_at: 2026-06-18T12:04:05Z
+claim_ref: refs/palari/claims/POS-0105
+claim_heartbeat_at: 2026-06-18T12:16:34Z
+claim_expires_at: 2026-06-18T12:21:34Z
 allowed_paths:
   - README.md
   - contracts/adoption.md

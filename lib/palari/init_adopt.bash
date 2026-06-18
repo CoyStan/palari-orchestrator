@@ -517,10 +517,18 @@ adoption_source_ref() {
 	fi
 }
 
+adoption_source_governance_history_path() {
+	case "${1%/}" in tickets | tickets/* | reports | reports/* | memory | memory/* | tests | tests/* | humans | humans/* | workflows | workflows/* | policies | policies/* | outcomes | outcomes/* | goals | goals/* | decisions | decisions/* | handoffs | handoffs/*) return 0 ;; esac
+	return 1
+}
+
+adoption_foreign_governance_artifacts() { printf '%s\n' "tickets/proposed, tickets/open, and tickets/closed records from the source repo" "reports, evidence bundles, human reports, and planning reports from the source repo" "memory and handoff records from the source repo" "source-repo tests and self-test artifacts" "human, workflow, policy, outcome, goal, and decision records from the source repo"; }
+
 adoption_source_manifest_hash() {
 	(
 		cd "$ROOT"
 		for rel in "${ADOPTION_PATHS[@]}" "AGENTS.md"; do
+			adoption_source_governance_history_path "$rel" && continue
 			if [[ -L "$rel" ]]; then
 				printf '%s\n' "$rel"
 			elif [[ -f "$rel" ]]; then
@@ -648,6 +656,7 @@ yaml_quote() {
 adoption_plan_write_paths() {
 	local target_abs="$1" with_ci="$2" with_hooks="$3" force="$4" rel dir state_dir
 	for rel in "${ADOPTION_PATHS[@]}"; do
+		adoption_source_governance_history_path "$rel" && continue
 		if [[ -d "$ROOT/$rel" ]]; then
 			printf '  - %s/**\n' "$rel"
 		else
@@ -753,11 +762,7 @@ cmd_adopt_plan() {
 		printf '  - .env\n'
 		printf '  - .env.*\n'
 		printf 'excluded_foreign_governance_artifacts:\n'
-		printf '  - tickets/closed/**\n'
-		printf '  - reports/**\n'
-		printf '  - reports/evidence/**\n'
-		printf '  - reports/human/**\n'
-		printf '  - memory/**\n'
+		adoption_foreign_governance_artifacts | sed 's/^/  - /'
 		printf 'downstream_customization_boundaries:\n'
 		printf '  - Palari substrate files may be installed.\n'
 		printf '  - Existing product source files must not be edited by adoption.\n'
@@ -851,6 +856,8 @@ validate_adoption_plan() {
 		die "adopt plan missing excluded_paths entries"
 	adoption_plan_has_list "$plan" excluded_foreign_governance_artifacts ||
 		die "adopt plan missing excluded_foreign_governance_artifacts entries"
+	[[ "$(adoption_plan_list_items "$plan" excluded_foreign_governance_artifacts | sha256_text)" == "$(adoption_foreign_governance_artifacts | sha256_text)" ]] ||
+		die "adopt plan excluded_foreign_governance_artifacts mismatch"
 	adoption_plan_has_list "$plan" downstream_customization_boundaries ||
 		die "adopt plan missing downstream_customization_boundaries entries"
 }
@@ -962,7 +969,13 @@ cmd_adopt() {
 	fi
 	printf 'adopt: source %s\n' "$ROOT"
 	printf 'adopt: target %s\n' "$target_abs"
+	printf 'adopt: excludes upstream governance history\n'
+	adoption_foreign_governance_artifacts | sed 's/^/adopt: exclude /'
 	for rel in "${ADOPTION_PATHS[@]}"; do
+		adoption_source_governance_history_path "$rel" && {
+			printf 'adopt: skip upstream governance history %s\n' "$rel"
+			continue
+		}
 		copy_adoption_path "$rel" "$target_abs" "$force" "$dry_run"
 	done
 	copy_agent_contract "$target_abs" "$force" "$dry_run"

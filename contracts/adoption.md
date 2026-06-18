@@ -13,9 +13,14 @@ An adoption flow is clean when it:
 - refuses non-dry-run adoption until that plan is explicitly approved
 - records source path, source ref, target path, imported path manifest,
   excluded paths, and downstream customization boundaries in the plan
+- records excluded upstream governance artifacts in the plan, including source
+  tickets, reports, evidence bundles, human reports, memory, self-test
+  artifacts, humans, workflows, policies, outcomes, goals, and decisions
 - refuses unsafe targets
 - does not overwrite existing repo files unless `--force` is explicit
 - creates the required Palari directories
+- leaves downstream governance history directories empty except `.gitkeep`
+  scaffolding unless a future explicit import workflow is approved
 - preserves existing `AGENTS.md` by writing `AGENTS.palari.md` for manual merge
 - prints a post-install health result
 - prints the next useful commands
@@ -54,6 +59,11 @@ After adoption, this should work in the target repository:
 ./bin/palari propose create APP-PROP-0001 "First scoped change" \
   --intent "Describe the change you want."
 ```
+
+Adoption installs the Palari framework substrate. It does not make the source
+repo's tickets, reports, evidence bundles, human reports, memory, tests,
+humans, workflows, policies, outcomes, goals, or decisions active in the target
+repo by default.
 
 ## Non-Goals
 

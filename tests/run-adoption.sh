@@ -15,6 +15,43 @@ mkdir -p "$SOURCE" "$TARGET" "$DRY_TARGET" "$CUSTOM_TARGET" "$EMPTY_TARGET"
 (cd "$REPO_ROOT" && tar --exclude .git --exclude .palari -cf - .) | (cd "$SOURCE" && tar -xf -)
 
 chmod +x "$SOURCE/bin/palari" "$SOURCE/scripts/palari" "$SOURCE/tests/run-adoption.sh"
+mkdir -p \
+	"$SOURCE/tickets/open" "$SOURCE/tickets/closed" \
+	"$SOURCE/reports/evidence/UP-0002" "$SOURCE/reports/human" "$SOURCE/reports/planning" \
+	"$SOURCE/memory/patterns" "$SOURCE/tests/upstream-self-tests" \
+	"$SOURCE/humans/active" "$SOURCE/workflows/active" "$SOURCE/policies/active" \
+	"$SOURCE/outcomes/recorded" "$SOURCE/goals/active" "$SOURCE/decisions/decided"
+cat >"$SOURCE/tickets/open/UP-0001-source-ticket.md" <<'DOC'
+---
+id: UP-0001
+title: Source-only open ticket
+status: open
+---
+
+# Source-only open ticket
+DOC
+cat >"$SOURCE/tickets/closed/UP-0002-source-ticket.md" <<'DOC'
+---
+id: UP-0002
+title: Source-only closed ticket
+status: accepted
+---
+
+# Source-only closed ticket
+DOC
+printf 'source technical report\n' >"$SOURCE/reports/UP-0002-technical-report.md"
+printf '{"source":"evidence"}\n' >"$SOURCE/reports/evidence/UP-0002/manifest.json"
+printf 'source human report\n' >"$SOURCE/reports/human/UP-0002-human-report.md"
+printf 'source planning note\n' >"$SOURCE/reports/planning/UP-0001-plan.md"
+printf 'source memory\n' >"$SOURCE/memory/patterns/source-memory.md"
+printf '#!/usr/bin/env bash\necho source self test\n' >"$SOURCE/tests/upstream-self-tests/source-only.sh"
+chmod +x "$SOURCE/tests/upstream-self-tests/source-only.sh"
+printf 'source human\n' >"$SOURCE/humans/active/HUMAN-SOURCE-ONLY.md"
+printf 'source workflow\n' >"$SOURCE/workflows/active/WF-SOURCE-ONLY.md"
+printf 'source policy\n' >"$SOURCE/policies/active/POL-SOURCE-ONLY.md"
+printf 'source outcome\n' >"$SOURCE/outcomes/recorded/OUT-SOURCE-ONLY.md"
+printf 'source goal\n' >"$SOURCE/goals/active/GOAL-SOURCE-ONLY.md"
+printf 'source decision\n' >"$SOURCE/decisions/decided/DEC-SOURCE-ONLY.md"
 (cd "$SOURCE" &&
 	git init -b main >/dev/null &&
 	git config user.email "adoption-source@example.invalid" &&
@@ -118,6 +155,17 @@ grep -Fq "  - lefthook.yml" "$TMP_ROOT/adoption-plan.md"
 grep -Fq "excluded_paths:" "$TMP_ROOT/adoption-plan.md"
 grep -Fq "downstream_customization_boundaries:" "$TMP_ROOT/adoption-plan.md"
 grep -Fq "excluded_foreign_governance_artifacts:" "$TMP_ROOT/adoption-plan.md"
+grep -Fq "  - tickets/proposed, tickets/open, and tickets/closed records from the source repo" "$TMP_ROOT/adoption-plan.md"
+grep -Fq "  - reports, evidence bundles, human reports, and planning reports from the source repo" "$TMP_ROOT/adoption-plan.md"
+grep -Fq "  - memory and handoff records from the source repo" "$TMP_ROOT/adoption-plan.md"
+grep -Fq "  - source-repo tests and self-test artifacts" "$TMP_ROOT/adoption-plan.md"
+grep -Fq "  - human, workflow, policy, outcome, goal, and decision records from the source repo" "$TMP_ROOT/adoption-plan.md"
+for excluded_history_path in "  - humans/**" "  - workflows/**" "  - policies/**" "  - outcomes/**"; do
+	if grep -Fq "$excluded_history_path" "$TMP_ROOT/adoption-plan.md"; then
+		printf 'adoption: plan path_manifest included source governance history path %s\n' "$excluded_history_path" >&2
+		exit 1
+	fi
+done
 
 (cd "$SOURCE" && ./bin/palari adopt plan "$CUSTOM_TARGET" --out "$TMP_ROOT/custom-plan.md") >"$TMP_ROOT/custom-plan.out"
 grep -Fq "  - custom/proposed/.gitkeep" "$TMP_ROOT/custom-plan.md"
@@ -385,6 +433,28 @@ if (cd "$SOURCE" && ./bin/palari adopt "$TARGET" --ci --hooks --plan "$TMP_ROOT/
 fi
 grep -Fq "adopt plan missing excluded_foreign_governance_artifacts entries" "$TMP_ROOT/missing-foreign-plan.out"
 
+cp "$TMP_ROOT/adoption-plan.md" "$TMP_ROOT/foreign-mismatch-plan.md"
+awk '
+	$0 == "excluded_foreign_governance_artifacts:" {
+		print
+		print "  - tickets/proposed, tickets/open, and tickets/closed records from the source repo"
+		skip = 1
+		next
+	}
+	skip && $0 ~ /^downstream_customization_boundaries:/ { skip = 0 }
+	!skip { print }
+' "$TMP_ROOT/adoption-plan.md" >"$TMP_ROOT/foreign-mismatch-plan.md"
+sed -i \
+	-e 's/^status: proposed$/status: approved/' \
+	-e 's/^approved_by:$/approved_by: founder/' \
+	-e 's/^approved_at:$/approved_at: 2026-06-17T00:00:00Z/' \
+	"$TMP_ROOT/foreign-mismatch-plan.md"
+if (cd "$SOURCE" && ./bin/palari adopt "$TARGET" --ci --hooks --plan "$TMP_ROOT/foreign-mismatch-plan.md") >"$TMP_ROOT/foreign-mismatch-plan.out" 2>&1; then
+	printf 'adoption: expected foreign governance artifact mismatch to fail before write\n' >&2
+	exit 1
+fi
+grep -Fq "adopt plan excluded_foreign_governance_artifacts mismatch" "$TMP_ROOT/foreign-mismatch-plan.out"
+
 sed -i \
 	-e 's/^status: proposed$/status: approved/' \
 	-e 's/^approved_by:$/approved_by: founder/' \
@@ -394,6 +464,11 @@ sed -i \
 (cd "$SOURCE" && ./bin/palari adopt "$TARGET" --ci --hooks --plan "$TMP_ROOT/adoption-plan.md") >"$TMP_ROOT/adopt.out"
 grep -Fq "adopt: source $SOURCE" "$TMP_ROOT/adopt.out"
 grep -Fq "adopt: target $TARGET" "$TMP_ROOT/adopt.out"
+grep -Fq "adopt: excludes upstream governance history" "$TMP_ROOT/adopt.out"
+grep -Fq "adopt: skip upstream governance history humans" "$TMP_ROOT/adopt.out"
+grep -Fq "adopt: skip upstream governance history workflows" "$TMP_ROOT/adopt.out"
+grep -Fq "adopt: skip upstream governance history policies" "$TMP_ROOT/adopt.out"
+grep -Fq "adopt: skip upstream governance history outcomes" "$TMP_ROOT/adopt.out"
 grep -Fq "adopt: kept existing AGENTS.md" "$TMP_ROOT/adopt.out"
 grep -Fq "adopt: write AGENTS.palari.md for merge" "$TMP_ROOT/adopt.out"
 grep -Fq "doctor: ok" "$TMP_ROOT/adopt.out"
@@ -419,6 +494,10 @@ test -d roles/revoked
 test -f roles/active/ROLE-ROOT.md
 test -d reports/planning
 test -f reports/evidence/.gitkeep
+test -f humans/active/.gitkeep
+test -f workflows/active/.gitkeep
+test -f policies/active/.gitkeep
+test -f outcomes/recorded/.gitkeep
 test -f .github/workflows/palari.yml
 test -f .github/palari-required-checks.ruleset.json
 test -f lefthook.yml
@@ -431,6 +510,21 @@ grep -Fxq "node_modules/" .gitignore
 
 grep -Fq "# Existing Agent Contract" AGENTS.md
 grep -Fq "# Palari Orchestration Agent Template" AGENTS.palari.md
+
+test ! -e tickets/open/UP-0001-source-ticket.md
+test ! -e tickets/closed/UP-0002-source-ticket.md
+test ! -e reports/UP-0002-technical-report.md
+test ! -e reports/evidence/UP-0002/manifest.json
+test ! -e reports/human/UP-0002-human-report.md
+test ! -e reports/planning/UP-0001-plan.md
+test ! -e memory/patterns/source-memory.md
+test ! -e tests/upstream-self-tests/source-only.sh
+test ! -e humans/active/HUMAN-SOURCE-ONLY.md
+test ! -e workflows/active/WF-SOURCE-ONLY.md
+test ! -e policies/active/POL-SOURCE-ONLY.md
+test ! -e outcomes/recorded/OUT-SOURCE-ONLY.md
+test ! -e goals/active/GOAL-SOURCE-ONLY.md
+test ! -e decisions/decided/DEC-SOURCE-ONLY.md
 
 ./bin/palari doctor >"$TMP_ROOT/doctor.out"
 grep -Fq "Palari adoption doctor" "$TMP_ROOT/doctor.out"

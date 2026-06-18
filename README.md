@@ -411,6 +411,11 @@ claiming ticket-governed agent work.
 `palari init`, and finishes with `palari doctor`. Non-dry-run adoption requires
 an approved bootstrap/adoption plan artifact so large repo mutations have a
 durable source, target, path manifest, exclusions, and human approval record.
+Adoption installs Palari's framework substrate, not the source repository's
+governance history: source tickets, reports, evidence bundles, human reports,
+memory, self-test artifacts, humans, workflows, policies, outcomes, goals, and
+decisions remain excluded unless a future explicit import workflow says
+otherwise.
 
 ## First Ticket
 
