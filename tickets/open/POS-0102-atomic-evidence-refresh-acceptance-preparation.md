@@ -1,17 +1,17 @@
 ---
 id: POS-0102
 title: Atomic evidence refresh acceptance preparation
-status: open
+status: claimed
 risk: R3
 priority: P2
 stream: process
 serves_goal: 
 model_hint: 
-claimed_by:
-claimed_at:
-claim_ref:
-claim_heartbeat_at:
-claim_expires_at:
+claimed_by: Codex
+claimed_at: 2026-06-18T06:50:36Z
+claim_ref: refs/palari/claims/POS-0102
+claim_heartbeat_at: 2026-06-18T06:50:36Z
+claim_expires_at: 2026-06-18T06:55:36Z
 allowed_paths:
   - bin/palari
   - lib/palari/ci_accept.bash
