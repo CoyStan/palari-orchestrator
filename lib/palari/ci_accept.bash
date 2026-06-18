@@ -255,7 +255,7 @@ ci_record_existing_evidence() {
 	ci_add_junit_case "stored evidence $ticket_id" pass
 	{
 		printf '\n## stored evidence %s\n\n' "$ticket_id"
-		printf 'Reused accepted ticket evidence from `%s/%s`.\n' "$EVIDENCE_DIR" "$ticket_id"
+		printf "Reused accepted ticket evidence from \`%s/%s\`.\n" "$EVIDENCE_DIR" "$ticket_id"
 	} >>"$CI_LOG"
 	return 0
 }
@@ -529,11 +529,73 @@ if missing:
 PY
 }
 
+human_file_for_actor() {
+	local actor="${1:-}"
+	local actor_lower file id name alias
+	[[ -n "$actor" ]] || return 1
+	if file="$(find_human_file "$actor" active 2>/dev/null)"; then
+		printf '%s\n' "$file"
+		return 0
+	fi
+	actor_lower="${actor,,}"
+	while IFS= read -r file; do
+		[[ -n "$file" ]] || continue
+		id="$(frontmatter_value "$file" id)"
+		name="$(frontmatter_value "$file" name)"
+		if [[ "${id,,}" == "$actor_lower" || "${name,,}" == "$actor_lower" ]]; then
+			printf '%s\n' "$file"
+			return 0
+		fi
+		while IFS= read -r alias; do
+			[[ -n "$alias" ]] || continue
+			if [[ "${alias,,}" == "$actor_lower" ]]; then
+				printf '%s\n' "$file"
+				return 0
+			fi
+		done < <(frontmatter_list_items "$file" aliases)
+	done < <(human_files_in_state active)
+	return 1
+}
+
+human_stable_identity_for_file() {
+	local file="$1"
+	local person_id id
+	person_id="$(frontmatter_value "$file" person_id)"
+	id="$(frontmatter_value "$file" id)"
+	if [[ -n "$person_id" ]]; then
+		printf 'person:%s\n' "${person_id,,}"
+	else
+		printf 'human:%s\n' "${id,,}"
+	fi
+}
+
+actor_stable_identity() {
+	local actor="${1:-}"
+	local file
+	[[ -n "$actor" ]] || return 1
+	if file="$(human_file_for_actor "$actor")"; then
+		human_stable_identity_for_file "$file"
+	else
+		printf 'actor:%s\n' "${actor,,}"
+	fi
+}
+
+same_actor_identity_label() {
+	local left="$1" right="$2"
+	local identity
+	identity="$(actor_stable_identity "$left" 2>/dev/null || true)"
+	[[ -n "$identity" ]] || identity="$(actor_stable_identity "$right" 2>/dev/null || true)"
+	printf '%s\n' "${identity:-unknown}"
+}
+
 same_actor() {
 	local left="${1:-}"
 	local right="${2:-}"
+	local left_identity right_identity
 	[[ -n "$left" && -n "$right" ]] || return 1
-	[[ "${left,,}" == "${right,,}" ]]
+	left_identity="$(actor_stable_identity "$left")"
+	right_identity="$(actor_stable_identity "$right")"
+	[[ "$left_identity" == "$right_identity" ]]
 }
 
 config_nested_map_scalar() {
@@ -722,7 +784,7 @@ accept_require_human_for_risk() {
 	local ticket_id="$2"
 	local ticket_risk="$3"
 	local human_file human_risk human_rank ticket_rank may_policy
-	human_file="$(find_human_file "$actor" active)" ||
+	human_file="$(human_file_for_actor "$actor")" ||
 		die "accept refused: $ticket_risk acceptor $actor must be an active human profile"
 	human_risk="$(frontmatter_value "$human_file" authority_max_risk)"
 	human_rank="$(accept_risk_rank "$human_risk")"
@@ -752,12 +814,15 @@ accept_require_human_quorum() {
 		for right in "${!actors[@]}"; do
 			((right > left)) || continue
 			! same_actor "${actors[$left]}" "${actors[$right]}" ||
-				die "accept refused: $risk human approval quorum requires distinct humans"
+				die "accept refused: $risk human approval quorum requires distinct humans; ${actors[$left]} and ${actors[$right]} share stable identity $(same_actor_identity_label "${actors[$left]}" "${actors[$right]}")"
 		done
 	done
 	for actor in "${actors[@]}"; do
-		if same_actor "$actor" "$claimed_by" || same_actor "$actor" "$implemented_by"; then
-			die "accept refused: $risk acceptor $actor must not be the claimant or implementer for $ticket_id"
+		if same_actor "$actor" "$claimed_by"; then
+			die "accept refused: $risk acceptor $actor must not be the claimant or implementer for $ticket_id; shared stable identity $(same_actor_identity_label "$actor" "$claimed_by")"
+		fi
+		if same_actor "$actor" "$implemented_by"; then
+			die "accept refused: $risk acceptor $actor must not be the claimant or implementer for $ticket_id; shared stable identity $(same_actor_identity_label "$actor" "$implemented_by")"
 		fi
 		accept_require_human_for_risk "$actor" "$ticket_id" "$risk"
 	done
@@ -822,12 +887,18 @@ cmd_accept() {
 	implemented_by="$(frontmatter_value "$file" implemented_by)"
 	accept_require_human_quorum "$id" "$risk" "$by" "$claimed_by" "$implemented_by" co_bys
 	if [[ "$self_policy" == "forbidden" ]]; then
-		if same_actor "$by" "$claimed_by" || same_actor "$by" "$implemented_by"; then
-			die "accept refused: implementation_self_acceptance is forbidden for $id"
+		if same_actor "$by" "$claimed_by"; then
+			die "accept refused: implementation_self_acceptance is forbidden for $id; $by shares stable identity $(same_actor_identity_label "$by" "$claimed_by")"
+		fi
+		if same_actor "$by" "$implemented_by"; then
+			die "accept refused: implementation_self_acceptance is forbidden for $id; $by shares stable identity $(same_actor_identity_label "$by" "$implemented_by")"
 		fi
 		for actor in "${co_bys[@]}"; do
-			if same_actor "$actor" "$claimed_by" || same_actor "$actor" "$implemented_by"; then
-				die "accept refused: implementation_self_acceptance is forbidden for $id"
+			if same_actor "$actor" "$claimed_by"; then
+				die "accept refused: implementation_self_acceptance is forbidden for $id; $actor shares stable identity $(same_actor_identity_label "$actor" "$claimed_by")"
+			fi
+			if same_actor "$actor" "$implemented_by"; then
+				die "accept refused: implementation_self_acceptance is forbidden for $id; $actor shares stable identity $(same_actor_identity_label "$actor" "$implemented_by")"
 			fi
 		done
 	fi

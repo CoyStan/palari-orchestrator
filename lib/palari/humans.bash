@@ -9,6 +9,11 @@ valid_human_id() {
 	[[ "$id" =~ ^HUMAN-[A-Z0-9][A-Z0-9-]*$ ]]
 }
 
+valid_person_id() {
+	local id="$1"
+	[[ "$id" =~ ^[A-Za-z0-9][A-Za-z0-9_.:-]*$ ]]
+}
+
 human_dir_for_state() {
 	case "$1" in
 	proposed) printf '%s\n' "$HUMANS_PROPOSED_DIR" ;;
@@ -290,6 +295,7 @@ cmd_human_create() {
 	{
 		printf -- '---\n'
 		printf 'id: %s\n' "$id"
+		printf 'person_id: %s\n' "$id"
 		printf 'name: %s\n' "$name"
 		printf 'status: proposed\n'
 		write_yaml_list roles "${roles[@]}"
@@ -352,6 +358,7 @@ cmd_human_show() {
 	current="$(frontmatter_value "$file" current_weekly_hgl)"
 	[[ -n "$current" ]] || current="0"
 	printf 'Human: %s - %s\n' "$id" "$(frontmatter_value "$file" name)"
+	printf 'person_id: %s\n' "$(frontmatter_value "$file" person_id)"
 	printf 'status: %s\n' "$(frontmatter_value "$file" status)"
 	printf 'authority_max_risk: %s\n' "$(frontmatter_value "$file" authority_max_risk)"
 	printf 'weekly_hgl_budget: %s\n' "$weekly"
@@ -362,7 +369,7 @@ cmd_human_show() {
 }
 
 cmd_human_lint() {
-	local only="${1:-}" errors=0 file state id status risk item value current max budget
+	local only="${1:-}" errors=0 file state id person_id status risk item value current max budget
 	local -a files=()
 	if [[ -n "$only" ]]; then
 		file="$(find_human_file "$only")" || die "human not found: $only"
@@ -372,10 +379,15 @@ cmd_human_lint() {
 	fi
 	for file in "${files[@]}"; do
 		id="$(frontmatter_value "$file" id)"
+		person_id="$(frontmatter_value "$file" person_id)"
 		status="$(frontmatter_value "$file" status)"
 		risk="$(frontmatter_value "$file" authority_max_risk)"
 		if ! valid_human_id "$id"; then
 			printf 'human lint: invalid id in %s\n' "${file#"$ROOT"/}"
+			errors=$((errors + 1))
+		fi
+		if [[ -n "$person_id" ]] && ! valid_person_id "$person_id"; then
+			printf 'human lint: %s invalid person_id: %s\n' "$id" "$person_id"
 			errors=$((errors + 1))
 		fi
 		case "$status" in proposed | active | revoked) ;; *)

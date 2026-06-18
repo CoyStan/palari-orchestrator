@@ -249,7 +249,7 @@ The first shipped infrastructure pieces are conservative:
 | --- | --- | --- |
 | Workflows | Model a company or business process above tickets. `palari workflow plan WF-ID` shows launch gate, autonomy ceiling, allowed modes, blocked modes, and next actions. | It does not run agents, claim tickets, accept work, or call services. |
 | Human Governance Load | Estimates how much human judgment a workflow needs from risk, novelty, ambiguity, irreversibility, context, and skill coverage. | It is a planning signal, not a productivity score or proof of safety. |
-| Human coverage | Records active human profiles, skills, authority ceilings, capacity, and constraints. | It does not grant agents human authority or surveil employees. |
+| Human coverage | Records active human profiles, stable `person_id` identity, aliases, skills, authority ceilings, capacity, and constraints. | It does not grant agents human authority or surveil employees. |
 | Policy simulation | `palari policy simulate` and `palari policy candidates` explain what repeated low-risk decisions might become. | Policies do not accept tickets, merge, push, deploy, or replace human accountability. |
 | Broker evidence | Mock broker evidence records observed local commands while reporting `real_side_effects_enabled: false`. | There are no real Slack, email, Stripe, cloud, customer, or production writes. |
 | Outcomes | Records what happened after governed work so future policy and HGL improvements have evidence to inspect. | Outcomes do not prove business impact unless evidence is linked. |
@@ -624,7 +624,7 @@ palari packet WEB-0002 specialist
 | `palari workflow plan WF-ID [--json]` | Show Human Governance Load, launch gate, autonomy ceiling, skill coverage, and next actions without side effects. |
 | `palari workflow list / show / lint` | Inspect and validate workflow artifacts. |
 | `palari workflow adopt / close WF-ID --by NAME` | Human workflow lifecycle actions. |
-| `palari human create HUMAN-ID NAME --skill skill:Lx --role ROLE` | Create a proposed human governance profile. |
+| `palari human create HUMAN-ID NAME --skill skill:Lx --role ROLE` | Create a proposed human governance profile with a default stable `person_id`. |
 | `palari human list / show / lint` | Inspect and validate human governance coverage artifacts. |
 | `palari human coverage WF-ID [--json]` | Compare a workflow's expected decision skills against active human profiles. |
 | `palari human adopt / revoke HUMAN-ID --by NAME` | Human profile lifecycle actions. |
@@ -658,7 +658,7 @@ palari packet WEB-0002 specialist
 | `palari scope-overlaps [ID]` | Detect overlapping active ticket write scopes. |
 | `palari lint [ID]` | Validate ticket state and required reports. |
 | `palari report-lint [ID]` | Validate specialist and reviewer report structure. |
-| `palari accept ID --by NAME [--co-by NAME]` | Close the ticket only after the acceptance gate is satisfied; repeat `--co-by` when the configured risk-tier human quorum is greater than one. |
+| `palari accept ID --by NAME [--co-by NAME]` | Close the ticket only after the acceptance gate is satisfied; repeat `--co-by` when the configured risk-tier human quorum is greater than one. Human profiles compare stable `person_id` identity, so aliases cannot satisfy separation of duty. |
 | `palari gate init` | Create the forge-proof gate root and orchestrator keys. |
 | `palari gate setup-ticket ID` | Grant implement, test, and review step tokens for a ticket. |
 | `palari gate attest-implement ID` | Sign the exact ticket diff with the implementer key. |
