@@ -1,0 +1,66 @@
+# Palari CI Evidence
+
+- Ticket: POS-0106
+- Base ref: ticket/POS-0105
+- Created: 2026-06-18T12:49:51Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0106 (5 changed path(s))
+```
+
+## lint
+
+```text
+lint: tickets/open/POS-0106-scope-hygiene-generated-worktree-artifacts.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+report-lint: ok for POS-0106
+lint: ok for POS-0106
+```
+
+## verification 1
+
+Command: `bash -n lib/palari/hygiene.bash lib/palari/agents_review_scope.bash lib/palari/tickets_workspace.bash tests/run-hygiene.sh tests/run-worktree-closeout.sh tests/run-golden.sh`
+
+```text
+
+```
+
+## verification 2
+
+Command: `./tests/run-hygiene.sh`
+
+```text
+hygiene: ok
+```
+
+## verification 3
+
+Command: `./tests/run-worktree-closeout.sh`
+
+```text
+Preparing worktree (new branch 'ticket/WTC-0001')
+Preparing worktree (new branch 'ticket/WTC-0002')
+worktree-closeout: ok
+```
+
+## verification 4
+
+Command: `./tests/run-golden.sh`
+
+```text
+lint: tickets/open/POS-0002-overlap-alpha.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+Preparing worktree (new branch 'ticket/POS-0001')
+lint: tickets/open/POS-0001-golden-flow-scope-review.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0001-golden-flow-scope-review.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+Preparing worktree (new branch 'ticket/APP-0001')
+golden: ok
+```
+
+## verification 5
+
+Command: `./tests/run-cli-structure.sh`
+
+```text
+cli-structure: ok
+```
