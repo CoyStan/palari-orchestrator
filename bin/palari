@@ -89,6 +89,9 @@ source "$PALARI_LIB_DIR/roles.bash"
 palari_require_module "$PALARI_LIB_DIR/init_adopt.bash"
 # shellcheck source=lib/palari/init_adopt.bash
 source "$PALARI_LIB_DIR/init_adopt.bash"
+palari_require_module "$PALARI_LIB_DIR/adoption_session.bash"
+# shellcheck source=lib/palari/adoption_session.bash
+source "$PALARI_LIB_DIR/adoption_session.bash"
 palari_require_module "$PALARI_LIB_DIR/models.bash"
 # shellcheck source=lib/palari/models.bash
 source "$PALARI_LIB_DIR/models.bash"
@@ -140,6 +143,9 @@ source "$PALARI_LIB_DIR/agents_review_scope.bash"
 palari_require_module "$PALARI_LIB_DIR/ci_accept.bash"
 # shellcheck source=lib/palari/ci_accept.bash
 source "$PALARI_LIB_DIR/ci_accept.bash"
+palari_require_module "$PALARI_LIB_DIR/evidence_truthfulness.bash"
+# shellcheck source=lib/palari/evidence_truthfulness.bash
+source "$PALARI_LIB_DIR/evidence_truthfulness.bash"
 palari_require_module "$PALARI_LIB_DIR/evidence_quality.bash"
 # shellcheck source=lib/palari/evidence_quality.bash
 source "$PALARI_LIB_DIR/evidence_quality.bash"
@@ -162,7 +168,8 @@ usage() {
 usage: palari COMMAND [ARGS]
 commands:
   init [--ci] [--hooks]        Create configured directories and optional adapters.
-  adopt TARGET [--ci] [--hooks] Copy Palari into an existing git repository.
+  adopt plan TARGET --out FILE   Write a governed adoption plan.
+  adopt TARGET --plan FILE       Copy Palari into a git repo after plan approval.
   adopt TARGET --governance-only Create session scaffolding without copying Palari runtime.
   doctor [lifecycle]           Check install health or active ticket lifecycle.
   status [--next]              Show compact orchestration status.
@@ -208,6 +215,7 @@ commands:
   ticket needs-human ID        Move ticket to needs-human.
   ticket reopen ID             Move in-review ticket to reopened.
   worktree ID                  Prepare and verify ticket branch/worktree.
+  worktree closeout ID         Read-only closeout readiness check from a ticket worktree.
   packet ID ROLE               Print specialist/reviewer/acceptor or custom-profile packet.
   sandbox create ID            Create a disposable local repo sandbox.
   sandbox list                 List local sandboxes under the worktree base.
@@ -221,6 +229,8 @@ commands:
   skill list                   List shipped, adopter, and plugin skills.
   skill lint                   Validate skill frontmatter and authority claims.
   evidence score ID [--strict] Score ticket evidence completeness.
+  evidence refresh ID [--base REF]
+                              Refresh ticket CI evidence from a clean worktree.
   ci ID [--base REF]           Run ticket gates and write evidence artifacts.
   ci --repo-only               Run non-merge-gate repository lint evidence.
   gate SUBCOMMAND [ARGS]       Forge-proof accept gate; run `palari gate help`.
@@ -334,7 +344,7 @@ ticket)
 	;;
 worktree)
 	shift
-	cmd_worktree "${1:-}"
+	cmd_worktree "$@"
 	;;
 packet | agent-packet)
 	shift

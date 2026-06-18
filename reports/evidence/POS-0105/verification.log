@@ -1,0 +1,43 @@
+# Palari CI Evidence
+
+- Ticket: POS-0105
+- Base ref: local working tree
+- Created: 2026-06-18T13:36:06Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0105 (5 changed path(s))
+```
+
+## lint
+
+```text
+lint: tickets/open/POS-0105-downstream-adoption-boundaries.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+report-lint: ok for POS-0105
+lint: ok for POS-0105
+```
+
+## verification 1
+
+Command: `bash -n lib/palari/init_adopt.bash tests/run-adoption.sh`
+
+```text
+
+```
+
+## verification 2
+
+Command: `./tests/run-adoption.sh`
+
+```text
+adoption: ok
+```
+
+## verification 3
+
+Command: `./tests/run-cli-structure.sh`
+
+```text
+cli-structure: ok
+```

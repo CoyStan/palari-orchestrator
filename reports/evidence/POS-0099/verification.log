@@ -1,0 +1,35 @@
+# Palari CI Evidence
+
+- Ticket: POS-0099
+- Base ref: local working tree
+- Created: 2026-06-18T13:29:31Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0099 (5 changed path(s))
+```
+
+## lint
+
+```text
+lint: tickets/open/POS-0099-governed-bootstrap-adoption-lifecycle.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+report-lint: ok for POS-0099
+lint: ok for POS-0099
+```
+
+## verification 1
+
+Command: `./tests/run-adoption.sh`
+
+```text
+adoption: ok
+```
+
+## verification 2
+
+Command: `./tests/run-cli-structure.sh`
+
+```text
+cli-structure: ok
+```

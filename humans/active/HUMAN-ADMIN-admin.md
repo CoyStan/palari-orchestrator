@@ -1,7 +1,11 @@
 ---
 id: HUMAN-ADMIN
+person_id: PERSON-QUETZA
 name: Admin
 status: active
+aliases:
+  - admin
+  - founder
 roles:
   - founder
 skills:

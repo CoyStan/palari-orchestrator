@@ -249,7 +249,7 @@ The first shipped infrastructure pieces are conservative:
 | --- | --- | --- |
 | Workflows | Model a company or business process above tickets. `palari workflow plan WF-ID` shows launch gate, autonomy ceiling, allowed modes, blocked modes, and next actions. | It does not run agents, claim tickets, accept work, or call services. |
 | Human Governance Load | Estimates how much human judgment a workflow needs from risk, novelty, ambiguity, irreversibility, context, and skill coverage. | It is a planning signal, not a productivity score or proof of safety. |
-| Human coverage | Records active human profiles, skills, authority ceilings, capacity, and constraints. | It does not grant agents human authority or surveil employees. |
+| Human coverage | Records active human profiles, stable `person_id` identity, aliases, skills, authority ceilings, capacity, and constraints. | It does not grant agents human authority or surveil employees. |
 | Policy simulation | `palari policy simulate` and `palari policy candidates` explain what repeated low-risk decisions might become. | Policies do not accept tickets, merge, push, deploy, or replace human accountability. |
 | Broker evidence | Mock broker evidence records observed local commands while reporting `real_side_effects_enabled: false`. | There are no real Slack, email, Stripe, cloud, customer, or production writes. |
 | Outcomes | Records what happened after governed work so future policy and HGL improvements have evidence to inspect. | Outcomes do not prove business impact unless evidence is linked. |
@@ -379,17 +379,15 @@ Start a governance session in another repo without copying the Palari runtime:
 PALARI_ROOT=/path/to/repo PALARI_LIB_DIR=$PWD/lib/palari ./bin/palari status
 ```
 
-This writes only target-owned governance/session scaffolding such as
-`palari.config.yaml`, `AGENTS.palari.md`, tickets, goals, decisions, workflows,
-humans, reports, handoffs, and evidence directories. It intentionally does not
-copy Palari internals such as `bin`, `lib/palari`, `adapters`, `gate`,
-`research`, upstream tests, vendor data, or POS/COS report history.
-
-Install the full portable runtime only when the target repo should own
-`./bin/palari` and local runtime modules:
+This writes only target-owned governance/session scaffolding. Install the full
+portable runtime only when the target repo should own `./bin/palari` and local
+runtime modules:
 
 ```bash
-./bin/palari adopt /path/to/repo
+./bin/palari adopt /path/to/repo --dry-run
+./bin/palari adopt plan /path/to/repo --out ADOPTION-PLAN.md
+# human reviews ADOPTION-PLAN.md, then marks status: approved
+./bin/palari adopt /path/to/repo --plan ADOPTION-PLAN.md
 cd /path/to/repo
 ./bin/palari doctor
 ./bin/palari status
@@ -398,7 +396,9 @@ cd /path/to/repo
 Add optional GitHub and local hook adapters:
 
 ```bash
-./bin/palari adopt /path/to/repo --ci --hooks
+./bin/palari adopt plan /path/to/repo --ci --hooks --out ADOPTION-PLAN.md
+# human reviews ADOPTION-PLAN.md, then marks status: approved
+./bin/palari adopt /path/to/repo --ci --hooks --plan ADOPTION-PLAN.md
 ```
 
 The workflow file alone does not protect merges. Install the ruleset when you
@@ -417,9 +417,17 @@ claiming ticket-governed agent work.
 
 Full `adopt` refuses non-git targets, keeps existing files by default, writes
 `AGENTS.palari.md` instead of overwriting an existing `AGENTS.md`, runs
-`palari init`, and finishes with `palari doctor`. Governance-only adoption uses
-the external Palari checkout for commands and does not install CI or hooks,
-because those require a local runtime in the target repository.
+`palari init`, and finishes with `palari doctor`. Non-dry-run adoption requires
+an approved bootstrap/adoption plan artifact so large repo mutations have a
+durable source, target, path manifest, exclusions, and human approval record.
+Adoption installs Palari's framework substrate, not the source repository's
+governance history: source tickets, reports, evidence bundles, human reports,
+memory, self-test artifacts, humans, workflows, policies, outcomes, goals, and
+decisions remain excluded unless a future explicit import workflow says
+otherwise.
+Governance-only adoption uses the external Palari checkout for commands and
+does not install CI or hooks, because those require a local runtime in the
+target repository.
 
 ## First Ticket
 
@@ -471,11 +479,31 @@ Before acceptance:
 
 ```bash
 palari scope-check APP-0001
-palari ci APP-0001 --base main
+palari evidence refresh APP-0001 --base main
+palari worktree closeout APP-0001
 palari ticket ready APP-0001
 palari packet APP-0001 reviewer
 palari accept APP-0001 --by founder
 ```
+
+`palari evidence refresh ID --base REF` runs from the clean ticket worktree. It
+verifies the ticket branch/worktree context, refuses dirty local changes before
+rewriting evidence, runs Palari CI at the current implementation commit, and
+prints the next review/acceptance-preparation commands. It does not accept,
+merge, push, deploy, or move ticket status.
+
+`palari worktree closeout ID` is a read-only readiness check that must be run
+from the ticket worktree. It reports the ticket branch, target branch, worktree
+path, changed path count, scope status, evidence status, report status, and the
+exact next command to run. It fails closed from the canonical checkout, a wrong
+branch, a dirty worktree, missing evidence, missing reports, or a scope failure.
+
+Use retrospective/audit-backfill tickets only for work that already landed
+before normal governance controlled it. Mark the ticket with `retrospective:
+true`, list the original landed SHAs in `retrospective_original_commits`, and
+explain the bypass in `retrospective_bypass_reason`. High-risk retrospective
+tickets must keep reviewer and human gates enabled; snapshots and packets expose
+the audit-backfill state so it cannot be confused with pre-governed work.
 
 `accept` moves the ticket to `tickets/closed/`. It does not merge, push, deploy,
 or bless missing evidence.
@@ -608,7 +636,8 @@ palari packet WEB-0002 specialist
 | Command | Purpose |
 | --- | --- |
 | `palari init` | Create the ticket, report, and handoff directories expected by the workflow. |
-| `palari adopt /path/to/repo` | Copy Palari into an existing git repo, initialize it, and run the doctor. |
+| `palari adopt plan /path/to/repo --out ADOPTION-PLAN.md` | Write a reviewable bootstrap/adoption plan with source, target, path manifest, and exclusions. |
+| `palari adopt /path/to/repo --plan ADOPTION-PLAN.md` | Copy Palari into an existing git repo only after the plan is approved, then initialize it and run the doctor. |
 | `palari demo [--force] [--agent-refusal|--company-os]` | Create local sample tickets, reports, evidence, or Company OS fixtures for the operator console. |
 | `palari doctor` | Check whether the current repo has the required Palari files and directories. |
 | `palari doctor lifecycle` | Explain the next action for active tickets. |
@@ -632,7 +661,7 @@ palari packet WEB-0002 specialist
 | `palari workflow plan WF-ID [--json]` | Show Human Governance Load, launch gate, autonomy ceiling, skill coverage, and next actions without side effects. |
 | `palari workflow list / show / lint` | Inspect and validate workflow artifacts. |
 | `palari workflow adopt / close WF-ID --by NAME` | Human workflow lifecycle actions. |
-| `palari human create HUMAN-ID NAME --skill skill:Lx --role ROLE` | Create a proposed human governance profile. |
+| `palari human create HUMAN-ID NAME --skill skill:Lx --role ROLE` | Create a proposed human governance profile with a default stable `person_id`. |
 | `palari human list / show / lint` | Inspect and validate human governance coverage artifacts. |
 | `palari human coverage WF-ID [--json]` | Compare a workflow's expected decision skills against active human profiles. |
 | `palari human adopt / revoke HUMAN-ID --by NAME` | Human profile lifecycle actions. |
@@ -653,6 +682,7 @@ palari packet WEB-0002 specialist
 | `palari ticket needs-human ID` | Mark work that needs human authority or product judgment. |
 | `palari ticket reopen ID` | Move an in-review ticket back to implementation. |
 | `palari worktree ID` | Create or locate the ticket-specific git worktree. |
+| `palari worktree closeout ID` | From a ticket worktree, report closeout readiness and exact next commands without writing state. |
 | `palari packet ID ROLE` | Generate the mission packet for a specialist, reviewer, acceptor/human, or custom review profile. |
 | `palari sandbox create ID` | Create a disposable local repository copy for executor experiments. |
 | `palari sandbox list` | List local sandboxes under the worktree base with dirty state. |
@@ -661,12 +691,13 @@ palari packet WEB-0002 specialist
 | `palari agent run ID --executor opencode` | Run opencode from a Palari packet and record executor evidence without accepting work. |
 | `palari memory ...` | Manage optional repo-native memory and generated search indexes. |
 | `palari ci ID --base REF` | Run scope/lint/report gates and write evidence artifacts. Fails closed without a ticket. |
+| `palari evidence refresh ID --base REF` | From a clean ticket worktree, refresh CI evidence at the current implementation HEAD and print review/acceptance-preparation next steps without accepting or merging. |
 | `palari ci --repo-only` | Run explicit non-merge-gate repository lint evidence. |
 | `palari scope-check [ID]` | Compare changed files against allowed and forbidden path rules. |
 | `palari scope-overlaps [ID]` | Detect overlapping active ticket write scopes. |
 | `palari lint [ID]` | Validate ticket state and required reports. |
 | `palari report-lint [ID]` | Validate specialist and reviewer report structure. |
-| `palari accept ID --by NAME [--co-by NAME]` | Close the ticket only after the acceptance gate is satisfied; repeat `--co-by` when the configured risk-tier human quorum is greater than one. |
+| `palari accept ID --by NAME [--co-by NAME]` | Close the ticket only after the acceptance gate is satisfied; repeat `--co-by` when the configured risk-tier human quorum is greater than one. Human profiles compare stable `person_id` identity, so aliases cannot satisfy separation of duty. |
 | `palari gate init` | Create the forge-proof gate root and orchestrator keys. |
 | `palari gate setup-ticket ID` | Grant implement, test, and review step tokens for a ticket. |
 | `palari gate attest-implement ID` | Sign the exact ticket diff with the implementer key. |
@@ -703,7 +734,7 @@ ship as adapters:
 - GitHub Actions: `palari init --ci` writes `.github/workflows/palari.yml`.
 - GitHub rulesets: `palari init --ci` writes `.github/palari-required-checks.ruleset.json`.
 - GitHub ticket discovery: `palari github ci` fails closed when no PR ticket is discoverable and prints the allowed ticketed and repo-only paths.
-- Adoption: `palari adopt TARGET` copies the portable package into an existing git repository and runs `palari doctor`.
+- Adoption: `palari adopt TARGET --dry-run` previews the copy, `palari adopt plan TARGET --out FILE` writes the governed bootstrap/adoption artifact, and `palari adopt TARGET --plan FILE` copies the portable package into an existing git repository only after that artifact is approved.
 - Local demo: `palari demo` writes `DEM-0001` and `DEM-0002` sample fixtures so first-time users can inspect the console without an agent runner. `palari demo --agent-refusal` writes `DEM-0003`, a blocked mock-executor refusal fixture with preserved evidence.
 - Local hooks: `palari init --hooks` writes `lefthook.yml` for fast advisory checks.
 - Lead proposals: `palari propose create`, `palari propose packet`, and `palari propose adopt` separate planning authority from implementation authority.
@@ -720,7 +751,7 @@ ship as adapters:
 - Mock executor: `palari agent run TICKET-ID --executor mock --scenario safe|forbidden-path|outside-scope` proves the governance loop deterministically - no AI tool, network, or credentials. The forbidden-path scenario shows an executor touching `.env`, scope-check refusing it, evidence preserved, and ticket state not advancing.
 - Codex executor: `palari agent run TICKET-ID --executor codex [--dry-run]` runs Codex through the same governed lifecycle; `palari codex doctor` checks readiness and `palari codex install` adds the prompt pack. See [adapters/codex/](adapters/codex/).
 - Local sandboxes: `palari sandbox create TICKET-ID` creates a disposable repository copy for executor experiments. Not a security boundary; scope and evidence gates remain the control layer.
-- Evidence integrity: `palari ci` writes `reports/evidence/<ticket>/verification.log`, `junit.xml`, `palari.sarif`, and `manifest.json`; `accept` validates manifest status, current commit, and artifact hashes before closing a ticket.
+- Evidence integrity: `palari ci` writes `reports/evidence/<ticket>/verification.log`, `junit.xml`, `palari.sarif`, and `manifest.json`; `palari evidence refresh` prepares that evidence from a clean ticket worktree; `accept` validates manifest status, artifact hashes, commit freshness, and skipped/deferred evidence truthfulness before closing a ticket. Same-ticket report/evidence/ticket bookkeeping commits may follow the evidence run, but source changes after evidence require a refresh. Manual/descriptive checks are recorded as skipped acceptance evidence and are not ready unless the ticket is explicitly documentation/test-discovery work.
 - Trusted merge evidence: the GitHub adapter uploads and attests `palari-evidence.tgz` on trusted repository runs. GitHub rulesets must be installed before this protects merges.
 - Concurrency: `ticket claim` records lease metadata, `ticket heartbeat` renews it, and `scope-overlaps` blocks path-scope collisions by default.
 - MCP: `palari mcp manifest` exposes a thin command manifest for optional MCP wrappers.

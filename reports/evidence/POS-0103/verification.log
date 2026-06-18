@@ -1,0 +1,36 @@
+# Palari CI Evidence
+
+- Ticket: POS-0103
+- Base ref: local working tree
+- Created: 2026-06-18T13:34:36Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0103 (5 changed path(s))
+```
+
+## lint
+
+```text
+lint: tickets/open/POS-0103-retrospective-governance-lifecycle.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+report-lint: ok for POS-0103
+lint: ok for POS-0103
+```
+
+## verification 1
+
+Command: `bash -n lib/palari/tickets_workspace.bash lib/palari/agents_review_scope.bash lib/palari/dashboard_snapshot.bash lib/palari/adapters_snapshot.bash tests/run-retrospective-governance.sh`
+
+```text
+
+```
+
+## verification 2
+
+Command: `./tests/run-retrospective-governance.sh`
+
+```text
+lint: tickets/open/RET-0001-retrospective-missing-metadata.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+retrospective-governance: ok
+```

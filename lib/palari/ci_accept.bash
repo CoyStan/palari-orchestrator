@@ -11,7 +11,6 @@ infer_ticket_from_branch() {
 	esac
 	return 1
 }
-
 ci_add_junit_case() {
 	local name="$1"
 	local state="$2"
@@ -26,6 +25,7 @@ ci_add_junit_case() {
 		;;
 	skip)
 		CI_SKIPPED=$((CI_SKIPPED + 1))
+		evidence_truth_note_skip "$name" "$body"
 		printf '    <testcase classname="palari" name="%s"><skipped message="%s"/></testcase>\n' "$name_xml" "$body_xml" >>"$CI_JUNIT_CASES"
 		;;
 	fail)
@@ -84,6 +84,7 @@ ci_run_shell_step() {
 	output="$(bash -lc "$command" 2>&1)"
 	code=$?
 	set -e
+	evidence_truth_scan_text "$output"
 	printf '%s\n' "$output" >>"$CI_LOG"
 	printf '```\n' >>"$CI_LOG"
 	if ((code == 0)); then
@@ -148,8 +149,9 @@ ci_write_manifest() {
 		json_string "$(now_utc)"
 		printf ',\n  "status": '
 		json_string "$status"
-		printf ',\n  "tests": %s,\n  "failures": %s,\n  "skipped": %s,\n' "$CI_TESTS" "$CI_FAILURES" "$CI_SKIPPED"
-		printf '  "artifacts": [\n'
+		printf ',\n  "tests": %s,\n  "failures": %s,\n  "skipped": %s' "$CI_TESTS" "$CI_FAILURES" "$CI_SKIPPED"
+		evidence_truth_manifest_fields
+		printf ',\n  "artifacts": [\n'
 		printf '    {"name":"verification.log","sha256":'
 		json_string "$(sha256_file "$log")"
 		printf '},\n'
@@ -188,11 +190,9 @@ evidence_dir = pathlib.Path(sys.argv[2])
 ticket_id = sys.argv[3]
 required = {"verification.log", "junit.xml", "palari.sarif"}
 
-
 def fail(message: str) -> None:
     print(f"ci: invalid evidence manifest for {ticket_id}: {message}", file=sys.stderr)
     raise SystemExit(1)
-
 
 try:
     data = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -255,7 +255,7 @@ ci_record_existing_evidence() {
 	ci_add_junit_case "stored evidence $ticket_id" pass
 	{
 		printf '\n## stored evidence %s\n\n' "$ticket_id"
-		printf 'Reused accepted ticket evidence from `%s/%s`.\n' "$EVIDENCE_DIR" "$ticket_id"
+		printf "Reused accepted ticket evidence from \`%s/%s\`.\n" "$EVIDENCE_DIR" "$ticket_id"
 	} >>"$CI_LOG"
 	return 0
 }
@@ -338,6 +338,7 @@ cmd_ci() {
 	CI_SKIPPED=0
 	CI_SARIF_RUN_ID="palari/$ticket_label"
 	CI_SARIF_LOCATION="palari.config.yaml"
+	evidence_truth_init "$out_dir"
 	: >"$CI_JUNIT_CASES"
 	: >"$CI_SARIF_RESULTS"
 	{
@@ -364,6 +365,7 @@ cmd_ci() {
 			ci_write_artifacts "$junit" "$sarif"
 			ci_write_manifest "$manifest" "$ticket_label" "$base_ref" "$failed" "$log" "$junit" "$sarif"
 			rm -f "$CI_JUNIT_CASES" "$CI_SARIF_RESULTS"
+			evidence_truth_cleanup
 			printf 'ci evidence: %s\n' "${out_dir#"$ROOT"/}"
 			printf 'ci junit: %s\n' "${junit#"$ROOT"/}"
 			printf 'ci sarif: %s\n' "${sarif#"$ROOT"/}"
@@ -375,8 +377,10 @@ cmd_ci() {
 			printf 'ci: ok for %s\n' "$ticket_label"
 			return
 		fi
+		evidence_truth_note_followups "$file"
 		while IFS= read -r check; do
 			[[ -n "$check" ]] || continue
+			evidence_truth_scan_text "$check"
 			index=$((index + 1))
 			case "$check" in
 			manual* | Manual* | describe\ * | Describe\ *)
@@ -394,6 +398,7 @@ cmd_ci() {
 		ci_run_step "scope-check" scope_check_ticket_set "$base_ref" "${tickets[@]}" || failed=1
 		for current_ticket in "${tickets[@]}"; do
 			file="$(find_ticket_file "$current_ticket")" || die "ticket not found: $current_ticket"
+			evidence_truth_note_followups "$file"
 			ci_run_step "lint $current_ticket" cmd_lint "$current_ticket" || failed=1
 			if [[ "$(frontmatter_value "$file" status)" == "accepted" ]] && ci_use_existing_evidence "$current_ticket"; then
 				continue
@@ -401,6 +406,7 @@ cmd_ci() {
 			index=0
 			while IFS= read -r check; do
 				[[ -n "$check" ]] || continue
+				evidence_truth_scan_text "$check"
 				index=$((index + 1))
 				case "$check" in
 				manual* | Manual* | describe\ * | Describe\ *)
@@ -421,6 +427,7 @@ cmd_ci() {
 	ci_write_artifacts "$junit" "$sarif"
 	ci_write_manifest "$manifest" "$ticket_label" "$base_ref" "$failed" "$log" "$junit" "$sarif"
 	rm -f "$CI_JUNIT_CASES" "$CI_SARIF_RESULTS"
+	evidence_truth_cleanup
 	printf 'ci evidence: %s\n' "${out_dir#"$ROOT"/}"
 	printf 'ci junit: %s\n' "${junit#"$ROOT"/}"
 	printf 'ci sarif: %s\n' "${sarif#"$ROOT"/}"
@@ -448,18 +455,68 @@ ticket_evidence_complete() {
 	return "$missing"
 }
 
-ticket_evidence_manifest_valid() {
+ticket_evidence_bookkeeping_path_allowed() {
 	local ticket_id="$1"
+	local path="$2"
+	case "$path" in
+	"$EVIDENCE_DIR/$ticket_id"/*) return 0 ;;
+	"$REPORTS_DIR/$ticket_id-"*.md | "$REPORTS_DIR/$ticket_id-"*.markdown) return 0 ;;
+	"$HUMAN_REPORTS_DIR/$ticket_id-"*.md | "$HUMAN_REPORTS_DIR/$ticket_id-"*.markdown) return 0 ;;
+	"$HANDOFFS_DIR/$ticket_id-"*.md | "$HANDOFFS_DIR/$ticket_id-"*.markdown) return 0 ;;
+	"$OPEN_DIR/$ticket_id-"*.md | "$OPEN_DIR/$ticket_id-"*.markdown) return 0 ;;
+	"$CLOSED_DIR/$ticket_id-"*.md | "$CLOSED_DIR/$ticket_id-"*.markdown) return 0 ;;
+	esac
+	return 1
+}
+
+ticket_evidence_manifest_head_valid() {
+	local ticket_id="$1"
+	local manifest_head="$2"
+	local expected_head="$3"
+	local prefix="$4"
+	local path
+	local -a unexpected_paths=()
+	[[ -n "$expected_head" ]] || return 0
+	[[ "$manifest_head" == "$expected_head" ]] && return 0
+	if [[ -z "$manifest_head" ]]; then
+		printf '%s for %s: head_sha is missing, expected current HEAD %s\n' "$prefix" "$ticket_id" "$expected_head" >&2
+		return 1
+	fi
+	if ! git -C "$ROOT" cat-file -e "$manifest_head^{commit}" 2>/dev/null; then
+		printf '%s for %s: head_sha %s is not a commit in this repository\n' "$prefix" "$ticket_id" "$manifest_head" >&2
+		return 1
+	fi
+	if ! git -C "$ROOT" merge-base --is-ancestor "$manifest_head" "$expected_head" 2>/dev/null; then
+		printf '%s for %s: head_sha %s is not an ancestor of current HEAD %s\n' "$prefix" "$ticket_id" "$manifest_head" "$expected_head" >&2
+		return 1
+	fi
+	while IFS= read -r path; do
+		[[ -n "$path" ]] || continue
+		if ! ticket_evidence_bookkeeping_path_allowed "$ticket_id" "$path"; then
+			unexpected_paths+=("$path")
+		fi
+	done < <(git -C "$ROOT" diff --name-only "$manifest_head" "$expected_head" -- .)
+	if ((${#unexpected_paths[@]} > 0)); then
+		printf '%s for %s: head_sha is %s, current HEAD is %s, and non-bookkeeping changes exist after evidence\n' \
+			"$prefix" "$ticket_id" "$manifest_head" "$expected_head" >&2
+		printf 'first non-bookkeeping path: %s\n' "${unexpected_paths[0]}" >&2
+		return 1
+	fi
+	return 0
+}
+ticket_evidence_manifest_current_valid() {
+	local ticket_id="$1"
+	local prefix="${2:-accept refused: invalid evidence manifest}"
 	local dir="$ROOT/$EVIDENCE_DIR/$ticket_id"
 	local manifest="$dir/manifest.json"
-	local expected_head=""
-
+	local expected_head="" manifest_head
 	if git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
 		expected_head="$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || true)"
 	fi
 	command -v python3 >/dev/null 2>&1 || die "accept requires python3 to validate evidence manifest integrity"
 
-	python3 - "$manifest" "$dir" "$ticket_id" "$expected_head" <<'PY'
+	manifest_head="$(
+		python3 - "$manifest" "$dir" "$ticket_id" "$prefix" <<'PY'
 import hashlib
 import json
 import pathlib
@@ -468,14 +525,12 @@ import sys
 manifest_path = pathlib.Path(sys.argv[1])
 evidence_dir = pathlib.Path(sys.argv[2])
 ticket_id = sys.argv[3]
-expected_head = sys.argv[4]
+prefix = sys.argv[4]
 required = {"verification.log", "junit.xml", "palari.sarif"}
 
-
 def fail(message: str) -> None:
-    print(f"accept refused: invalid evidence manifest for {ticket_id}: {message}", file=sys.stderr)
+    print(f"{prefix} for {ticket_id}: {message}", file=sys.stderr)
     raise SystemExit(1)
-
 
 try:
     data = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -492,9 +547,6 @@ for key, expected in checks.items():
     actual = data.get(key)
     if actual != expected:
         fail(f"{key} is {actual!r}, expected {expected!r}")
-
-if expected_head and data.get("head_sha") != expected_head:
-    fail(f"head_sha is {data.get('head_sha')!r}, expected current HEAD {expected_head!r}")
 
 artifacts = data.get("artifacts")
 if not isinstance(artifacts, list):
@@ -526,14 +578,89 @@ for item in artifacts:
 missing = required - seen
 if missing:
     fail("missing artifact hash entries: " + ", ".join(sorted(missing)))
+
+head_sha = data.get("head_sha")
+if head_sha is not None and not isinstance(head_sha, str):
+    fail(f"head_sha must be a string, got {type(head_sha).__name__}")
+print(head_sha or "")
 PY
+	)" || return 1
+
+	evidence_truth_validate_manifest "$ticket_id" "$manifest" "$prefix" || return 1
+	ticket_evidence_manifest_head_valid "$ticket_id" "$manifest_head" "$expected_head" "$prefix"
+}
+
+ticket_evidence_manifest_valid() {
+	ticket_evidence_manifest_current_valid "$1" "accept refused: invalid evidence manifest"
+}
+
+human_file_for_actor() {
+	local actor="${1:-}"
+	local actor_lower file id name alias
+	[[ -n "$actor" ]] || return 1
+	if file="$(find_human_file "$actor" active 2>/dev/null)"; then
+		printf '%s\n' "$file"
+		return 0
+	fi
+	actor_lower="${actor,,}"
+	while IFS= read -r file; do
+		[[ -n "$file" ]] || continue
+		id="$(frontmatter_value "$file" id)"
+		name="$(frontmatter_value "$file" name)"
+		if [[ "${id,,}" == "$actor_lower" || "${name,,}" == "$actor_lower" ]]; then
+			printf '%s\n' "$file"
+			return 0
+		fi
+		while IFS= read -r alias; do
+			[[ -n "$alias" ]] || continue
+			if [[ "${alias,,}" == "$actor_lower" ]]; then
+				printf '%s\n' "$file"
+				return 0
+			fi
+		done < <(frontmatter_list_items "$file" aliases)
+	done < <(human_files_in_state active)
+	return 1
+}
+
+human_stable_identity_for_file() {
+	local file="$1"
+	local person_id id
+	person_id="$(frontmatter_value "$file" person_id)"
+	id="$(frontmatter_value "$file" id)"
+	if [[ -n "$person_id" ]]; then
+		printf 'person:%s\n' "${person_id,,}"
+	else
+		printf 'human:%s\n' "${id,,}"
+	fi
+}
+
+actor_stable_identity() {
+	local actor="${1:-}"
+	local file
+	[[ -n "$actor" ]] || return 1
+	if file="$(human_file_for_actor "$actor")"; then
+		human_stable_identity_for_file "$file"
+	else
+		printf 'actor:%s\n' "${actor,,}"
+	fi
+}
+
+same_actor_identity_label() {
+	local left="$1" right="$2"
+	local identity
+	identity="$(actor_stable_identity "$left" 2>/dev/null || true)"
+	[[ -n "$identity" ]] || identity="$(actor_stable_identity "$right" 2>/dev/null || true)"
+	printf '%s\n' "${identity:-unknown}"
 }
 
 same_actor() {
 	local left="${1:-}"
 	local right="${2:-}"
+	local left_identity right_identity
 	[[ -n "$left" && -n "$right" ]] || return 1
-	[[ "${left,,}" == "${right,,}" ]]
+	left_identity="$(actor_stable_identity "$left")"
+	right_identity="$(actor_stable_identity "$right")"
+	[[ "$left_identity" == "$right_identity" ]]
 }
 
 config_nested_map_scalar() {
@@ -611,23 +738,19 @@ accept_human_approval_quorum_for_risk() {
 		die "invalid governance.required_human_approvals.$risk value: $raw"
 	printf '%s\n' "$raw"
 }
-
 accept_enforces_human_quorum() {
 	local quorum
 	quorum="$(accept_human_approval_quorum_for_risk R5)"
 	((quorum >= 1))
 }
-
 accept_r5_dual_human_enforcement_enabled() {
 	local quorum
 	quorum="$(accept_human_approval_quorum_for_risk R5)"
 	((quorum >= 2))
 }
-
 accept_enforces_r5_dual_human() {
 	accept_r5_dual_human_enforcement_enabled
 }
-
 accept_placeholder_human() {
 	local default_human
 	default_human="$(cfg_nested governance default_human_approver "")"
@@ -722,7 +845,7 @@ accept_require_human_for_risk() {
 	local ticket_id="$2"
 	local ticket_risk="$3"
 	local human_file human_risk human_rank ticket_rank may_policy
-	human_file="$(find_human_file "$actor" active)" ||
+	human_file="$(human_file_for_actor "$actor")" ||
 		die "accept refused: $ticket_risk acceptor $actor must be an active human profile"
 	human_risk="$(frontmatter_value "$human_file" authority_max_risk)"
 	human_rank="$(accept_risk_rank "$human_risk")"
@@ -752,12 +875,15 @@ accept_require_human_quorum() {
 		for right in "${!actors[@]}"; do
 			((right > left)) || continue
 			! same_actor "${actors[$left]}" "${actors[$right]}" ||
-				die "accept refused: $risk human approval quorum requires distinct humans"
+				die "accept refused: $risk human approval quorum requires distinct humans; ${actors[$left]} and ${actors[$right]} share stable identity $(same_actor_identity_label "${actors[$left]}" "${actors[$right]}")"
 		done
 	done
 	for actor in "${actors[@]}"; do
-		if same_actor "$actor" "$claimed_by" || same_actor "$actor" "$implemented_by"; then
-			die "accept refused: $risk acceptor $actor must not be the claimant or implementer for $ticket_id"
+		if same_actor "$actor" "$claimed_by"; then
+			die "accept refused: $risk acceptor $actor must not be the claimant or implementer for $ticket_id; shared stable identity $(same_actor_identity_label "$actor" "$claimed_by")"
+		fi
+		if same_actor "$actor" "$implemented_by"; then
+			die "accept refused: $risk acceptor $actor must not be the claimant or implementer for $ticket_id; shared stable identity $(same_actor_identity_label "$actor" "$implemented_by")"
 		fi
 		accept_require_human_for_risk "$actor" "$ticket_id" "$risk"
 	done
@@ -822,12 +948,18 @@ cmd_accept() {
 	implemented_by="$(frontmatter_value "$file" implemented_by)"
 	accept_require_human_quorum "$id" "$risk" "$by" "$claimed_by" "$implemented_by" co_bys
 	if [[ "$self_policy" == "forbidden" ]]; then
-		if same_actor "$by" "$claimed_by" || same_actor "$by" "$implemented_by"; then
-			die "accept refused: implementation_self_acceptance is forbidden for $id"
+		if same_actor "$by" "$claimed_by"; then
+			die "accept refused: implementation_self_acceptance is forbidden for $id; $by shares stable identity $(same_actor_identity_label "$by" "$claimed_by")"
+		fi
+		if same_actor "$by" "$implemented_by"; then
+			die "accept refused: implementation_self_acceptance is forbidden for $id; $by shares stable identity $(same_actor_identity_label "$by" "$implemented_by")"
 		fi
 		for actor in "${co_bys[@]}"; do
-			if same_actor "$actor" "$claimed_by" || same_actor "$actor" "$implemented_by"; then
-				die "accept refused: implementation_self_acceptance is forbidden for $id"
+			if same_actor "$actor" "$claimed_by"; then
+				die "accept refused: implementation_self_acceptance is forbidden for $id; $actor shares stable identity $(same_actor_identity_label "$actor" "$claimed_by")"
+			fi
+			if same_actor "$actor" "$implemented_by"; then
+				die "accept refused: implementation_self_acceptance is forbidden for $id; $actor shares stable identity $(same_actor_identity_label "$actor" "$implemented_by")"
 			fi
 		done
 	fi

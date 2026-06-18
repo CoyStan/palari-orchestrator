@@ -8,21 +8,25 @@ source tree or guessing which files matter.
 An adoption flow is clean when it:
 
 - has one primary command
+- supports a dry-run preview before writes
+- writes a bootstrap/adoption plan artifact before non-dry-run adoption
+- refuses non-dry-run adoption until that plan is explicitly approved
+- records source path, source ref, target path, imported path manifest,
+  excluded paths, and downstream customization boundaries in the plan
+- records excluded upstream governance artifacts in the plan, including source
+  tickets, reports, evidence bundles, human reports, memory, self-test
+  artifacts, humans, workflows, policies, outcomes, goals, and decisions
 - refuses unsafe targets
 - does not overwrite existing repo files unless `--force` is explicit
 - creates the required Palari directories
+- leaves downstream governance history directories empty except `.gitkeep`
+  scaffolding unless a future explicit import workflow is approved
 - preserves existing `AGENTS.md` by writing `AGENTS.palari.md` for manual merge
 - prints a post-install health result
 - prints the next useful commands
 - keeps GitHub rulesets clearly separate from the workflow template
 - remains portable Bash, Markdown, and git
 - avoids product-specific Palari app preferences
-
-For repositories that only need a governed AI session, `palari adopt TARGET
---governance-only` creates target-owned governance scaffolding without copying
-the Palari runtime. That mode must not write upstream package internals such as
-`bin`, `lib/palari`, `adapters`, `gate`, `research`, upstream tests, vendor
-data, or POS/COS report history into the target.
 
 ## Required Checks
 
@@ -35,7 +39,17 @@ tests/run-cli-structure.sh
 shellcheck -x bin/palari scripts/palari tests/run-adoption.sh
 ```
 
-## User Promise
+## User Flow
+
+Before writing Palari into the target repository:
+
+```bash
+./bin/palari adopt /path/to/repo --dry-run
+./bin/palari adopt plan /path/to/repo --out ADOPTION-PLAN.md
+# human reviews ADOPTION-PLAN.md, then marks status: approved
+./bin/palari adopt /path/to/repo --plan ADOPTION-PLAN.md
+cd /path/to/repo
+```
 
 After adoption, this should work in the target repository:
 
@@ -46,12 +60,22 @@ After adoption, this should work in the target repository:
   --intent "Describe the change you want."
 ```
 
-After governance-only adoption, commands run from the external Palari checkout:
+Adoption installs the Palari framework substrate. It does not make the source
+repo's tickets, reports, evidence bundles, human reports, memory, tests,
+humans, workflows, policies, outcomes, goals, or decisions active in the target
+repo by default.
+
+For a governance-only session, Palari writes target-owned governance
+scaffolding but does not copy the runtime into the target repo:
 
 ```bash
+./bin/palari adopt /path/to/repo --governance-only
 PALARI_ROOT=/path/to/repo PALARI_LIB_DIR=/path/to/palari-orchestrator/lib/palari \
   /path/to/palari-orchestrator/bin/palari status
 ```
+
+Governance-only adoption must not install CI or hooks, because those require a
+local runtime in the target repository.
 
 ## Non-Goals
 

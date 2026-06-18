@@ -136,8 +136,8 @@ snapshot_ticket_reports_ready_quiet() {
 	snapshot_fast_report_present "$HUMAN_REPORTS_DIR" "$ticket_id" human && human="true"
 	if [[ "$status" == "in-review" || "$status" == "accepted" ]]; then
 		[[ ! "$risk" =~ ^R[2345]$ || "$technical" == "true" ]] || return 1
-		[[ !( "$requires_review" == "true" || "$risk" =~ ^R[2345]$ ) || "$reviewer" == "true" ]] || return 1
-		[[ !( "$requires_human" == "true" || "$risk" =~ ^R[345]$ ) || "$human" == "true" ]] || return 1
+		[[ ! ("$requires_review" == "true" || "$risk" =~ ^R[2345]$) || "$reviewer" == "true" ]] || return 1
+		[[ ! ("$requires_human" == "true" || "$risk" =~ ^R[345]$) || "$human" == "true" ]] || return 1
 	fi
 	while IFS= read -r required_report; do
 		[[ -n "$required_report" ]] || continue
@@ -334,6 +334,11 @@ snapshot_ticket_fast_json() {
 	printf ',"requires_review":%s,"requires_human_confirmation":%s' \
 		"$(json_bool "$(frontmatter_value "$file" requires_review)")" \
 		"$(json_bool "$(frontmatter_value "$file" requires_human_confirmation)")"
+	printf ',"retrospective":%s,"retrospective_original_commits":' \
+		"$(ticket_retrospective_json_bool "$file")"
+	json_frontmatter_list "$file" retrospective_original_commits
+	printf ',"retrospective_bypass_reason":'
+	json_string "$(frontmatter_value "$file" retrospective_bypass_reason)"
 	printf ',"branch":'
 	json_string "$branch"
 	printf ',"worktree":'

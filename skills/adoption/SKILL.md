@@ -34,8 +34,10 @@ adoption path.
    and `PALARI_LIB_DIR` to point the Palari checkout at the target.
 4. Read any warnings about `AGENTS.palari.md` and tell the user how to merge
    the governance-session contract.
-5. Use full `palari adopt TARGET` only when the user explicitly wants the
-   local Palari runtime, `./bin/palari` in the target, CI, or hooks.
+5. Use full adoption only when the user explicitly wants the local Palari
+   runtime, `./bin/palari` in the target, CI, or hooks. Full adoption requires
+   `palari adopt plan TARGET --out ADOPTION-PLAN.md`, human approval of that
+   plan, then `palari adopt TARGET --plan ADOPTION-PLAN.md`.
 6. For full adoption, run `cd TARGET && ./bin/palari doctor`.
 7. Create the first proposal or ticket only after the adopted/session status is
    healthy.

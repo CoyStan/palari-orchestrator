@@ -79,3 +79,21 @@ Ticket implementation, evidence creation, review, acceptance, push, PR merge,
 and deployment are separate actions. A ticket should not be treated as closed
 until `palari accept` has moved it to the closed ticket directory on the branch
 that will become the repository source of truth.
+
+## Stable Human Identity
+
+Acceptance compares stable actor identity, not display labels.
+
+Human profiles may declare:
+
+```yaml
+person_id: PERSON-ALICE
+aliases:
+  - founder
+  - admin
+```
+
+If `person_id` is absent, Palari derives identity from the human profile ID.
+Aliases let common operator labels resolve to the same person. They do not
+create new authority. During acceptance, `--by` and `--co-by` values that map to
+the same stable person cannot satisfy self-acceptance or quorum separation.

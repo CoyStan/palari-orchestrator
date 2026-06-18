@@ -8,6 +8,9 @@ setup() {
   (cd "$REPO_ROOT" && tar --exclude .git --exclude repomix-output.xml -cf - .) | (cd "$WORK" && tar -xf -)
   cd "$WORK"
   chmod +x bin/palari scripts/palari
+  rm -f tickets/open/*.md tickets/open/*.markdown tickets/proposed/*.md tickets/proposed/*.markdown tickets/closed/*.md tickets/closed/*.markdown
+  rm -f reports/*.md reports/*.markdown reports/planning/*.md reports/planning/*.markdown reports/human/*.md reports/human/*.markdown handoffs/*.md handoffs/*.markdown
+  rm -rf reports/evidence/*
   git init -b main >/dev/null
   git config user.email "bats@example.invalid"
   git config user.name "Bats Test"
@@ -311,4 +314,155 @@ DOC
   [[ "$output" == *"co-accepted-by: HUMAN-R5B"* ]]
   grep -Fq "co_accepted_by: HUMAN-R5B" tickets/closed/POS-0104-r5-quorum-two-accept-gate.md
   grep -Fq "acceptance_mode: human_dual" tickets/closed/POS-0104-r5-quorum-two-accept-gate.md
+}
+
+@test "stable human aliases cannot bypass self-acceptance" {
+  ./bin/palari ticket create POS-0105 "Stable alias self acceptance" \
+    --stream docs \
+    --risk R1 \
+    --allowed "tickets/**" \
+    --allowed "reports/**" \
+    --verify "true" >/dev/null
+  ./bin/palari ticket claim POS-0105 founder >/dev/null
+  cat >reports/POS-0105-technical-report.md <<'DOC'
+# POS-0105 Technical Report
+
+## Files Changed
+
+- `tickets/open/POS-0105-stable-alias-self-acceptance.md`
+
+## Verification
+
+- `true`
+
+## CI Evidence
+
+- `palari ci POS-0105`
+
+## Risks / Follow-Ups
+
+- Test fixture only.
+DOC
+  ./bin/palari ci POS-0105 >/dev/null
+  ./bin/palari ticket ready POS-0105 >/dev/null
+
+  run ./bin/palari accept POS-0105 --by admin
+
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"implementation_self_acceptance is forbidden"* ]]
+  [[ "$output" == *"shares stable identity person:person-quetza"* ]]
+}
+
+@test "R5 quorum requires distinct stable person identities" {
+  ./bin/palari human create HUMAN-R5C "R5 Alias C" \
+    --skill governance:L5 \
+    --role founder \
+    --capacity-hgl 60 \
+    --authority-max-risk R5 \
+    --may-approve-policy-changes >/dev/null
+  perl -0pi -e 's/person_id: HUMAN-R5C/person_id: PERSON-SAME-R5/' humans/proposed/HUMAN-R5C-r5-alias-c.md
+  ./bin/palari human adopt HUMAN-R5C --by founder >/dev/null
+  ./bin/palari human create HUMAN-R5D "R5 Alias D" \
+    --skill governance:L5 \
+    --role founder \
+    --capacity-hgl 60 \
+    --authority-max-risk R5 \
+    --may-approve-policy-changes >/dev/null
+  perl -0pi -e 's/person_id: HUMAN-R5D/person_id: PERSON-SAME-R5/' humans/proposed/HUMAN-R5D-r5-alias-d.md
+  ./bin/palari human adopt HUMAN-R5D --by founder >/dev/null
+  git add humans
+  git commit -m "same-person R5 fixtures" >/dev/null
+
+  python3 - <<'PY'
+from pathlib import Path
+path = Path("palari.config.yaml")
+text = path.read_text(encoding="utf-8")
+text = text.replace("    R5: 1", "    R5: 2", 1)
+path.write_text(text, encoding="utf-8")
+PY
+  git add palari.config.yaml
+  git commit -m "test R5 same-person quorum" >/dev/null
+
+  ./bin/palari ticket create POS-0106 "R5 same person quorum" \
+    --stream process \
+    --risk R5 \
+    --allowed "tickets/**" \
+    --allowed "reports/**" \
+    --verify "true" >/dev/null
+  ./bin/palari ticket claim POS-0106 implementer >/dev/null
+  cat >reports/POS-0106-technical-report.md <<'DOC'
+# POS-0106 Technical Report
+
+## Files Changed
+
+- `tickets/open/POS-0106-r5-same-person-quorum.md`
+
+## Verification
+
+- `true`
+
+## CI Evidence
+
+- `palari ci POS-0106`
+
+## Risks / Follow-Ups
+
+- Test fixture only.
+DOC
+  cat >reports/POS-0106-reviewer-note.md <<'DOC'
+# POS-0106 Reviewer Note
+
+## Review Result
+
+Accept-ready fixture.
+
+## Findings
+
+No blocking findings.
+
+## Verification Reviewed
+
+- `palari ci POS-0106`
+
+## Required Changes
+
+None.
+
+## Recommendation
+
+Accept with two distinct stable person identities.
+DOC
+  mkdir -p reports/human
+  cat >reports/human/POS-0106-human-report.md <<'DOC'
+# POS-0106 Human Report
+
+## Why This Mattered
+
+R5 quorum must use distinct stable people, not two profiles for one person.
+
+## What Changed
+
+Test-only fixture.
+
+## What I Should Know
+
+No production governance setting is changed by this fixture.
+
+## What To Check
+
+R5 accept refuses two profiles that share one person_id.
+
+## Recommended Next Move
+
+Keep stable person identity separation active.
+DOC
+
+  ./bin/palari ci POS-0106 >/dev/null
+  ./bin/palari ticket ready POS-0106 >/dev/null
+
+  run ./bin/palari accept POS-0106 --by HUMAN-R5C --co-by HUMAN-R5D
+
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"requires distinct humans"* ]]
+  [[ "$output" == *"share stable identity person:person-same-r5"* ]]
 }

@@ -176,6 +176,37 @@ def cfg_nested_map(config: dict, section: str, map_key: str, key: str, default: 
     return value if value != "" else default
 
 
+def canonical_repo_root(root: Path) -> Path:
+    dotgit = root / ".git"
+    if dotgit.is_dir():
+        return root.resolve()
+    if dotgit.is_file():
+        match = re.match(r"^gitdir:\s*(.+)$", read_text(dotgit).strip())
+        if match:
+            git_dir = Path(match.group(1))
+            if not git_dir.is_absolute():
+                git_dir = root / git_dir
+            git_dir = git_dir.resolve()
+            commondir = git_dir / "commondir"
+            if commondir.is_file():
+                common_git_dir = Path(read_text(commondir).strip())
+                if not common_git_dir.is_absolute():
+                    common_git_dir = git_dir / common_git_dir
+                common_git_dir = common_git_dir.resolve()
+                if common_git_dir.name == ".git":
+                    return common_git_dir.parent
+    return root.resolve()
+
+
+def worktree_base_path(root: Path, config: dict) -> Path:
+    canonical_root = canonical_repo_root(root)
+    raw = cfg(config, "worktree_base", f"../{canonical_root.name}-worktrees")
+    base = Path(raw)
+    if not base.is_absolute():
+        base = canonical_root / base
+    return base.resolve()
+
+
 def approval_quorum_for_risk(config: dict, risk: str) -> int:
     raw = cfg_nested_map(config, "governance", "required_human_approvals", risk, "")
     if raw == "":
@@ -367,6 +398,13 @@ def scalar(fm: dict, key: str, default: str = "") -> str:
 def listval(fm: dict, key: str) -> list:
     value = fm.get(key, [])
     return value if isinstance(value, list) else []
+
+
+def is_retrospective(fm: dict) -> bool:
+    return scalar(fm, "retrospective") == "true" or scalar(fm, "lifecycle") in (
+        "retrospective",
+        "audit-backfill",
+    )
 
 
 def next_action(
@@ -689,6 +727,7 @@ def snapshot_dict(root: Path, *, full: bool = False) -> dict:
     root = Path(root).resolve()
     config = parse_config(root)
     default_branch = cfg(config, "default_branch", "main")
+    worktree_base = worktree_base_path(root, config)
     reports_dir = cfg(config, "reports_dir", "reports")
     evidence_dir = cfg(config, "evidence_dir", "reports/evidence")
 
@@ -768,10 +807,13 @@ def snapshot_dict(root: Path, *, full: bool = False) -> dict:
                 "claim_heartbeat_at": scalar(fm, "claim_heartbeat_at"),
                 "requires_review": scalar(fm, "requires_review") == "true",
                 "requires_human_confirmation": scalar(fm, "requires_human_confirmation") == "true",
+                "retrospective": is_retrospective(fm),
+                "retrospective_original_commits": listval(fm, "retrospective_original_commits"),
+                "retrospective_bypass_reason": scalar(fm, "retrospective_bypass_reason"),
                 "serves_goal": scalar(fm, "serves_goal"),
                 "model_hint": scalar(fm, "model_hint"),
                 "branch": scalar(fm, "branch") or f"ticket/{ticket_id}",
-                "worktree": scalar(fm, "worktree"),
+                "worktree": scalar(fm, "worktree") or str(worktree_base / ticket_id),
                 "evidence": evidence,
                 "reports": reports,
                 "next_action": action,

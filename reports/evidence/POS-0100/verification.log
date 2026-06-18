@@ -1,0 +1,51 @@
+# Palari CI Evidence
+
+- Ticket: POS-0100
+- Base ref: local working tree
+- Created: 2026-06-18T13:30:41Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0100 (5 changed path(s))
+```
+
+## lint
+
+```text
+lint: tickets/open/POS-0100-stable-actor-identity-for-acceptance.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+report-lint: ok for POS-0100
+lint: ok for POS-0100
+```
+
+## verification 1
+
+Command: `bats tests/palari_acceptance.bats`
+
+```text
+1..6
+ok 1 accept rejects forged evidence manifest
+ok 2 palari ci writes an integrity manifest
+ok 3 human acceptance mode is explicit and policy mode cannot close tickets
+ok 4 R5 acceptance honors configured human approval quorum
+ok 5 stable human aliases cannot bypass self-acceptance
+ok 6 R5 quorum requires distinct stable person identities
+```
+
+## verification 2
+
+Command: `./tests/run-human-governance.sh`
+
+```text
+human-governance: ok
+```
+
+## verification 3
+
+Command: `./tests/run-risks.sh`
+
+```text
+lint: tickets/open/RSK-0003-r5-accept-gate.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/RSK-0004-r5-quorum-two-accept-gate.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+risks: ok
+```

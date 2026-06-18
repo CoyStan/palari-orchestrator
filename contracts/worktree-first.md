@@ -22,3 +22,29 @@ Stop if:
 - the worktree path exists but is not a git worktree
 - the worktree is on the wrong branch
 - the worktree is dirty before packet generation
+
+Before moving a ticket to review, run the closeout readiness check from the
+ticket worktree:
+
+```bash
+palari evidence refresh TICKET-ID --base TARGET-BRANCH
+palari worktree closeout TICKET-ID
+```
+
+`palari evidence refresh` is the supported acceptance-preparation path for CI
+evidence. It must be run from the ticket worktree with no local dirty paths. It
+verifies the ticket branch/worktree context, refuses invalid pre-existing
+evidence that is not just stale by commit, writes fresh evidence at the current
+implementation commit, and prints the exact review and human-acceptance next
+commands. It never accepts, merges, pushes, deploys, or changes ticket status.
+
+The closeout check is read-only. It reports the ticket ID, ticket branch, target
+branch, current worktree path, branch-diff changed path count, scope status,
+evidence status, report status, and the exact next command. It fails closed when
+run from the canonical checkout or wrong branch, when the worktree is dirty, when
+scope-check fails, or when evidence or required reports are missing.
+
+Do not manually copy reports or evidence from a worktree into another checkout.
+Use the ticket worktree as the source of truth, refresh evidence there, run
+`palari worktree closeout TICKET-ID`, then move the ticket to review only when
+the closeout state is ready.

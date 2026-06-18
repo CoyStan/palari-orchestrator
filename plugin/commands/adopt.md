@@ -12,4 +12,4 @@ Steps:
 5. Read the target's `AGENTS.md` plus `AGENTS.palari.md` and summarize for the user: the lifecycle, the authority profile in `palari.config.yaml`, and how to run Palari commands from the external checkout.
 6. Suggest creating their first goal with the external command form: `PALARI_ROOT=TARGET PALARI_LIB_DIR=CLONE/lib/palari CLONE/bin/palari goal create GOAL-0001 "..." --success "..."`.
 
-Only use full `palari adopt TARGET` when the user explicitly asks to vendor the local Palari runtime or install CI/hooks in that repository. Do not create tickets, commit, or modify product code during adoption. Adoption only installs governance/session scaffolding unless full adoption was explicit.
+Only use full adoption when the user explicitly asks to vendor the local Palari runtime or install CI/hooks in that repository. Full adoption requires `palari adopt plan TARGET --out ADOPTION-PLAN.md`, human approval of that plan, and then `palari adopt TARGET --plan ADOPTION-PLAN.md`. Do not create tickets, commit, or modify product code during adoption. Adoption only installs governance/session scaffolding unless full adoption was explicit.
