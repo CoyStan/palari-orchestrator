@@ -1,0 +1,54 @@
+# Palari CI Evidence
+
+- Ticket: POS-0102
+- Base ref: ticket/POS-0101
+- Created: 2026-06-18T07:02:18Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0102 (9 changed path(s))
+```
+
+## lint
+
+```text
+lint: tickets/open/POS-0102-atomic-evidence-refresh-acceptance-preparation.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+report-lint: ok for POS-0102
+lint: ok for POS-0102
+```
+
+## verification 1
+
+Command: `bash -n lib/palari/ci_accept.bash tests/run-evidence-refresh.sh`
+
+```text
+
+```
+
+## verification 2
+
+Command: `./tests/run-evidence-refresh.sh`
+
+```text
+Preparing worktree (new branch 'ticket/ERF-0001')
+lint: tickets/open/ERF-0001-evidence-refresh-bookkeeping.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+Preparing worktree (new branch 'ticket/ERF-0002')
+Preparing worktree (new branch 'ticket/ERF-0003')
+Preparing worktree (new branch 'ticket/ERF-0004')
+evidence-refresh: ok
+```
+
+## verification 3
+
+Command: `bats tests/palari_acceptance.bats`
+
+```text
+1..6
+ok 1 accept rejects forged evidence manifest
+ok 2 palari ci writes an integrity manifest
+ok 3 human acceptance mode is explicit and policy mode cannot close tickets
+ok 4 R5 acceptance honors configured human approval quorum
+ok 5 stable human aliases cannot bypass self-acceptance
+ok 6 R5 quorum requires distinct stable person identities
+```
