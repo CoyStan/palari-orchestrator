@@ -108,6 +108,9 @@ reports/evidence/POS-0099/
 - Added repair coverage after a second fresh-context re-review:
   - an empty but valid git target records `target_head: "unavailable"` instead
     of malformed unborn-HEAD text and can still be adopted when unchanged.
+- Added repair coverage after a later fresh-context re-review:
+  - ignored target parent directories, such as `tickets/`, fail as target
+    worktree drift when they could hide files under planned adoption writes.
 
 ## CI Evidence
 
@@ -164,6 +167,9 @@ reports/evidence/POS-0099/
 - Second fresh-context re-review found one bounded gap: empty target repos with
   unborn `HEAD` values recorded malformed `target_head` text. This was repaired
   before final review.
+- Later fresh-context re-review found one bounded gap: ignored parent
+  directories such as `tickets/` could hide already-present governance files
+  that become active after adoption. This was repaired before final review.
 
 ## Risks / Follow-Ups
 
