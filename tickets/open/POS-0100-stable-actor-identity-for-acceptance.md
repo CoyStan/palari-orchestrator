@@ -1,7 +1,7 @@
 ---
 id: POS-0100
 title: Stable actor identity for acceptance
-status: claimed
+status: in-review
 risk: R5
 priority: P1
 stream: process
@@ -10,8 +10,8 @@ model_hint:
 claimed_by: Codex
 claimed_at: 2026-06-18T00:58:59Z
 claim_ref: refs/palari/claims/POS-0100
-claim_heartbeat_at: 2026-06-18T05:47:41Z
-claim_expires_at: 2026-06-18T05:52:42Z
+claim_heartbeat_at: 2026-06-18T06:01:45Z
+claim_expires_at: 2026-06-18T06:06:45Z
 allowed_paths:
   - lib/palari/ci_accept.bash
   - lib/palari/humans.bash
