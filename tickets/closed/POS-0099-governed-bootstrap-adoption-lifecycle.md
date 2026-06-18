@@ -1,7 +1,7 @@
 ---
 id: POS-0099
 title: Governed bootstrap adoption lifecycle
-status: in-review
+status: accepted
 risk: R4
 priority: P1
 stream: process
@@ -10,8 +10,8 @@ model_hint:
 claimed_by: Codex
 claimed_at: 2026-06-17T22:48:56Z
 claim_ref: refs/palari/claims/POS-0099
-claim_heartbeat_at: 2026-06-18T00:56:37Z
-claim_expires_at: 2026-06-18T01:01:37Z
+claim_heartbeat_at: 2026-06-18T13:30:12Z
+claim_expires_at: 2026-06-18T14:30:12Z
 allowed_paths:
   - lib/palari/init_adopt.bash
   - bin/palari
@@ -51,9 +51,9 @@ verification:
 target_branch: main
 branch: ticket/POS-0099
 worktree: 
-accepted_by:
+accepted_by: founder
 acceptance_mode: human
-accepted_at:
+accepted_at: 2026-06-18T13:30:16Z
 created: 2026-06-17
 updated: 2026-06-18
 ---
