@@ -35,6 +35,16 @@ git commit -m "initial orchestrator package" >/dev/null
 git add tickets/open/WTC-0001-*.md
 git commit -m "route WTC-0001" >/dev/null
 
+./bin/palari ticket create WTC-0002 "Closeout scope failure" \
+	--stream process \
+	--risk R1 \
+	--allowed "docs/allowed/**" \
+	--allowed "tickets/open/WTC-0002-*" \
+	--allowed "reports/evidence/WTC-0002/**" \
+	--verify "true" >/dev/null
+git add tickets/open/WTC-0002-*.md
+git commit -m "route WTC-0002" >/dev/null
+
 if ./bin/palari worktree closeout WTC-0001 >"$TMP_ROOT/wrong-checkout.out" 2>&1; then
 	printf 'closeout: expected wrong checkout to fail\n' >&2
 	exit 1
@@ -47,7 +57,28 @@ grep -Fq "expected worktree: $TMP_ROOT/palari-orchestrator-worktrees/WTC-0001" "
 WTC1_WORKTREE="$(sed -n 's/^Worker cd: cd //p' "$TMP_ROOT/worktree.out")"
 [[ -n "$WTC1_WORKTREE" ]]
 cd "$WTC1_WORKTREE"
-./bin/palari ticket claim WTC-0001 closeout-tester >/dev/null
+
+./bin/palari worktree WTC-0002 >"$TMP_ROOT/stacked-worktree.out"
+WTC2_FLAT_WORKTREE="$TMP_ROOT/palari-orchestrator-worktrees/WTC-0002"
+grep -Fq "Ticket worktree: $WTC2_FLAT_WORKTREE" "$TMP_ROOT/stacked-worktree.out"
+grep -Fq "Worker cd: cd $WTC2_FLAT_WORKTREE" "$TMP_ROOT/stacked-worktree.out"
+if grep -Fq "/WTC-0001/palari-orchestrator-worktrees/" "$TMP_ROOT/stacked-worktree.out"; then
+	printf 'closeout: stacked worktree used a nested worktree base\n' >&2
+	exit 1
+fi
+./bin/palari snapshot --json >"$TMP_ROOT/stacked-snapshot.json"
+python3 - "$TMP_ROOT/stacked-snapshot.json" "$WTC2_FLAT_WORKTREE" <<'PY'
+import json
+import sys
+
+snapshot = json.load(open(sys.argv[1], encoding="utf-8"))
+tickets = {ticket["id"]: ticket for ticket in snapshot["tickets"]}
+actual = tickets["WTC-0002"]["worktree"]
+expected = sys.argv[2]
+assert actual == expected, f"snapshot worktree mismatch: {actual!r} != {expected!r}"
+PY
+
+./bin/palari ticket claim WTC-0001 closeout-tester --allow-overlap >/dev/null
 mkdir -p docs/worktree
 printf 'worktree closeout note\n' >docs/worktree/notes.md
 
@@ -135,15 +166,6 @@ grep -Fq "next: ./bin/palari ticket ready WTC-0001" "$TMP_ROOT/ready.out"
 grep -Fq "next: ./bin/palari packet WTC-0001 reviewer" "$TMP_ROOT/ready.out"
 
 cd "$WORK"
-./bin/palari ticket create WTC-0002 "Closeout scope failure" \
-	--stream process \
-	--risk R1 \
-	--allowed "docs/allowed/**" \
-	--allowed "tickets/open/WTC-0002-*" \
-	--allowed "reports/evidence/WTC-0002/**" \
-	--verify "true" >/dev/null
-git add tickets/open/WTC-0002-*.md
-git commit -m "route WTC-0002" >/dev/null
 ./bin/palari worktree WTC-0002 >"$TMP_ROOT/worktree2.out"
 WTC2_WORKTREE="$(sed -n 's/^Worker cd: cd //p' "$TMP_ROOT/worktree2.out")"
 [[ -n "$WTC2_WORKTREE" ]]
