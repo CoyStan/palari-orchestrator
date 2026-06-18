@@ -10,8 +10,8 @@ model_hint:
 claimed_by: Codex
 claimed_at: 2026-06-17T22:48:56Z
 claim_ref: refs/palari/claims/POS-0099
-claim_heartbeat_at: 2026-06-17T23:26:22Z
-claim_expires_at: 2026-06-17T23:31:22Z
+claim_heartbeat_at: 2026-06-18T00:00:21Z
+claim_expires_at: 2026-06-18T00:05:21Z
 allowed_paths:
   - lib/palari/init_adopt.bash
   - bin/palari
@@ -55,7 +55,7 @@ accepted_by:
 acceptance_mode: human
 accepted_at:
 created: 2026-06-17
-updated: 2026-06-17
+updated: 2026-06-18
 ---
 
 # POS-0099 Governed bootstrap adoption lifecycle

@@ -197,6 +197,21 @@ fi
 grep -Fq "adopt plan source_manifest_hash mismatch" "$TMP_ROOT/dirty-source-plan.out"
 git -C "$SOURCE" checkout -- contracts/adoption.md
 
+cp "$TMP_ROOT/adoption-plan.md" "$TMP_ROOT/dirty-source-symlink-plan.md"
+sed -i \
+	-e 's/^status: proposed$/status: approved/' \
+	-e 's/^approved_by:$/approved_by: founder/' \
+	-e 's/^approved_at:$/approved_at: 2026-06-17T00:00:00Z/' \
+	"$TMP_ROOT/dirty-source-symlink-plan.md"
+ln -s /etc/passwd "$SOURCE/lib/palari/UNREVIEWED_LINK"
+if (cd "$SOURCE" && ./bin/palari adopt "$TARGET" --ci --hooks --plan "$TMP_ROOT/dirty-source-symlink-plan.md") >"$TMP_ROOT/dirty-source-symlink-plan.out" 2>&1; then
+	printf 'adoption: expected dirty source symlink to fail before write\n' >&2
+	exit 1
+fi
+grep -Fq "adopt plan source_manifest_hash mismatch" "$TMP_ROOT/dirty-source-symlink-plan.out"
+test ! -e "$TARGET/lib/palari/UNREVIEWED_LINK"
+rm "$SOURCE/lib/palari/UNREVIEWED_LINK"
+
 cp "$TMP_ROOT/adoption-plan.md" "$TMP_ROOT/stale-target-plan.md"
 sed -i \
 	-e 's/^status: proposed$/status: approved/' \
@@ -211,6 +226,30 @@ if (cd "$SOURCE" && ./bin/palari adopt "$TARGET" --ci --hooks --plan "$TMP_ROOT/
 fi
 grep -Fq "adopt plan target_head mismatch" "$TMP_ROOT/stale-target-plan.out"
 git -C "$TARGET" reset --hard "$TARGET_SHA" >/dev/null
+
+cp "$TMP_ROOT/adoption-plan.md" "$TMP_ROOT/dirty-target-plan.md"
+sed -i \
+	-e 's/^status: proposed$/status: approved/' \
+	-e 's/^approved_by:$/approved_by: founder/' \
+	-e 's/^approved_at:$/approved_at: 2026-06-17T00:00:00Z/' \
+	"$TMP_ROOT/dirty-target-plan.md"
+mkdir -p "$TARGET/bin"
+cat >"$TARGET/bin/palari" <<'DOC'
+#!/usr/bin/env bash
+echo target-bin >&2
+exit 42
+DOC
+chmod +x "$TARGET/bin/palari"
+if (cd "$SOURCE" && ./bin/palari adopt "$TARGET" --ci --hooks --plan "$TMP_ROOT/dirty-target-plan.md") >"$TMP_ROOT/dirty-target-plan.out" 2>&1; then
+	printf 'adoption: expected dirty target worktree to fail before write\n' >&2
+	exit 1
+fi
+grep -Fq "adopt plan target worktree changed after plan" "$TMP_ROOT/dirty-target-plan.out"
+if grep -Fq "target-bin" "$TMP_ROOT/dirty-target-plan.out"; then
+	printf 'adoption: dirty target binary ran before target drift failure\n' >&2
+	exit 1
+fi
+rm -rf "${TARGET:?}/bin"
 
 cp "$TMP_ROOT/adoption-plan.md" "$TMP_ROOT/force-mismatch-plan.md"
 sed -i \

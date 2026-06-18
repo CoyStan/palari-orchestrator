@@ -39,7 +39,8 @@ cmd_init() {
 		mkdir -p "$ROOT/$dir"
 		: >"$ROOT/$dir/.gitkeep"
 	done < <(palari_init_dirs)
-	mkdir -p "$ROOT/$STATE_DIR/locks"
+	# shellcheck disable=SC2153 # STATE_DIR is loaded from the Palari config/core module.
+	mkdir -p "$ROOT/${STATE_DIR}/locks"
 	if declare -F hygiene_ensure_gitignore >/dev/null; then
 		hygiene_ensure_gitignore
 	fi
@@ -511,21 +512,28 @@ adoption_source_manifest_hash() {
 	(
 		cd "$ROOT"
 		for rel in "${ADOPTION_PATHS[@]}" "AGENTS.md"; do
-			if [[ -f "$rel" ]]; then
+			if [[ -L "$rel" ]]; then
+				printf '%s\n' "$rel"
+			elif [[ -f "$rel" ]]; then
 				printf '%s\n' "$rel"
 			elif [[ -d "$rel" ]]; then
-				find "$rel" -type f | sort
+				find "$rel" \( -type f -o -type l \) -print | sort
 			fi
 		done |
 			while IFS= read -r file; do
 				[[ -n "$file" ]] || continue
-				printf '%s  %s\n' "$(sha256_file "$file")" "$file"
+				if [[ -L "$file" ]]; then
+					printf 'symlink:%s  %s\n' "$(readlink "$file")" "$file"
+				else
+					printf 'file:%s  %s\n' "$(sha256_file "$file")" "$file"
+				fi
 			done
 	) | sha256_text
 }
 
 target_config_scalar() {
-	local target_abs="$1" key="$2" default="$3" config="$target_abs/palari.config.yaml" value
+	local target_abs="$1" key="$2" default="$3"
+	local config="$target_abs/palari.config.yaml" value
 	if [[ -f "$config" ]]; then
 		value="$(
 			awk -v key="$key" '
@@ -541,6 +549,14 @@ target_config_scalar() {
 		)"
 	fi
 	[[ -n "${value:-}" ]] && printf '%s\n' "$value" || printf '%s\n' "$default"
+}
+
+adoption_require_clean_target_worktree() {
+	local target_abs="$1"
+	local status
+	status="$(git -C "$target_abs" status --porcelain=v1 --untracked-files=all)"
+	[[ -z "$status" ]] ||
+		die "adopt plan target worktree changed after plan; commit, stash, or remove target changes and regenerate the plan"
 }
 
 target_init_dirs() {
@@ -666,6 +682,7 @@ cmd_adopt_plan() {
 	if ! git -C "$target_abs" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
 		die "adopt target must be an existing git repository: $target_abs"
 	fi
+	adoption_require_clean_target_worktree "$target_abs"
 	source_ref="$(adoption_source_ref)"
 	source_hash="$(adoption_source_manifest_hash)"
 	mkdir -p "$(dirname "$out")"
@@ -714,7 +731,7 @@ cmd_adopt_plan() {
 		printf -- '---\n\n'
 		printf '# Palari Bootstrap Adoption Plan\n\n'
 		printf 'Review this plan before running non-dry-run adoption.\n\n'
-		printf 'To approve, a human should change `status: proposed` to `status: approved` and fill `approved_by` and `approved_at`.\n'
+		printf "To approve, a human should change \`status: proposed\` to \`status: approved\` and fill \`approved_by\` and \`approved_at\`.\n"
 	} >"$out"
 	printf 'adopt plan: %s\n' "$out"
 }
@@ -772,6 +789,7 @@ validate_adoption_plan() {
 	if [[ "$plan_target_head" != "unavailable" && "$current_target_head" != "unavailable" && "$plan_target_head" != "$current_target_head" ]]; then
 		die "adopt plan target_head mismatch: expected $current_target_head, got $plan_target_head"
 	fi
+	adoption_require_clean_target_worktree "$target_abs"
 	plan_with_ci="$(frontmatter_value "$plan" with_ci)"
 	plan_with_hooks="$(frontmatter_value "$plan" with_hooks)"
 	plan_force="$(frontmatter_value "$plan" force)"

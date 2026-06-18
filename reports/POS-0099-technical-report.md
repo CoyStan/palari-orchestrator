@@ -48,7 +48,10 @@ reports/evidence/POS-0099/
 - Adoption validates that the target repository HEAD still matches the reviewed
   plan before writing.
 - Adoption validates that copied source content still matches the approved plan
-  before writing, so dirty source-tree edits after approval fail closed.
+  before writing, so dirty source-tree edits and copied symlink changes after
+  approval fail closed.
+- Adoption validates that the target worktree is still clean before a plan is
+  generated and again before any approved non-dry-run write.
 - Adoption validates that the reviewed path manifest exactly matches the writes
   implied by the command flags and target config.
 - Adoption validates that approved plan flags (`with_ci`, `with_hooks`, and
@@ -67,8 +70,8 @@ reports/evidence/POS-0099/
   - `./tests/run-adoption.sh`
   - `./tests/run-cli-structure.sh`
   - `./tests/run-golden.sh`
-  - `shellcheck -x bin/palari scripts/palari tests/run-adoption.sh`
-  - `shfmt -d lib/palari/init_adopt.bash tests/run-adoption.sh`
+  - `shellcheck -x bin/palari scripts/palari tests/run-adoption.sh lib/palari/init_adopt.bash`
+  - `shfmt -d bin/palari lib/palari/init_adopt.bash tests/run-adoption.sh tests/run-cli-structure.sh`
   - `git diff --check`
 - Added repair coverage after initial fresh review:
   - source substrate changes after plan approval fail before writing through
@@ -92,6 +95,12 @@ reports/evidence/POS-0099/
     adoption when copied substrate content is unchanged.
   - trimming the reviewed path manifest while keeping command flags unchanged
     fails before writing.
+- Added repair coverage after a final fresh-context review:
+  - adding a copied source symlink after approval changes `source_manifest_hash`
+    and fails before writing.
+  - adding an untracked target `bin/palari` after approval fails as target
+    worktree drift before the target binary can run.
+  - shellcheck now covers the adoption module directly.
 
 ## CI Evidence
 
@@ -138,6 +147,10 @@ reports/evidence/POS-0099/
   and committing the approved plan artifact itself changed `source_sha` even
   though copied source content was unchanged. Both were repaired before final
   review.
+- Final fresh-context review found two blocking gaps: the target worktree could
+  drift through untracked files without changing `target_head`, and copied
+  symlinks were not included in `source_manifest_hash`. Both were repaired
+  before final review.
 
 ## Risks / Follow-Ups
 

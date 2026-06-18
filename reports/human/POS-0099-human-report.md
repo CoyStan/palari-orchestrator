@@ -16,6 +16,8 @@ written.
 - A proposed plan cannot write files; a human must mark it approved first.
 - The plan records source, target, path manifest, exclusions, and downstream
   customization boundaries.
+- Approved adoption now fails if the source copied files/symlinks or the target
+  worktree changed after the plan was reviewed.
 - README and the adoption contract now describe the governed flow.
 
 ## What I Should Know
