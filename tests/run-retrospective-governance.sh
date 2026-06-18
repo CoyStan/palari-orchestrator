@@ -90,6 +90,13 @@ grep -Fq "retrospective tickets must list retrospective_original_commits" "$TMP_
 grep -Fq "retrospective tickets must set retrospective_bypass_reason" "$TMP_ROOT/lint-missing.out" ||
 	fail "missing bypass reason failure was not reported"
 
+set_retrospective_fields "$RET1_FILE" "not-a-sha" "landed before Palari governance controlled this repository"
+if ./bin/palari lint RET-0001 >"$TMP_ROOT/lint-bad-sha.out" 2>&1; then
+	fail "retrospective ticket with malformed original commit should fail lint"
+fi
+grep -Fq "retrospective_original_commits must be SHA-shaped: not-a-sha" "$TMP_ROOT/lint-bad-sha.out" ||
+	fail "malformed original commit failure was not reported"
+
 set_retrospective_fields "$RET1_FILE" "abc1234,def5678" "landed before Palari governance controlled this repository"
 ./bin/palari lint RET-0001 >"$TMP_ROOT/lint-ret1.out"
 grep -Fq "lint: ok for RET-0001" "$TMP_ROOT/lint-ret1.out" ||

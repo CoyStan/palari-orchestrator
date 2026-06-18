@@ -404,22 +404,16 @@ print_ticket_section_excerpt() {
     }
   ' "$file"
 }
-
 ticket_is_retrospective() {
 	local file="$1" retrospective lifecycle
 	retrospective="$(frontmatter_value "$file" retrospective)"
 	lifecycle="$(frontmatter_value "$file" lifecycle)"
 	[[ "$retrospective" == "true" || "$lifecycle" == "retrospective" || "$lifecycle" == "audit-backfill" ]]
 }
-
 ticket_retrospective_json_bool() {
 	if ticket_is_retrospective "$1"; then printf 'true'; else printf 'false'; fi
 }
-
-ticket_is_high_risk() {
-	[[ "$(frontmatter_value "$1" risk)" =~ ^R[345]$ ]]
-}
-
+ticket_is_high_risk() { [[ "$(frontmatter_value "$1" risk)" =~ ^R[345]$ ]]; }
 cmd_packet() {
 	require_base_folders
 	local ticket="${1:-}"
@@ -684,6 +678,12 @@ lint_one_ticket() {
 			printf 'lint: %s: retrospective tickets must list retrospective_original_commits\n' "${file#"$ROOT"/}" >&2
 			errors=$((errors + 1))
 		fi
+		while IFS= read -r value; do
+			[[ "$value" =~ ^[0-9a-fA-F]{7,40}$ ]] || {
+				printf 'lint: %s: retrospective_original_commits must be SHA-shaped: %s\n' "${file#"$ROOT"/}" "$value" >&2
+				errors=$((errors + 1))
+			}
+		done < <(frontmatter_list_items "$file" retrospective_original_commits)
 		if [[ -z "$(frontmatter_value "$file" retrospective_bypass_reason)" ]]; then
 			printf 'lint: %s: retrospective tickets must set retrospective_bypass_reason\n' "${file#"$ROOT"/}" >&2
 			errors=$((errors + 1))
