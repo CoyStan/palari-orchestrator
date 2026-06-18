@@ -56,7 +56,7 @@ verification:
   - ./tests/run-cli-structure.sh
 target_branch: ticket/POS-0105
 branch: ticket/POS-0106
-worktree: 
+worktree: /home/quetza/palari-orchestrator-worktrees/palari-orchestrator-worktrees/palari-orchestrator-worktrees/palari-orchestrator-worktrees/palari-orchestrator-worktrees/palari-orchestrator-worktrees/palari-orchestrator-worktrees/POS-0106
 accepted_by:
 acceptance_mode: human
 accepted_at:
