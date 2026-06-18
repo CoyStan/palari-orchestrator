@@ -462,7 +462,6 @@ Before acceptance:
 
 ```bash
 palari scope-check APP-0001
-palari ci APP-0001 --base main
 palari evidence refresh APP-0001 --base main
 palari worktree closeout APP-0001
 palari ticket ready APP-0001

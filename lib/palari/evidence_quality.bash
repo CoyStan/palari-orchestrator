@@ -211,6 +211,26 @@ evidence_refresh_existing_evidence_ok() {
 	return 1
 }
 
+evidence_refresh_require_scope_ok() {
+	local ticket_id="$1"
+	local base_ref="$2"
+	local scope_output
+	scope_output="$(mktemp "${TMPDIR:-/tmp}/palari-evidence-refresh-scope.XXXXXX")"
+	set +e
+	(cmd_scope_check "$ticket_id" --base "$base_ref") >"$scope_output" 2>&1
+	local code=$?
+	set -e
+	if ((code == 0)); then
+		rm -f "$scope_output"
+		return 0
+	fi
+	printf 'evidence refresh: refusing to rewrite evidence for %s because scope-check failed before CI\n' "$ticket_id" >&2
+	cat "$scope_output" >&2
+	rm -f "$scope_output"
+	printf 'next: fix the branch diff or ticket allowed_paths, then rerun ./bin/palari evidence refresh %s --base %s\n' "$ticket_id" "$base_ref" >&2
+	return 1
+}
+
 cmd_evidence_refresh() {
 	require_base_folders
 	local ticket="${1:-}"
@@ -245,6 +265,7 @@ cmd_evidence_refresh() {
 	evidence_refresh_require_ticket_context "$file" "$ticket_id"
 	evidence_refresh_require_clean_worktree "$ticket_id"
 	evidence_refresh_existing_evidence_ok "$ticket_id"
+	evidence_refresh_require_scope_ok "$ticket_id" "$base_ref"
 
 	cmd_ci "$ticket_id" --base "$base_ref"
 	ticket_evidence_manifest_current_valid "$ticket_id" "evidence refresh: invalid refreshed evidence manifest"

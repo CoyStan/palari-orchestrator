@@ -173,4 +173,23 @@ fi
 grep -Fq "existing evidence for ERF-0004 is invalid before refresh" "$TMP_ROOT/refresh-0004.out"
 grep -Fq "not a head_sha-only stale evidence state" "$TMP_ROOT/refresh-0004.out"
 
+# Clean committed out-of-scope changes fail before CI rewrites evidence.
+cd "$WORK"
+create_ticket ERF-0005 "Evidence refresh committed scope failure"
+ERF5_WORKTREE="$(prepare_worktree ERF-0005)"
+cd "$ERF5_WORKTREE"
+./bin/palari ticket claim ERF-0005 evidence-tester --allow-overlap >/dev/null
+mkdir -p docs/evidence-refresh
+printf 'allowed fixture\n' >docs/evidence-refresh/ERF-0005.md
+printf 'committed outside scope\n' >outside-erf-0005.txt
+git add docs/evidence-refresh/ERF-0005.md outside-erf-0005.txt tickets/open/ERF-0005-*.md
+git commit -m "implement ERF-0005 with out-of-scope change" >/dev/null
+if ./bin/palari evidence refresh ERF-0005 --base main >"$TMP_ROOT/refresh-0005.out" 2>&1; then
+	printf 'evidence-refresh: expected committed out-of-scope refresh to fail\n' >&2
+	exit 1
+fi
+grep -Fq "scope-check failed before CI" "$TMP_ROOT/refresh-0005.out"
+grep -Fq "outside-erf-0005.txt" "$TMP_ROOT/refresh-0005.out"
+test ! -e reports/evidence/ERF-0005/manifest.json
+
 printf 'evidence-refresh: ok\n'
