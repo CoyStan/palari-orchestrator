@@ -369,6 +369,13 @@ def listval(fm: dict, key: str) -> list:
     return value if isinstance(value, list) else []
 
 
+def is_retrospective(fm: dict) -> bool:
+    return scalar(fm, "retrospective") == "true" or scalar(fm, "lifecycle") in (
+        "retrospective",
+        "audit-backfill",
+    )
+
+
 def next_action(
     fm: dict,
     ticket_id: str,
@@ -768,6 +775,9 @@ def snapshot_dict(root: Path, *, full: bool = False) -> dict:
                 "claim_heartbeat_at": scalar(fm, "claim_heartbeat_at"),
                 "requires_review": scalar(fm, "requires_review") == "true",
                 "requires_human_confirmation": scalar(fm, "requires_human_confirmation") == "true",
+                "retrospective": is_retrospective(fm),
+                "retrospective_original_commits": listval(fm, "retrospective_original_commits"),
+                "retrospective_bypass_reason": scalar(fm, "retrospective_bypass_reason"),
                 "serves_goal": scalar(fm, "serves_goal"),
                 "model_hint": scalar(fm, "model_hint"),
                 "branch": scalar(fm, "branch") or f"ticket/{ticket_id}",

@@ -405,6 +405,29 @@ print_ticket_section_excerpt() {
   ' "$file"
 }
 
+ticket_is_retrospective() {
+	local file="$1"
+	local retrospective lifecycle
+	retrospective="$(frontmatter_value "$file" retrospective)"
+	lifecycle="$(frontmatter_value "$file" lifecycle)"
+	[[ "$retrospective" == "true" || "$lifecycle" == "retrospective" || "$lifecycle" == "audit-backfill" ]]
+}
+
+ticket_retrospective_json_bool() {
+	if ticket_is_retrospective "$1"; then
+		printf 'true'
+	else
+		printf 'false'
+	fi
+}
+
+ticket_is_high_risk() {
+	case "$(frontmatter_value "$1" risk)" in
+	R3 | R4 | R5) return 0 ;;
+	esac
+	return 1
+}
+
 cmd_packet() {
 	require_base_folders
 	local ticket="${1:-}"
@@ -461,6 +484,16 @@ cmd_packet() {
 	printf 'Requires review: %s\n' "${requires_review:-missing}"
 	printf 'Requires human confirmation: %s\n' "${requires_human:-missing}"
 	printf 'Required reports: %s\n\n' "${required_reports:-none}"
+	if ticket_is_retrospective "$file"; then
+		printf 'Retrospective/audit-backfill: true\n'
+		printf 'Original commits:\n'
+		while IFS= read -r value; do
+			[[ -n "$value" ]] || continue
+			printf '  - %s\n' "$value"
+		done < <(frontmatter_list_items "$file" retrospective_original_commits)
+		printf 'Bypass reason: %s\n' "$(frontmatter_value "$file" retrospective_bypass_reason)"
+		printf 'Review warning: this audits already-landed work; it is not evidence that the work was pre-governed.\n\n'
+	fi
 
 	printf 'Worker rule:\n'
 	printf '  Read this packet, the ticket, relevant source/tests/diffs/reports, and concrete evidence needed for the task.\n'
@@ -631,6 +664,11 @@ lint_one_ticket() {
 		printf 'lint: %s: requires_review must be true or false\n' "${file#"$ROOT"/}" >&2
 		errors=$((errors + 1))
 	}
+	value="$(frontmatter_value "$file" retrospective)"
+	[[ -z "$value" || "$value" == "true" || "$value" == "false" ]] || {
+		printf 'lint: %s: retrospective must be true or false\n' "${file#"$ROOT"/}" >&2
+		errors=$((errors + 1))
+	}
 	if [[ "$(frontmatter_list_count "$file" allowed_paths)" == "0" ]]; then
 		printf 'lint: %s: allowed_paths must contain at least one item\n' "${file#"$ROOT"/}" >&2
 		errors=$((errors + 1))
@@ -652,6 +690,26 @@ lint_one_ticket() {
 		printf 'lint: %s: %s\n' "${file#"$ROOT"/}" "$yaml_issue" >&2
 		errors=$((errors + 1))
 	done < <(frontmatter_yaml_issues "$file")
+	if ticket_is_retrospective "$file"; then
+		if [[ "$(frontmatter_list_count "$file" retrospective_original_commits)" == "0" ]]; then
+			printf 'lint: %s: retrospective tickets must list retrospective_original_commits\n' "${file#"$ROOT"/}" >&2
+			errors=$((errors + 1))
+		fi
+		if [[ -z "$(frontmatter_value "$file" retrospective_bypass_reason)" ]]; then
+			printf 'lint: %s: retrospective tickets must set retrospective_bypass_reason\n' "${file#"$ROOT"/}" >&2
+			errors=$((errors + 1))
+		fi
+		if ticket_is_high_risk "$file"; then
+			if [[ "$(frontmatter_value "$file" requires_review)" != "true" ]]; then
+				printf 'lint: %s: high-risk retrospective tickets must keep requires_review: true\n' "${file#"$ROOT"/}" >&2
+				errors=$((errors + 1))
+			fi
+			if [[ "$(frontmatter_value "$file" requires_human_confirmation)" != "true" ]]; then
+				printf 'lint: %s: high-risk retrospective tickets must keep requires_human_confirmation: true\n' "${file#"$ROOT"/}" >&2
+				errors=$((errors + 1))
+			fi
+		fi
+	fi
 	# Goal traceability: warn (or fail in strict mode) when active work does
 	# not declare which goal it serves.
 	value="$(frontmatter_value "$file" serves_goal)"

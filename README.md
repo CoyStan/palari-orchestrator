@@ -481,6 +481,13 @@ path, changed path count, scope status, evidence status, report status, and the
 exact next command to run. It fails closed from the canonical checkout, a wrong
 branch, a dirty worktree, missing evidence, missing reports, or a scope failure.
 
+Use retrospective/audit-backfill tickets only for work that already landed
+before normal governance controlled it. Mark the ticket with `retrospective:
+true`, list the original landed SHAs in `retrospective_original_commits`, and
+explain the bypass in `retrospective_bypass_reason`. High-risk retrospective
+tickets must keep reviewer and human gates enabled; snapshots and packets expose
+the audit-backfill state so it cannot be confused with pre-governed work.
+
 `accept` moves the ticket to `tickets/closed/`. It does not merge, push, deploy,
 or bless missing evidence.
 

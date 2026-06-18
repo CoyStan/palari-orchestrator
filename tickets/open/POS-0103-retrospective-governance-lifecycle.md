@@ -16,7 +16,9 @@ allowed_paths:
   - bin/palari
   - lib/palari/tickets_workspace.bash
   - lib/palari/agents_review_scope.bash
+  - lib/palari/dashboard_snapshot.bash
   - lib/palari/adapters_snapshot.bash
+  - adapters/snapshot/fast_snapshot.py
   - contracts/retrospective-governance.md
   - README.md
   - tests/run-retrospective-governance.sh
@@ -46,7 +48,7 @@ forbidden_paths:
 requires_human_confirmation: true
 requires_review: true
 verification:
-  - bash -n lib/palari/tickets_workspace.bash lib/palari/agents_review_scope.bash tests/run-retrospective-governance.sh
+  - bash -n lib/palari/tickets_workspace.bash lib/palari/agents_review_scope.bash lib/palari/dashboard_snapshot.bash lib/palari/adapters_snapshot.bash tests/run-retrospective-governance.sh
   - ./tests/run-retrospective-governance.sh
 target_branch: ticket/POS-0102
 branch: ticket/POS-0103
@@ -93,7 +95,7 @@ was governed before implementation.
 
 ## Verification
 
-- bash -n lib/palari/tickets_workspace.bash lib/palari/agents_review_scope.bash tests/run-retrospective-governance.sh
+- bash -n lib/palari/tickets_workspace.bash lib/palari/agents_review_scope.bash lib/palari/dashboard_snapshot.bash lib/palari/adapters_snapshot.bash tests/run-retrospective-governance.sh
 - ./tests/run-retrospective-governance.sh
 
 ## Ticket Completion Contract
