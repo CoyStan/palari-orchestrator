@@ -41,6 +41,7 @@ if ./bin/palari worktree closeout WTC-0001 >"$TMP_ROOT/wrong-checkout.out" 2>&1;
 fi
 grep -Fq "state: wrong-checkout" "$TMP_ROOT/wrong-checkout.out"
 grep -Fq "next: ./bin/palari worktree WTC-0001" "$TMP_ROOT/wrong-checkout.out"
+grep -Fq "expected worktree: $TMP_ROOT/palari-orchestrator-worktrees/WTC-0001" "$TMP_ROOT/wrong-checkout.out"
 
 ./bin/palari worktree WTC-0001 >"$TMP_ROOT/worktree.out"
 WTC1_WORKTREE="$(sed -n 's/^Worker cd: cd //p' "$TMP_ROOT/worktree.out")"
@@ -57,6 +58,28 @@ fi
 grep -Fq "state: dirty" "$TMP_ROOT/dirty.out"
 grep -Fq "next: commit, stash, or remove unrelated local changes" "$TMP_ROOT/dirty.out"
 
+git add docs/worktree/notes.md tickets/open/WTC-0001-*.md
+git commit -m "implement WTC-0001" >/dev/null
+
+if ./bin/palari worktree closeout WTC-0001 >"$TMP_ROOT/missing-evidence.out" 2>&1; then
+	printf 'closeout: expected missing evidence to fail\n' >&2
+	exit 1
+fi
+grep -Fq "state: missing-evidence" "$TMP_ROOT/missing-evidence.out"
+grep -Fq "next: ./bin/palari ci WTC-0001 --base main" "$TMP_ROOT/missing-evidence.out"
+
+./bin/palari ci WTC-0001 --base main >/dev/null
+git add reports/evidence/WTC-0001
+git commit -m "record WTC-0001 evidence" >/dev/null
+
+if ./bin/palari worktree closeout WTC-0001 >"$TMP_ROOT/missing-reports.out" 2>&1; then
+	printf 'closeout: expected missing reports to fail\n' >&2
+	exit 1
+fi
+grep -Fq "state: missing-reports" "$TMP_ROOT/missing-reports.out"
+grep -Fq "reports: missing" "$TMP_ROOT/missing-reports.out"
+grep -Fq "next: complete the missing reports, then run ./bin/palari report-lint WTC-0001" "$TMP_ROOT/missing-reports.out"
+
 mkdir -p reports/human
 cat >reports/WTC-0001-technical-report.md <<'DOC'
 # WTC-0001 Technical Report
@@ -71,7 +94,7 @@ cat >reports/WTC-0001-technical-report.md <<'DOC'
 
 ## CI Evidence
 
-- To be refreshed by Palari CI.
+- Refreshed by Palari CI.
 
 ## Risks / Follow-Ups
 
@@ -100,19 +123,8 @@ Confirm closeout distinguishes pending and ready states.
 
 Move the ticket to review only after evidence exists.
 DOC
-git add docs/worktree/notes.md reports/WTC-0001-technical-report.md reports/human/WTC-0001-human-report.md tickets/open/WTC-0001-*.md
-git commit -m "implement WTC-0001" >/dev/null
-
-if ./bin/palari worktree closeout WTC-0001 >"$TMP_ROOT/missing-evidence.out" 2>&1; then
-	printf 'closeout: expected missing evidence to fail\n' >&2
-	exit 1
-fi
-grep -Fq "state: missing-evidence" "$TMP_ROOT/missing-evidence.out"
-grep -Fq "next: ./bin/palari ci WTC-0001 --base main" "$TMP_ROOT/missing-evidence.out"
-
-./bin/palari ci WTC-0001 --base main >/dev/null
-git add reports/evidence/WTC-0001
-git commit -m "record WTC-0001 evidence" >/dev/null
+git add reports/WTC-0001-technical-report.md reports/human/WTC-0001-human-report.md
+git commit -m "record WTC-0001 reports" >/dev/null
 
 ./bin/palari worktree closeout WTC-0001 >"$TMP_ROOT/ready.out"
 grep -Fq "state: ready-for-review" "$TMP_ROOT/ready.out"

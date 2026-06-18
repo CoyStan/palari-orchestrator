@@ -427,11 +427,36 @@ worktree_closeout_evidence_status() {
 	fi
 }
 
+worktree_registered_path_for_branch() {
+	local branch="$1"
+	local wanted="refs/heads/$branch"
+	git -C "$ROOT" worktree list --porcelain | awk -v wanted="$wanted" '
+    /^worktree / {
+      if (path != "" && branch == wanted) {
+        print path
+        exit
+      }
+      path = substr($0, 10)
+      branch = ""
+      next
+    }
+    /^branch / {
+      branch = substr($0, 8)
+      next
+    }
+    END {
+      if (path != "" && branch == wanted) {
+        print path
+      }
+    }
+  ' | head -n 1
+}
+
 cmd_worktree_closeout() {
 	require_base_folders
 	local ticket="${1:-}"
 	[[ -n "$ticket" ]] || die "worktree closeout requires ticket ID"
-	local file ticket_id title status risk requires_review requires_human branch target_branch actual_branch head changed_count
+	local file ticket_id title status risk requires_review requires_human branch worktree target_branch actual_branch head changed_count
 	local scope_output scope_code evidence_status technical reviewer human reports_status target_head
 	local -a missing_reports=()
 	file="$(find_ticket_file "$ticket")" || die "ticket not found: $ticket"
@@ -443,6 +468,8 @@ cmd_worktree_closeout() {
 	requires_human="$(frontmatter_value "$file" requires_human_confirmation)"
 	[[ -n "$ticket_id" ]] || ticket_id="$ticket"
 	branch="$(ticket_declared_branch "$file" "$ticket_id")"
+	worktree="$(worktree_registered_path_for_branch "$branch")"
+	[[ -n "$worktree" ]] || worktree="$(ticket_declared_worktree "$file" "$ticket_id")"
 	target_branch="$(frontmatter_value "$file" target_branch)"
 	[[ -n "$target_branch" ]] || target_branch="$DEFAULT_BRANCH"
 
@@ -454,9 +481,23 @@ cmd_worktree_closeout() {
 		printf 'ticket branch: %s\n' "$branch"
 		printf 'current branch: %s\n' "${actual_branch:-detached}"
 		printf 'target branch: %s\n' "$target_branch"
+		printf 'expected worktree: %s\n' "$worktree"
+		printf 'current worktree: %s\n' "$ROOT"
 		printf 'next: ./bin/palari worktree %s\n' "$ticket_id"
 		# shellcheck disable=SC2016 # Printed command intentionally contains command substitution for the user.
 		printf 'next: cd "$(./bin/palari worktree %s | sed -n '\''s/^Worker cd: cd //p'\'')"\n' "$ticket_id"
+		return 1
+	fi
+	if [[ "$ROOT" != "$worktree" ]]; then
+		printf 'worktree closeout: %s\n' "$ticket_id"
+		printf 'state: wrong-checkout\n'
+		printf 'ticket branch: %s\n' "$branch"
+		printf 'current branch: %s\n' "${actual_branch:-detached}"
+		printf 'target branch: %s\n' "$target_branch"
+		printf 'expected worktree: %s\n' "$worktree"
+		printf 'current worktree: %s\n' "$ROOT"
+		printf 'next: cd %s\n' "$worktree"
+		printf 'next: ./bin/palari worktree closeout %s\n' "$ticket_id"
 		return 1
 	fi
 	git -C "$ROOT" rev-parse --verify "$target_branch" >/dev/null 2>&1 || die "worktree closeout: missing target branch: $target_branch"
