@@ -569,7 +569,7 @@ adoption_target_path_in_plan() {
 		planned="${planned%/**}"
 		planned="${planned%/.gitkeep}"
 		[[ -n "$planned" ]] || continue
-		if [[ "$path" == "$planned" || "$path" == "$planned/"* ]]; then
+		if [[ "$path" == "$planned" || "$path" == "$planned/"* || "$planned" == "$path/"* ]]; then
 			return 0
 		fi
 	done < <(adoption_plan_write_paths "$target_abs" "$with_ci" "$with_hooks" "$force")

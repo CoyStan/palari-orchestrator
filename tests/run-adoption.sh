@@ -297,6 +297,31 @@ fi
 rm -rf "${TARGET:?}/bin"
 : >"$TARGET/.git/info/exclude"
 
+IGNORED_PARENT_TARGET="$TMP_ROOT/ignored-parent-target"
+mkdir -p "$IGNORED_PARENT_TARGET"
+(cd "$IGNORED_PARENT_TARGET" &&
+	git init -b main >/dev/null &&
+	git config user.email "ignored-parent-target@example.invalid" &&
+	git config user.name "Ignored Parent Target Test" &&
+	printf 'tickets/\n' >.gitignore &&
+	git add .gitignore &&
+	git commit -m "ignore tickets parent" >/dev/null)
+mkdir -p "$IGNORED_PARENT_TARGET/tickets/open"
+cat >"$IGNORED_PARENT_TARGET/tickets/open/MAL-0001.md" <<'DOC'
+---
+id: MAL-0001
+title: Hidden target ticket
+status: open
+---
+
+# Hidden target ticket
+DOC
+if (cd "$SOURCE" && ./bin/palari adopt plan "$IGNORED_PARENT_TARGET" --out "$TMP_ROOT/ignored-parent-plan.md") >"$TMP_ROOT/ignored-parent-plan.out" 2>&1; then
+	printf 'adoption: expected ignored target parent path to fail before plan write\n' >&2
+	exit 1
+fi
+grep -Fq "ignored target path overlaps planned adoption write" "$TMP_ROOT/ignored-parent-plan.out"
+
 cp "$TMP_ROOT/adoption-plan.md" "$TMP_ROOT/force-mismatch-plan.md"
 sed -i \
 	-e 's/^status: proposed$/status: approved/' \
