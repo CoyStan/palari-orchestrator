@@ -404,8 +404,189 @@ cmd_ticket() {
 	esac
 }
 
+worktree_closeout_evidence_status() {
+	local ticket_id="$1"
+	local dir="$ROOT/$EVIDENCE_DIR/$ticket_id"
+	local name missing=0 code
+	for name in verification.log junit.xml palari.sarif manifest.json; do
+		[[ -s "$dir/$name" ]] || missing=$((missing + 1))
+	done
+	if ((missing > 0)); then
+		printf 'missing\n'
+		return 0
+	fi
+
+	set +e
+	ci_existing_evidence_valid "$ticket_id" >/dev/null 2>&1
+	code=$?
+	set -e
+	if ((code == 0)); then
+		printf 'ready\n'
+	else
+		printf 'invalid\n'
+	fi
+}
+
+cmd_worktree_closeout() {
+	require_base_folders
+	local ticket="${1:-}"
+	[[ -n "$ticket" ]] || die "worktree closeout requires ticket ID"
+	local file ticket_id title status risk requires_review requires_human branch target_branch actual_branch head changed_count
+	local scope_output scope_code evidence_status technical reviewer human reports_status target_head
+	local -a missing_reports=()
+	file="$(find_ticket_file "$ticket")" || die "ticket not found: $ticket"
+	ticket_id="$(frontmatter_value "$file" id)"
+	title="$(frontmatter_value "$file" title)"
+	status="$(frontmatter_value "$file" status)"
+	risk="$(frontmatter_value "$file" risk)"
+	requires_review="$(frontmatter_value "$file" requires_review)"
+	requires_human="$(frontmatter_value "$file" requires_human_confirmation)"
+	[[ -n "$ticket_id" ]] || ticket_id="$ticket"
+	branch="$(ticket_declared_branch "$file" "$ticket_id")"
+	target_branch="$(frontmatter_value "$file" target_branch)"
+	[[ -n "$target_branch" ]] || target_branch="$DEFAULT_BRANCH"
+
+	git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1 || die "worktree closeout requires a git repo"
+	actual_branch="$(git -C "$ROOT" branch --show-current 2>/dev/null || true)"
+	if [[ "$actual_branch" != "$branch" ]]; then
+		printf 'worktree closeout: %s\n' "$ticket_id"
+		printf 'state: wrong-checkout\n'
+		printf 'ticket branch: %s\n' "$branch"
+		printf 'current branch: %s\n' "${actual_branch:-detached}"
+		printf 'target branch: %s\n' "$target_branch"
+		printf 'next: ./bin/palari worktree %s\n' "$ticket_id"
+		# shellcheck disable=SC2016 # Printed command intentionally contains command substitution for the user.
+		printf 'next: cd "$(./bin/palari worktree %s | sed -n '\''s/^Worker cd: cd //p'\'')"\n' "$ticket_id"
+		return 1
+	fi
+	git -C "$ROOT" rev-parse --verify "$target_branch" >/dev/null 2>&1 || die "worktree closeout: missing target branch: $target_branch"
+	branch_contains_ref_at "$ROOT" "$branch" "$target_branch" || die "worktree closeout: ticket branch $branch does not contain $target_branch"
+
+	head="$(git -C "$ROOT" rev-parse --short HEAD)"
+	target_head="$(git -C "$ROOT" rev-parse --short "$target_branch")"
+	changed_count="$(git_changed_count_at "$ROOT")"
+	if [[ "$changed_count" != "0" ]]; then
+		printf 'worktree closeout: %s\n' "$ticket_id"
+		printf 'state: dirty\n'
+		printf 'ticket: %s - %s\n' "$ticket_id" "${title:-}"
+		printf 'ticket branch: %s\n' "$branch"
+		printf 'target branch: %s (%s)\n' "$target_branch" "$target_head"
+		printf 'worktree: %s\n' "$ROOT"
+		printf 'head: %s\n' "$head"
+		printf 'changed paths: %s\n' "$changed_count"
+		git -C "$ROOT" status --short -- .
+		printf 'next: commit, stash, or remove unrelated local changes, then rerun ./bin/palari worktree closeout %s\n' "$ticket_id"
+		return 1
+	fi
+
+	changed_count="$(git -C "$ROOT" diff --name-only --relative "$target_branch"...HEAD -- . | sed '/^$/d' | wc -l | tr -d ' ')"
+	scope_output="$(mktemp "${TMPDIR:-/tmp}/palari-closeout-scope.XXXXXX")"
+	set +e
+	(cmd_scope_check "$ticket_id" --base "$target_branch") >"$scope_output" 2>&1
+	scope_code=$?
+	set -e
+	if ((scope_code != 0)); then
+		printf 'worktree closeout: %s\n' "$ticket_id"
+		printf 'state: scope-failed\n'
+		printf 'ticket: %s - %s\n' "$ticket_id" "${title:-}"
+		printf 'ticket branch: %s\n' "$branch"
+		printf 'target branch: %s (%s)\n' "$target_branch" "$target_head"
+		printf 'worktree: %s\n' "$ROOT"
+		printf 'head: %s\n' "$head"
+		printf 'changed paths: %s\n' "$changed_count"
+		printf 'scope: failed\n'
+		cat "$scope_output"
+		rm -f "$scope_output"
+		printf 'next: ./bin/palari scope-check %s --base %s\n' "$ticket_id" "$target_branch"
+		return 1
+	fi
+	rm -f "$scope_output"
+
+	evidence_status="$(worktree_closeout_evidence_status "$ticket_id")"
+	if [[ "$evidence_status" != "ready" ]]; then
+		printf 'worktree closeout: %s\n' "$ticket_id"
+		printf 'state: %s-evidence\n' "$evidence_status"
+		printf 'ticket: %s - %s\n' "$ticket_id" "${title:-}"
+		printf 'ticket branch: %s\n' "$branch"
+		printf 'target branch: %s (%s)\n' "$target_branch" "$target_head"
+		printf 'worktree: %s\n' "$ROOT"
+		printf 'head: %s\n' "$head"
+		printf 'changed paths: %s\n' "$changed_count"
+		printf 'scope: ok\n'
+		printf 'evidence: %s\n' "$evidence_status"
+		printf 'next: ./bin/palari ci %s --base %s\n' "$ticket_id" "$target_branch"
+		return 1
+	fi
+
+	technical="$(find_report_file "$REPORTS_DIR" "$ticket_id" '(^# .*Technical Report$|^## Files Changed$|^## Verification$|^## Risks / Follow-Ups$)' || true)"
+	reviewer="$(find_report_file "$REPORTS_DIR" "$ticket_id" '(^# .*Reviewer Note$|^## Review Result$|^## Required Changes$)' || true)"
+	human="$(find_report_file "$HUMAN_REPORTS_DIR" "$ticket_id" || true)"
+	if [[ "$risk" =~ ^R[2345]$ && -z "$technical" ]]; then
+		missing_reports+=("$REPORTS_DIR/$ticket_id-technical-report.md")
+	fi
+	if [[ ("$requires_human" == "true" || "$risk" =~ ^R[345]$) && -z "$human" ]]; then
+		missing_reports+=("$HUMAN_REPORTS_DIR/$ticket_id-human-report.md")
+	fi
+	if [[ "$status" == "in-review" || "$status" == "accepted" ]]; then
+		if [[ ("$requires_review" == "true" || "$risk" =~ ^R[2345]$) && -z "$reviewer" ]]; then
+			missing_reports+=("$REPORTS_DIR/$ticket_id-reviewer-note.md")
+		fi
+	fi
+	if ((${#missing_reports[@]} > 0)); then
+		reports_status="missing"
+	else
+		reports_status="ready"
+	fi
+	if [[ "$reports_status" != "ready" ]]; then
+		printf 'worktree closeout: %s\n' "$ticket_id"
+		printf 'state: missing-reports\n'
+		printf 'ticket: %s - %s\n' "$ticket_id" "${title:-}"
+		printf 'ticket branch: %s\n' "$branch"
+		printf 'target branch: %s (%s)\n' "$target_branch" "$target_head"
+		printf 'worktree: %s\n' "$ROOT"
+		printf 'head: %s\n' "$head"
+		printf 'changed paths: %s\n' "$changed_count"
+		printf 'scope: ok\n'
+		printf 'evidence: ready\n'
+		printf 'reports: missing\n'
+		printf 'missing reports:\n'
+		printf -- '- %s\n' "${missing_reports[@]}"
+		printf 'next: complete the missing reports, then run ./bin/palari report-lint %s\n' "$ticket_id"
+		printf 'next: ./bin/palari worktree closeout %s\n' "$ticket_id"
+		return 1
+	fi
+
+	printf 'worktree closeout: %s\n' "$ticket_id"
+	if [[ "$status" == "in-review" ]]; then
+		printf 'state: in-review\n'
+	else
+		printf 'state: ready-for-review\n'
+	fi
+	printf 'ticket: %s - %s\n' "$ticket_id" "${title:-}"
+	printf 'ticket status: %s\n' "$status"
+	printf 'ticket branch: %s\n' "$branch"
+	printf 'target branch: %s (%s)\n' "$target_branch" "$target_head"
+	printf 'worktree: %s\n' "$ROOT"
+	printf 'head: %s\n' "$head"
+	printf 'changed paths: %s\n' "$changed_count"
+	printf 'scope: ok\n'
+	printf 'evidence: ready\n'
+	printf 'reports: ready\n'
+	if [[ "$status" == "in-review" ]]; then
+		printf 'next: ./bin/palari packet %s reviewer\n' "$ticket_id"
+	else
+		printf 'next: ./bin/palari ticket ready %s\n' "$ticket_id"
+		printf 'next: ./bin/palari packet %s reviewer\n' "$ticket_id"
+	fi
+}
+
 cmd_worktree() {
 	require_base_folders
+	if [[ "${1:-}" == "closeout" ]]; then
+		shift
+		cmd_worktree_closeout "$@"
+		return
+	fi
 	local ticket="${1:-}"
 	[[ -n "$ticket" ]] || die "worktree requires ticket ID"
 	local file ticket_id title branch worktree target_branch branch_state target_head actual_branch changed head

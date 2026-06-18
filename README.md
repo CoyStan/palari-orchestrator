@@ -463,10 +463,17 @@ Before acceptance:
 ```bash
 palari scope-check APP-0001
 palari ci APP-0001 --base main
+palari worktree closeout APP-0001
 palari ticket ready APP-0001
 palari packet APP-0001 reviewer
 palari accept APP-0001 --by founder
 ```
+
+`palari worktree closeout ID` is a read-only readiness check that must be run
+from the ticket worktree. It reports the ticket branch, target branch, worktree
+path, changed path count, scope status, evidence status, report status, and the
+exact next command to run. It fails closed from the canonical checkout, a wrong
+branch, a dirty worktree, missing evidence, missing reports, or a scope failure.
 
 `accept` moves the ticket to `tickets/closed/`. It does not merge, push, deploy,
 or bless missing evidence.
@@ -645,6 +652,7 @@ palari packet WEB-0002 specialist
 | `palari ticket needs-human ID` | Mark work that needs human authority or product judgment. |
 | `palari ticket reopen ID` | Move an in-review ticket back to implementation. |
 | `palari worktree ID` | Create or locate the ticket-specific git worktree. |
+| `palari worktree closeout ID` | From a ticket worktree, report closeout readiness and exact next commands without writing state. |
 | `palari packet ID ROLE` | Generate the mission packet for a specialist, reviewer, acceptor/human, or custom review profile. |
 | `palari sandbox create ID` | Create a disposable local repository copy for executor experiments. |
 | `palari sandbox list` | List local sandboxes under the worktree base with dirty state. |

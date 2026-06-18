@@ -208,6 +208,7 @@ commands:
   ticket needs-human ID        Move ticket to needs-human.
   ticket reopen ID             Move in-review ticket to reopened.
   worktree ID                  Prepare and verify ticket branch/worktree.
+  worktree closeout ID         Read-only closeout readiness check from a ticket worktree.
   packet ID ROLE               Print specialist/reviewer/acceptor or custom-profile packet.
   sandbox create ID            Create a disposable local repo sandbox.
   sandbox list                 List local sandboxes under the worktree base.
@@ -334,7 +335,7 @@ ticket)
 	;;
 worktree)
 	shift
-	cmd_worktree "${1:-}"
+	cmd_worktree "$@"
 	;;
 packet | agent-packet)
 	shift
