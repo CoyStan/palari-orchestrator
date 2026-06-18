@@ -11,7 +11,6 @@ infer_ticket_from_branch() {
 	esac
 	return 1
 }
-
 ci_add_junit_case() {
 	local name="$1"
 	local state="$2"
@@ -85,6 +84,7 @@ ci_run_shell_step() {
 	output="$(bash -lc "$command" 2>&1)"
 	code=$?
 	set -e
+	evidence_truth_scan_text "$output"
 	printf '%s\n' "$output" >>"$CI_LOG"
 	printf '```\n' >>"$CI_LOG"
 	if ((code == 0)); then

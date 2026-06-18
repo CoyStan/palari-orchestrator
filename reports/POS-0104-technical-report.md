@@ -4,11 +4,14 @@
 
 - `bin/palari`
 - `lib/palari/ci_accept.bash`
+- `lib/palari/evidence_quality.bash`
 - `lib/palari/evidence_truthfulness.bash`
 - `contracts/review-and-acceptance.md`
 - `contracts/cli-maintainability.md`
 - `README.md`
 - `tests/run-evidence-quality.sh`
+- `reports/POS-0104-reviewer-note.md`
+- `reports/evidence/POS-0104/`
 - `tickets/open/POS-0104-evidence-truthfulness-expected-failures-skips.md`
 
 ## Verification
@@ -34,5 +37,8 @@
 
 - POS-0104 blocks skipped own-ticket verification unless the ticket is explicitly documentation/test-discovery work.
 - Expected-failure or TODO/FIXME evidence now requires follow-up tickets unless covered by the documentation/test-discovery exception.
+- Re-review repair made manifest truthfulness fail closed when top-level skip flags disagree with skipped-check entries.
+- Re-review repair scans verification command output for TODO/FIXME/expected-failure markers, not only configured command text.
+- Re-review repair prints allowed skipped/deferred truthfulness metadata in `palari evidence score`.
 - Existing all-passing evidence remains ready.
 - The new helper module keeps `ci_accept.bash` at the existing 999-line ceiling; future CI/acceptance work should continue splitting helper logic out instead of growing that file.

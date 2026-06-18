@@ -27,6 +27,39 @@ evidence_score_rating() {
 	fi
 }
 
+evidence_score_truthfulness_summary() {
+	local manifest="$1"
+	[[ -s "$manifest" ]] || return 0
+	python3 - "$manifest" <<'PY' || return 0
+import json
+import pathlib
+import sys
+
+try:
+    data = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+except Exception:
+    raise SystemExit(0)
+
+skipped_checks = data.get("skipped_checks", [])
+followups = data.get("follow_up_tickets", [])
+skipped_count = data.get("skipped", 0)
+expected_failures = data.get("expected_failures", 0)
+fixme_count = data.get("fixme_count", 0)
+skipped_acceptance = data.get("skipped_acceptance_criteria", False)
+if not any((skipped_count, expected_failures, fixme_count, skipped_acceptance, followups)):
+    raise SystemExit(0)
+print(
+    "  info       truthfulness: "
+    f"skipped={skipped_count} "
+    f"skipped_acceptance_criteria={str(bool(skipped_acceptance)).lower()} "
+    f"skipped_checks={len(skipped_checks) if isinstance(skipped_checks, list) else 'invalid'} "
+    f"expected_failures={expected_failures} "
+    f"fixme_count={fixme_count} "
+    f"follow_up_tickets={','.join(followups) if isinstance(followups, list) and followups else 'none'}"
+)
+PY
+}
+
 evidence_score_next_action() {
 	local file="$1"
 	shift
@@ -105,6 +138,7 @@ cmd_evidence_score() {
 	else
 		evidence_score_add 20 missing "manifest integrity and freshness" "$manifest_detail"
 	fi
+	evidence_score_truthfulness_summary "$evidence_dir/manifest.json"
 
 	technical="$(find_report_file "$REPORTS_DIR" "$ticket_id" '(^# .*Technical Report$|^## Files Changed$|^## Verification$|^## Risks / Follow-Ups$)' || true)"
 	if [[ -n "$technical" ]]; then

@@ -140,6 +140,7 @@ if not isinstance(skipped_acceptance, bool):
 skipped_checks = data.get("skipped_checks", [])
 if not isinstance(skipped_checks, list):
     fail("skipped_checks must be a list")
+skipped_checks_acceptance = False
 for item in skipped_checks:
     if not isinstance(item, dict):
         fail("skipped_checks entries must be objects")
@@ -149,15 +150,19 @@ for item in skipped_checks:
         fail("skipped_checks reason must be a string")
     if item.get("acceptance_criteria") is not True:
         fail("skipped_checks entries must state acceptance_criteria: true")
+    skipped_checks_acceptance = True
 if skipped_count > 0 and not skipped_checks:
     fail("skipped_checks must describe skipped verification")
+derived_skipped_acceptance = skipped_count > 0 and skipped_checks_acceptance
+if skipped_acceptance != derived_skipped_acceptance:
+    fail("skipped_acceptance_criteria is inconsistent with skipped_checks")
 
 followups = data.get("follow_up_tickets", [])
 if not isinstance(followups, list) or not all(isinstance(item, str) and item for item in followups):
     fail("follow_up_tickets must be a list of ticket IDs")
 
 deferred = data.get("expected_failures", 0) > 0 or data.get("fixme_count", 0) > 0
-if skipped_acceptance and not allow_skips:
+if derived_skipped_acceptance and not allow_skips:
     fail("skipped verification covers acceptance criteria; add evidence_skip_exception: documentation or test-discovery only for explicit discovery/documentation work")
 if deferred and not (allow_skips or followups):
     fail("expected-failure or fixme evidence requires evidence_followup_tickets or an explicit documentation/test-discovery exception")
