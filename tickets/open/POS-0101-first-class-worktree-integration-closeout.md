@@ -10,8 +10,8 @@ model_hint:
 claimed_by: Codex
 claimed_at: 2026-06-18T06:05:14Z
 claim_ref: refs/palari/claims/POS-0101
-claim_heartbeat_at: 2026-06-18T06:20:55Z
-claim_expires_at: 2026-06-18T06:25:55Z
+claim_heartbeat_at: 2026-06-18T06:36:15Z
+claim_expires_at: 2026-06-18T06:41:15Z
 allowed_paths:
   - bin/palari
   - lib/palari/tickets_workspace.bash

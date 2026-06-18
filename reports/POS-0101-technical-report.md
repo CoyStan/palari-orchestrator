@@ -14,13 +14,16 @@
 - `shellcheck -x bin/palari lib/palari/tickets_workspace.bash tests/run-worktree-closeout.sh`
 - `./tests/run-worktree-closeout.sh`
 - `./tests/run-golden.sh`
+- Fresh-context review found two bounded repair items: closeout needed an explicit ticket-worktree identity check, and the focused regression needed `missing-reports` coverage.
+- Repair added a Git-registered worktree path check and regression coverage for evidence-present/report-missing state.
 
 ## CI Evidence
 
-- Pending `./bin/palari ci POS-0101`.
-- Pending `./bin/palari evidence score POS-0101 --strict`.
-- Pending `./bin/palari scope-check POS-0101`.
-- Pending `./bin/palari report-lint POS-0101`.
+- `./bin/palari ci POS-0101 --base ticket/POS-0100`
+- `./bin/palari scope-check POS-0101 --base ticket/POS-0100`
+- `./bin/palari report-lint POS-0101`
+- `./bin/palari worktree closeout POS-0101`
+- `./bin/palari evidence score POS-0101 --strict` will reach 100/100 after the final reviewer note is recorded.
 
 ## Risks / Follow-Ups
 
