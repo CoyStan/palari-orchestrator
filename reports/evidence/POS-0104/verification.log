@@ -1,0 +1,57 @@
+# Palari CI Evidence
+
+- Ticket: POS-0104
+- Base ref: ticket/POS-0103
+- Created: 2026-06-18T11:20:15Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0104 (8 changed path(s))
+```
+
+## lint
+
+```text
+lint: tickets/open/POS-0104-evidence-truthfulness-expected-failures-skips.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+report-lint: ok for POS-0104
+lint: ok for POS-0104
+```
+
+## verification 1
+
+Command: `bash -n lib/palari/ci_accept.bash lib/palari/evidence_truthfulness.bash lib/palari/evidence_quality.bash tests/run-evidence-quality.sh`
+
+```text
+
+```
+
+## verification 2
+
+Command: `./tests/run-evidence-quality.sh`
+
+```text
+evidence-quality: ok
+```
+
+## verification 3
+
+Command: `bats tests/palari_acceptance.bats`
+
+```text
+1..6
+ok 1 accept rejects forged evidence manifest
+ok 2 palari ci writes an integrity manifest
+ok 3 human acceptance mode is explicit and policy mode cannot close tickets
+ok 4 R5 acceptance honors configured human approval quorum
+ok 5 stable human aliases cannot bypass self-acceptance
+ok 6 R5 quorum requires distinct stable person identities
+```
+
+## verification 4
+
+Command: `./tests/run-cli-structure.sh`
+
+```text
+cli-structure: ok
+```
