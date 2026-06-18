@@ -1,7 +1,7 @@
 ---
 id: POS-0106
 title: Scope Hygiene Generated Worktree Artifacts
-status: claimed
+status: in-review
 risk: R3
 priority: P2
 stream: process
@@ -10,8 +10,8 @@ model_hint:
 claimed_by: Codex
 claimed_at: 2026-06-18T12:33:38Z
 claim_ref: refs/palari/claims/POS-0106
-claim_heartbeat_at: 2026-06-18T13:03:18Z
-claim_expires_at: 2026-06-18T13:08:18Z
+claim_heartbeat_at: 2026-06-18T13:10:30Z
+claim_expires_at: 2026-06-18T13:15:30Z
 allowed_paths:
   - README.md
   - contracts/scope-and-paths.md
