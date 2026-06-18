@@ -1,7 +1,7 @@
 ---
 id: POS-0102
 title: Atomic evidence refresh acceptance preparation
-status: in-review
+status: accepted
 risk: R3
 priority: P2
 stream: process
@@ -10,8 +10,8 @@ model_hint:
 claimed_by: Codex
 claimed_at: 2026-06-18T06:50:36Z
 claim_ref: refs/palari/claims/POS-0102
-claim_heartbeat_at: 2026-06-18T07:31:54Z
-claim_expires_at: 2026-06-18T07:36:54Z
+claim_heartbeat_at: 2026-06-18T13:34:31Z
+claim_expires_at: 2026-06-18T14:34:31Z
 allowed_paths:
   - bin/palari
   - lib/palari/ci_accept.bash
@@ -53,9 +53,9 @@ verification:
 target_branch: ticket/POS-0101
 branch: ticket/POS-0102
 worktree: 
-accepted_by:
+accepted_by: founder
 acceptance_mode: human
-accepted_at:
+accepted_at: 2026-06-18T13:34:36Z
 created: 2026-06-18
 updated: 2026-06-18
 ---
