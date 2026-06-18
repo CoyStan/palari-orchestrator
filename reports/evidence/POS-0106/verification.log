@@ -2,12 +2,12 @@
 
 - Ticket: POS-0106
 - Base ref: ticket/POS-0105
-- Created: 2026-06-18T12:49:51Z
+- Created: 2026-06-18T13:03:33Z
 
 ## scope-check
 
 ```text
-scope-check: ok for POS-0106 (5 changed path(s))
+scope-check: ok for POS-0106 (12 changed path(s))
 ```
 
 ## lint
