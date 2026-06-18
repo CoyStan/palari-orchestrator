@@ -132,7 +132,36 @@ cfg_nested() {
 	value="$(config_nested_scalar "$section" "$key" || true)"
 	[[ -n "$value" ]] && printf '%s\n' "$value" || printf '%s\n' "$default"
 }
-
+normalize_abs_path() {
+	local IFS='/' segment path="$1"
+	local -a parts=() out=()
+	read -r -a parts <<<"$path"
+	for segment in "${parts[@]}"; do
+		[[ -z "$segment" || "$segment" == "." ]] && continue
+		if [[ "$segment" == ".." ]]; then
+			((${#out[@]} > 0)) && unset 'out[${#out[@]}-1]'
+			continue
+		fi
+		out+=("$segment")
+	done
+	(IFS='/'; printf '/%s\n' "${out[*]-}")
+}
+abs_path_from() {
+	local path="$2"
+	[[ "$path" == /* ]] || path="$1/$path"
+	normalize_abs_path "$path"
+}
+abs_path() {
+	abs_path_from "$ROOT" "$1"
+}
+canonical_repo_root() {
+	local git_common_dir
+	git_common_dir="$(git -C "$ROOT" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" ||
+		git_common_dir="$(git -C "$ROOT" rev-parse --git-common-dir 2>/dev/null)" || true
+	git_common_dir="$(abs_path_from "$ROOT" "$git_common_dir")"
+	[[ "$git_common_dir" == */.git ]] && printf '%s\n' "${git_common_dir%/.git}" || abs_path "$ROOT"
+}
+PALARI_CANONICAL_ROOT="$(canonical_repo_root)"
 PROJECT_NAME="$(cfg project_name "Palari Orchestration")"
 OPEN_DIR="$(cfg tickets_open_dir "tickets/open")"
 PROPOSED_DIR="$(cfg tickets_proposed_dir "tickets/proposed")"
@@ -165,38 +194,12 @@ DECISIONS_OPEN_DIR="$(cfg decisions_open_dir "decisions/open")"
 DECISIONS_DECIDED_DIR="$(cfg decisions_decided_dir "decisions/decided")"
 REQUIRE_SERVES_GOAL="$(cfg require_serves_goal "warn")"
 DEFAULT_BRANCH="$(cfg default_branch "main")"
-WORKTREE_BASE="$(cfg worktree_base "../$(basename "$ROOT")-worktrees")"
+WORKTREE_BASE="$(cfg worktree_base "../$(basename "$PALARI_CANONICAL_ROOT")-worktrees")"
 CLAIM_LEASE_SECONDS="$(cfg claim_lease_seconds "300")"
 SCOPE_OVERLAP_POLICY="$(cfg scope_overlap_policy "block")"
 MEMORY_DIR="$(cfg memory_dir "memory")"
 MEMORY_INDEX_BACKEND="$(cfg memory_index_backend "sqlite")"
-
-abs_path() {
-	local path="$1"
-	[[ "$path" == /* ]] || path="$ROOT/$path"
-	# Normalize "." and ".." segments so computed worktree paths are stable
-	# and never re-embed traversal segments (the source of a past committed
-	# "ID/../base/ID" artifact).
-	local IFS='/' segment
-	local -a parts=() out=()
-	read -r -a parts <<<"$path"
-	for segment in "${parts[@]}"; do
-		case "$segment" in
-		"" | ".") ;;
-		"..")
-			((${#out[@]} > 0)) && unset 'out[${#out[@]}-1]'
-			;;
-		*) out+=("$segment") ;;
-		esac
-	done
-	printf '/%s\n' "$(
-		IFS='/'
-		printf '%s' "${out[*]-}"
-	)"
-}
-
-WORKTREE_BASE_ABS="$(abs_path "$WORKTREE_BASE")"
-
+WORKTREE_BASE_ABS="$(abs_path_from "$PALARI_CANONICAL_ROOT" "$WORKTREE_BASE")"
 today_utc() {
 	date -u +%F
 }
