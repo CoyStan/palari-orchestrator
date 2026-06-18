@@ -24,7 +24,7 @@
 ## CI Evidence
 
 - `reports/evidence/POS-0102/manifest.json`
-- Manifest `head_sha`: `affc83ac7e17f542699cf5dfc76eec09a0f94d0c`
+- Manifest `head_sha`: `65fbabe072dba7e255a92f0f9bd918e3fbdd6d27`
 - Status: passed
 - Tests: 5
 - Failures: 0
@@ -34,6 +34,8 @@
 
 - Added `palari evidence refresh ID [--base REF]` as the supported acceptance-preparation path.
 - The refresh command verifies ticket branch/worktree context, requires a clean worktree, refuses invalid existing evidence that is not merely stale by commit, runs `palari ci`, validates the refreshed manifest, and prints review/acceptance next commands.
+- The repair pass added a pre-CI scope guard so clean but already-committed out-of-scope changes fail before evidence is rewritten.
+- The README flow now uses `palari evidence refresh` as the clean-worktree CI evidence path instead of running `palari ci` first.
 - Acceptance/evidence freshness now permits only same-ticket evidence, report, handoff, and ticket bookkeeping commits after the manifest `head_sha`.
 - Source or unrelated commits after evidence still fail acceptance/evidence freshness and require a refresh.
 - `worktree closeout` now uses the same current-manifest freshness check instead of treating integrity-only evidence as ready.
