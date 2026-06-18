@@ -5,13 +5,13 @@ status: claimed
 risk: R5
 priority: P1
 stream: process
-serves_goal: 
-model_hint: 
+serves_goal:
+model_hint:
 claimed_by: Codex
 claimed_at: 2026-06-18T00:58:59Z
 claim_ref: refs/palari/claims/POS-0100
-claim_heartbeat_at: 2026-06-18T05:30:15Z
-claim_expires_at: 2026-06-18T05:35:15Z
+claim_heartbeat_at: 2026-06-18T05:47:41Z
+claim_expires_at: 2026-06-18T05:52:42Z
 allowed_paths:
   - lib/palari/ci_accept.bash
   - lib/palari/humans.bash
@@ -54,7 +54,7 @@ verification:
   - ./tests/run-risks.sh
 target_branch: main
 branch: ticket/POS-0100
-worktree: 
+worktree:
 accepted_by:
 acceptance_mode: human
 accepted_at:
