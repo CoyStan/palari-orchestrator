@@ -80,6 +80,11 @@ hygiene_status_path() {
 	printf '%s\n' "$line"
 }
 
+hygiene_status_tracked() {
+	local line="$1"
+	[[ "${line:0:2}" != "??" ]]
+}
+
 hygiene_dirty_lines() {
 	git -C "$ROOT" status --short -- . 2>/dev/null || true
 }
@@ -103,11 +108,31 @@ hygiene_path_generated() {
 	hygiene_path_generated_with_patterns "$1" "${patterns[@]}"
 }
 
+hygiene_scope_pattern_generated() {
+	local pattern="${1#./}" generated pattern_root generated_root
+	local -a generated_patterns=()
+	mapfile -t generated_patterns < <(hygiene_generated_patterns)
+	for generated in "${generated_patterns[@]}"; do
+		[[ -n "$generated" ]] || continue
+		if [[ "$pattern" == "$generated" ]]; then
+			return 0
+		fi
+		pattern_root="${pattern%/**}"
+		generated_root="${generated%/**}"
+		if [[ -n "$pattern_root" && -n "$generated_root" ]] &&
+			[[ "$pattern_root" == "$generated_root" || "$pattern_root" == "$generated_root/"* ]]; then
+			return 0
+		fi
+	done
+	return 1
+}
+
 hygiene_dirty_counts() {
 	local total_ref="$1"
 	local generated_ref="$2"
 	local source_ref="$3"
-	local line path dirty_total=0 dirty_generated=0 dirty_source=0
+	local tracked_generated_ref="${4:-}"
+	local line path dirty_total=0 dirty_generated=0 dirty_source=0 dirty_tracked_generated=0
 	local -a generated_patterns=()
 	mapfile -t generated_patterns < <(hygiene_generated_patterns)
 	while IFS= read -r line; do
@@ -116,6 +141,9 @@ hygiene_dirty_counts() {
 		dirty_total=$((dirty_total + 1))
 		if hygiene_path_generated_with_patterns "$path" "${generated_patterns[@]}"; then
 			dirty_generated=$((dirty_generated + 1))
+			if hygiene_status_tracked "$line"; then
+				dirty_tracked_generated=$((dirty_tracked_generated + 1))
+			fi
 		else
 			dirty_source=$((dirty_source + 1))
 		fi
@@ -123,6 +151,7 @@ hygiene_dirty_counts() {
 	printf -v "$total_ref" '%s' "$dirty_total"
 	printf -v "$generated_ref" '%s' "$dirty_generated"
 	printf -v "$source_ref" '%s' "$dirty_source"
+	[[ -z "$tracked_generated_ref" ]] || printf -v "$tracked_generated_ref" '%s' "$dirty_tracked_generated"
 }
 
 hygiene_print_dirty() {
@@ -133,6 +162,9 @@ hygiene_print_dirty() {
 		path="$(hygiene_status_path "$line")"
 		if [[ "$wanted" == "generated" ]]; then
 			hygiene_path_generated "$path" || continue
+		elif [[ "$wanted" == "tracked-generated" ]]; then
+			hygiene_path_generated "$path" || continue
+			hygiene_status_tracked "$line" || continue
 		else
 			! hygiene_path_generated "$path" || continue
 		fi
@@ -221,7 +253,7 @@ hygiene_review_findings() {
 
 cmd_hygiene() {
 	require_base_folders
-	local strict="false" arg total generated source line id by lease expires status branch target ahead issue_count=0
+	local strict="false" arg total generated source tracked_generated line id by lease expires status branch target ahead issue_count=0
 	while (($# > 0)); do
 		arg="$1"
 		case "$arg" in
@@ -243,13 +275,18 @@ HYGIENEUSAGE
 		esac
 	done
 
-	hygiene_dirty_counts total generated source
+	hygiene_dirty_counts total generated source tracked_generated
 	printf 'Palari hygiene\n'
 	printf 'root: %s\n' "$ROOT"
-	printf 'git: %s dirty path(s) (%s generated, %s source)\n' "$total" "$generated" "$source"
+	printf 'git: %s dirty path(s) (%s generated, %s source, %s tracked generated)\n' "$total" "$generated" "$source" "$tracked_generated"
 	if ((generated > 0)); then
 		printf 'generated dirty paths:\n'
 		hygiene_print_dirty generated || true
+	fi
+	if ((tracked_generated > 0)); then
+		printf 'tracked generated paths:\n'
+		hygiene_print_dirty tracked-generated || true
+		issue_count=$((issue_count + tracked_generated))
 	fi
 	if ((source > 0)); then
 		printf 'source dirty paths:\n'

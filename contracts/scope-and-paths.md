@@ -44,6 +44,12 @@ palari scope-check TICKET-ID
 Scope checks inspect changed, staged, and untracked paths in the current git
 worktree.
 
+Untracked local generated artifacts are hygiene dirt, not ticket scope. Keep
+build outputs, caches, dependency folders, and local worktree artifacts out of
+`allowed_paths`; ticket lint rejects generated artifact scopes. If a generated
+artifact becomes tracked or modified, clean it up or rescope the work instead
+of legitimizing the artifact as source.
+
 In CI, run the same gate against a PR diff:
 
 ```bash

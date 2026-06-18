@@ -20,9 +20,6 @@ agent_run_gate() {
 	return "$code"
 }
 
-# Each executor owns exactly two shims: describe (command.txt content) and
-# run. The lifecycle around them - worktree, packet, evidence, gates - is
-# shared and identical for every executor.
 executor_opencode_describe() {
 	local ticket_id="$1"
 	local worktree="$2"
@@ -85,9 +82,6 @@ executor_opencode_run() {
 	return "$code"
 }
 
-# One function owns the Codex CLI contract. If the codex CLI changes its
-# command syntax, this shim and executor_codex_run are the only places to
-# update.
 codex_full_prompt() {
 	local packet_path="$1"
 	local prompt="$2"
@@ -656,6 +650,13 @@ lint_one_ticket() {
 		printf 'lint: %s: allowed_paths must contain at least one item\n' "${file#"$ROOT"/}" >&2
 		errors=$((errors + 1))
 	fi
+	while IFS= read -r value; do
+		[[ -n "$value" ]] || continue
+		if declare -F hygiene_scope_pattern_generated >/dev/null && hygiene_scope_pattern_generated "$value"; then
+			printf 'lint: %s: allowed_paths must not include generated artifact path: %s\n' "${file#"$ROOT"/}" "$value" >&2
+			errors=$((errors + 1))
+		fi
+	done < <(frontmatter_list_items "$file" allowed_paths)
 	if [[ "$(frontmatter_list_count "$file" forbidden_paths)" == "0" ]]; then
 		printf 'lint: %s: forbidden_paths must contain at least one item\n' "${file#"$ROOT"/}" >&2
 		errors=$((errors + 1))
@@ -664,9 +665,6 @@ lint_one_ticket() {
 		printf 'lint: %s: verification must contain at least one item\n' "${file#"$ROOT"/}" >&2
 		errors=$((errors + 1))
 	fi
-	# Frontmatter must stay valid YAML for external tooling, not only for
-	# Palari's own parser. Unquoted globs such as `- **/secrets/**` are
-	# rejected by strict parsers and have shipped broken before.
 	local yaml_issue
 	while IFS= read -r yaml_issue; do
 		[[ -n "$yaml_issue" ]] || continue
@@ -699,8 +697,6 @@ lint_one_ticket() {
 			fi
 		fi
 	fi
-	# Goal traceability: warn (or fail in strict mode) when active work does
-	# not declare which goal it serves.
 	value="$(frontmatter_value "$file" serves_goal)"
 	local ticket_status
 	ticket_status="$(frontmatter_value "$file" status)"
@@ -718,8 +714,6 @@ lint_one_ticket() {
 		printf 'lint: %s: serves_goal references unknown goal: %s\n' "${file#"$ROOT"/}" "$value" >&2
 		errors=$((errors + 1))
 	fi
-	# Related skills are advisory packet inputs, so a dangling reference is a
-	# warning, not an error: the ticket still scopes and gates the work.
 	while IFS= read -r value; do
 		[[ -n "$value" ]] || continue
 		if ! find_skill_file "$value" >/dev/null 2>&1; then
@@ -904,6 +898,10 @@ cmd_scope_check() {
 		if [[ -n "$pattern" ]]; then
 			printf 'scope-check: %s forbidden by ticket %s (rule: %s)\n' "$path" "$ticket_id" "$pattern" >&2
 			errors=$((errors + 1))
+			continue
+		fi
+		if [[ -z "$base_ref" ]] && declare -F hygiene_path_generated >/dev/null &&
+			! git -C "$ROOT" ls-files --error-unmatch -- "$path" >/dev/null 2>&1 && hygiene_path_generated "$path"; then
 			continue
 		fi
 		pattern="$(check_path_against_patterns "$path" "${allowed[@]}" || true)"
