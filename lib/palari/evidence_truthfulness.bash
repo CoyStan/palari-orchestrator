@@ -153,7 +153,9 @@ for item in skipped_checks:
     skipped_checks_acceptance = True
 if skipped_count > 0 and not skipped_checks:
     fail("skipped_checks must describe skipped verification")
-derived_skipped_acceptance = skipped_count > 0 and skipped_checks_acceptance
+if skipped_count != len(skipped_checks):
+    fail("skipped count is inconsistent with skipped_checks")
+derived_skipped_acceptance = skipped_checks_acceptance
 if skipped_acceptance != derived_skipped_acceptance:
     fail("skipped_acceptance_criteria is inconsistent with skipped_checks")
 

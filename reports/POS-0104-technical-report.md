@@ -38,6 +38,7 @@
 - POS-0104 blocks skipped own-ticket verification unless the ticket is explicitly documentation/test-discovery work.
 - Expected-failure or TODO/FIXME evidence now requires follow-up tickets unless covered by the documentation/test-discovery exception.
 - Re-review repair made manifest truthfulness fail closed when top-level skip flags disagree with skipped-check entries.
+- Second re-review repair made skipped-check entries authoritative and rejects skip-count mismatches.
 - Re-review repair scans verification command output for TODO/FIXME/expected-failure markers, not only configured command text.
 - Re-review repair prints allowed skipped/deferred truthfulness metadata in `palari evidence score`.
 - Existing all-passing evidence remains ready.

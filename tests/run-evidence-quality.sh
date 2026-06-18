@@ -182,6 +182,26 @@ if ./bin/palari accept EVD-0002 --by reviewer >"$TMP_ROOT/tampered-accept.out" 2
 fi
 grep -Fq "skipped_acceptance_criteria is inconsistent with skipped_checks" "$TMP_ROOT/tampered-accept.out" ||
 	fail "accept tampered skipped-acceptance diagnostic not shown"
+python3 - <<'PY'
+import json
+from pathlib import Path
+
+path = Path("reports/evidence/EVD-0002/manifest.json")
+data = json.loads(path.read_text(encoding="utf-8"))
+data["skipped"] = 0
+data["skipped_acceptance_criteria"] = False
+path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+PY
+if ./bin/palari evidence score EVD-0002 --strict >"$TMP_ROOT/tampered-count-strict.out" 2>&1; then
+	fail "strict scoring should fail when skip count is inconsistent with skipped_checks"
+fi
+grep -Fq "skipped count is inconsistent with skipped_checks" "$TMP_ROOT/tampered-count-strict.out" ||
+	fail "tampered skipped-count diagnostic not shown"
+if ./bin/palari accept EVD-0002 --by reviewer >"$TMP_ROOT/tampered-count-accept.out" 2>&1; then
+	fail "accept should fail when skip count is inconsistent with skipped_checks"
+fi
+grep -Fq "skipped count is inconsistent with skipped_checks" "$TMP_ROOT/tampered-count-accept.out" ||
+	fail "accept tampered skipped-count diagnostic not shown"
 git add .
 git commit -m "skipped evidence fixture" >/dev/null
 

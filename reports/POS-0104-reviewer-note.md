@@ -30,3 +30,16 @@ Reopened.
 ## Recommendation
 
 Do not accept POS-0104 until the bounded findings are repaired and re-reviewed.
+
+## Repair Re-Review Result
+
+Reopened.
+
+## Repair Re-Review Findings
+
+- High: `skipped_checks[].acceptance_criteria: true` can still be neutralized when `skipped` is falsified to `0` and `skipped_acceptance_criteria` is falsified to `false`. A fresh isolated CLI probe still returned `score: 100/100` and `rating: ready`.
+
+## Repair Re-Review Required Changes
+
+- Make `skipped_checks[].acceptance_criteria: true` independently fail closed for process tickets, even when `skipped` or `skipped_acceptance_criteria` are falsified.
+- Add a regression where `skipped=0`, `skipped_acceptance_criteria=false`, and `skipped_checks[].acceptance_criteria=true` causes both `evidence score --strict` and `accept` to fail.
