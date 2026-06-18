@@ -153,6 +153,29 @@ sed -i \
 (cd "$SOURCE" && ./bin/palari adopt "$EMPTY_TARGET" --plan "$TMP_ROOT/empty-plan.md") >"$TMP_ROOT/empty-adopt.out"
 grep -Fq "adopt: ok" "$TMP_ROOT/empty-adopt.out"
 
+EMPTY_DRIFT_TARGET="$TMP_ROOT/empty-drift-target"
+mkdir -p "$EMPTY_DRIFT_TARGET"
+(cd "$EMPTY_DRIFT_TARGET" &&
+	git init -b main >/dev/null &&
+	git config user.email "empty-drift-target@example.invalid" &&
+	git config user.name "Empty Drift Target Test")
+(cd "$SOURCE" && ./bin/palari adopt plan "$EMPTY_DRIFT_TARGET" --out "$TMP_ROOT/empty-drift-plan.md") >"$TMP_ROOT/empty-drift-plan.out"
+grep -Fq 'target_head: "unavailable"' "$TMP_ROOT/empty-drift-plan.md"
+sed -i \
+	-e 's/^status: proposed$/status: approved/' \
+	-e 's/^approved_by:$/approved_by: founder/' \
+	-e 's/^approved_at:$/approved_at: 2026-06-17T00:00:00Z/' \
+	"$TMP_ROOT/empty-drift-plan.md"
+(cd "$EMPTY_DRIFT_TARGET" &&
+	printf '# First target commit\n' >README.md &&
+	git add README.md &&
+	git commit -m "first target commit after plan" >/dev/null)
+if (cd "$SOURCE" && ./bin/palari adopt "$EMPTY_DRIFT_TARGET" --plan "$TMP_ROOT/empty-drift-plan.md") >"$TMP_ROOT/empty-drift-adopt.out" 2>&1; then
+	printf 'adoption: expected first target commit after plan to fail before write\n' >&2
+	exit 1
+fi
+grep -Fq "adopt plan target_head mismatch" "$TMP_ROOT/empty-drift-adopt.out"
+
 if (cd "$SOURCE" && ./bin/palari adopt "$TARGET" --ci --hooks --plan "$TMP_ROOT/adoption-plan.md") >"$TMP_ROOT/proposed-plan.out" 2>&1; then
 	printf 'adoption: expected proposed plan to fail before write\n' >&2
 	exit 1

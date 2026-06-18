@@ -820,7 +820,7 @@ validate_adoption_plan() {
 		die "adopt plan target mismatch: expected $target_abs, got ${target_path:-missing}"
 	plan_target_head="$(frontmatter_value "$plan" target_head)"
 	current_target_head="$(adoption_git_head_or_unavailable "$target_abs")"
-	if [[ "$plan_target_head" != "unavailable" && "$current_target_head" != "unavailable" && "$plan_target_head" != "$current_target_head" ]]; then
+	if [[ "$plan_target_head" != "$current_target_head" ]]; then
 		die "adopt plan target_head mismatch: expected $current_target_head, got $plan_target_head"
 	fi
 	adoption_require_clean_target_worktree "$target_abs" "$with_ci" "$with_hooks" "$force"
