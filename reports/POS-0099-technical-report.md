@@ -105,6 +105,9 @@ reports/evidence/POS-0099/
 - Added repair coverage after a fresh-context re-review:
   - an ignored target `bin/palari` hidden by `.git/info/exclude` fails as
     target worktree drift before it can run.
+- Added repair coverage after a second fresh-context re-review:
+  - an empty but valid git target records `target_head: "unavailable"` instead
+    of malformed unborn-HEAD text and can still be adopted when unchanged.
 
 ## CI Evidence
 
@@ -158,6 +161,9 @@ reports/evidence/POS-0099/
 - Fresh-context re-review found one blocking gap: ignored target files could
   overlap planned adoption writes without appearing in ordinary git status.
   This was repaired before final review.
+- Second fresh-context re-review found one bounded gap: empty target repos with
+  unborn `HEAD` values recorded malformed `target_head` text. This was repaired
+  before final review.
 
 ## Risks / Follow-Ups
 

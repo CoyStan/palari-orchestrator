@@ -9,7 +9,8 @@ SOURCE="$TMP_ROOT/source"
 TARGET="$TMP_ROOT/target"
 DRY_TARGET="$TMP_ROOT/dry-target"
 CUSTOM_TARGET="$TMP_ROOT/custom-target"
-mkdir -p "$SOURCE" "$TARGET" "$DRY_TARGET" "$CUSTOM_TARGET"
+EMPTY_TARGET="$TMP_ROOT/empty-target"
+mkdir -p "$SOURCE" "$TARGET" "$DRY_TARGET" "$CUSTOM_TARGET" "$EMPTY_TARGET"
 
 (cd "$REPO_ROOT" && tar --exclude .git --exclude .palari -cf - .) | (cd "$SOURCE" && tar -xf -)
 
@@ -59,6 +60,12 @@ handoffs_dir: custom/handoffs
 DOC
 git add README.md palari.config.yaml
 git commit -m "custom target baseline" >/dev/null
+cd "$TARGET"
+
+cd "$EMPTY_TARGET"
+git init -b main >/dev/null
+git config user.email "adoption-empty@example.invalid"
+git config user.name "Adoption Empty Test"
 cd "$TARGET"
 
 (cd "$SOURCE" && ./bin/palari adopt "$DRY_TARGET" --dry-run) >"$TMP_ROOT/dry-run.out" 2>"$TMP_ROOT/dry-run.err" || true
@@ -131,6 +138,20 @@ test -f "$CUSTOM_TARGET/custom/proposed/.gitkeep"
 test -f "$CUSTOM_TARGET/custom/open/.gitkeep"
 test -f "$CUSTOM_TARGET/custom/evidence/.gitkeep"
 test -d "$CUSTOM_TARGET/.custom-palari/locks"
+
+(cd "$SOURCE" && ./bin/palari adopt plan "$EMPTY_TARGET" --out "$TMP_ROOT/empty-plan.md") >"$TMP_ROOT/empty-plan.out"
+grep -Fq 'target_head: "unavailable"' "$TMP_ROOT/empty-plan.md"
+if grep -Fq 'target_head: "HEAD' "$TMP_ROOT/empty-plan.md"; then
+	printf 'adoption: empty target plan recorded unborn HEAD text\n' >&2
+	exit 1
+fi
+sed -i \
+	-e 's/^status: proposed$/status: approved/' \
+	-e 's/^approved_by:$/approved_by: founder/' \
+	-e 's/^approved_at:$/approved_at: 2026-06-17T00:00:00Z/' \
+	"$TMP_ROOT/empty-plan.md"
+(cd "$SOURCE" && ./bin/palari adopt "$EMPTY_TARGET" --plan "$TMP_ROOT/empty-plan.md") >"$TMP_ROOT/empty-adopt.out"
+grep -Fq "adopt: ok" "$TMP_ROOT/empty-adopt.out"
 
 if (cd "$SOURCE" && ./bin/palari adopt "$TARGET" --ci --hooks --plan "$TMP_ROOT/adoption-plan.md") >"$TMP_ROOT/proposed-plan.out" 2>&1; then
 	printf 'adoption: expected proposed plan to fail before write\n' >&2

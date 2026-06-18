@@ -500,9 +500,18 @@ adoption_target_abs() {
 	(cd "$target" && pwd)
 }
 
+adoption_git_head_or_unavailable() {
+	local repo_abs="$1"
+	if git -C "$repo_abs" rev-parse --verify -q HEAD >/dev/null 2>&1; then
+		git -C "$repo_abs" rev-parse --verify HEAD
+	else
+		printf 'unavailable\n'
+	fi
+}
+
 adoption_source_ref() {
 	if git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-		git -C "$ROOT" rev-parse HEAD
+		adoption_git_head_or_unavailable "$ROOT"
 	else
 		printf 'unavailable\n'
 	fi
@@ -728,7 +737,7 @@ cmd_adopt_plan() {
 		yaml_quote "$target_abs"
 		printf '\n'
 		printf 'target_head: '
-		yaml_quote "$(git -C "$target_abs" rev-parse HEAD 2>/dev/null || printf 'unavailable')"
+		yaml_quote "$(adoption_git_head_or_unavailable "$target_abs")"
 		printf '\n'
 		printf 'with_ci: %s\n' "$with_ci"
 		printf 'with_hooks: %s\n' "$with_hooks"
@@ -810,7 +819,7 @@ validate_adoption_plan() {
 	[[ "$target_path" == "$target_abs" ]] ||
 		die "adopt plan target mismatch: expected $target_abs, got ${target_path:-missing}"
 	plan_target_head="$(frontmatter_value "$plan" target_head)"
-	current_target_head="$(git -C "$target_abs" rev-parse HEAD 2>/dev/null || printf 'unavailable')"
+	current_target_head="$(adoption_git_head_or_unavailable "$target_abs")"
 	if [[ "$plan_target_head" != "unavailable" && "$current_target_head" != "unavailable" && "$plan_target_head" != "$current_target_head" ]]; then
 		die "adopt plan target_head mismatch: expected $current_target_head, got $plan_target_head"
 	fi
