@@ -55,3 +55,39 @@ Add focused regression coverage for nested generated allowed paths, for example
 
 Reopen for the bounded lint/classification fix and regression test above. Do
 not accept POS-0106 yet.
+
+## Re-review Result
+
+accept-ready
+
+## Findings
+
+No findings. The repair closes the earlier blocker: generated `allowed_paths`
+lint now rejects the requested cases consistently with generated hygiene
+classification.
+
+## Verification Reviewed
+
+- Reviewed `/tmp/POS-0106-rereview-packet.md` and this reviewer note.
+- Confirmed focused regression coverage in `tests/run-hygiene.sh` for
+  `node_modules/**`, `gate/forgegate/__pycache__/**`,
+  `gate/forgegate/__pycache__/tracked.pyc`, and `gate/**/*.pyc`.
+- `./bin/palari scope-check POS-0106 --base ticket/POS-0105`: passed, 12
+  changed paths.
+- `./bin/palari lint POS-0106`: passed with only the existing `serves_goal`
+  warning; `report-lint: ok`.
+- `bash -n ...`: passed.
+- `./tests/run-hygiene.sh`: passed.
+- Evidence manifest is refreshed for repair commit `f6713f0`; branch tip
+  `1493fb2` only updates stored evidence files.
+- Evidence reports `passed`, 7 tests, 0 failures, and artifact hashes match.
+- Workspace remained clean. No unrelated forbidden, secret, dependency,
+  deploy, runtime, or production path changes found.
+
+## Required Changes
+
+None.
+
+## Recommendation
+
+accept-ready.
