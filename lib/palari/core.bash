@@ -123,7 +123,6 @@ cfg() {
 	value="$(config_scalar "$key" || true)"
 	[[ -n "$value" ]] && printf '%s\n' "$value" || printf '%s\n' "$default"
 }
-
 cfg_nested() {
 	local section="$1"
 	local key="$2"
@@ -144,7 +143,10 @@ normalize_abs_path() {
 		fi
 		out+=("$segment")
 	done
-	(IFS='/'; printf '/%s\n' "${out[*]-}")
+	(
+		IFS='/'
+		printf '/%s\n' "${out[*]-}"
+	)
 }
 abs_path_from() {
 	local path="$2"
@@ -928,7 +930,6 @@ ignored_overlap_patterns() {
 		printf '%s\n' "$item"
 	done
 }
-
 pattern_prefix_to_var() {
 	local pattern="${1#./}"
 	local var_name="$2"

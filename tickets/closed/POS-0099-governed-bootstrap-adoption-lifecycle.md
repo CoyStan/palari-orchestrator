@@ -14,6 +14,7 @@ claim_heartbeat_at: 2026-06-18T13:30:12Z
 claim_expires_at: 2026-06-18T14:30:12Z
 allowed_paths:
   - lib/palari/init_adopt.bash
+  - lib/palari/adoption_session.bash
   - bin/palari
   - tests/run-adoption.sh
   - tests/run-cli-structure.sh

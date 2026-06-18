@@ -16,6 +16,9 @@ allowed_paths:
   - README.md
   - contracts/adoption.md
   - lib/palari/init_adopt.bash
+  - lib/palari/adoption_session.bash
+  - plugin/commands/adopt.md
+  - skills/adoption/SKILL.md
   - tests/run-adoption.sh
   - tickets/open/POS-0105-*
   - tickets/closed/POS-0105-*
