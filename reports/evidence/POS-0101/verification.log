@@ -1,0 +1,50 @@
+# Palari CI Evidence
+
+- Ticket: POS-0101
+- Base ref: ticket/POS-0100
+- Created: 2026-06-18T06:22:50Z
+
+## scope-check
+
+```text
+scope-check: ok for POS-0101 (6 changed path(s))
+```
+
+## lint
+
+```text
+lint: tickets/open/POS-0101-first-class-worktree-integration-closeout.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+report-lint: ok for POS-0101
+lint: ok for POS-0101
+```
+
+## verification 1
+
+Command: `bash -n lib/palari/tickets_workspace.bash tests/run-worktree-closeout.sh`
+
+```text
+
+```
+
+## verification 2
+
+Command: `./tests/run-worktree-closeout.sh`
+
+```text
+Preparing worktree (new branch 'ticket/WTC-0001')
+Preparing worktree (new branch 'ticket/WTC-0002')
+worktree-closeout: ok
+```
+
+## verification 3
+
+Command: `./tests/run-golden.sh`
+
+```text
+lint: tickets/open/POS-0002-overlap-alpha.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+Preparing worktree (new branch 'ticket/POS-0001')
+lint: tickets/open/POS-0001-golden-flow-scope-review.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+lint: tickets/open/POS-0001-golden-flow-scope-review.md: warning: no serves_goal link; pass --goal GOAL-ID so the queue runner can prioritize it
+Preparing worktree (new branch 'ticket/APP-0001')
+golden: ok
+```
