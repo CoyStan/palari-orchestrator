@@ -109,8 +109,11 @@ hygiene_path_generated() {
 }
 
 hygiene_scope_pattern_generated() {
-	local pattern="${1#./}" generated pattern_root generated_root
+	local pattern="${1#./}" generated pattern_root generated_root generated_suffix
 	local -a generated_patterns=()
+	if hygiene_path_generated "$pattern"; then
+		return 0
+	fi
 	mapfile -t generated_patterns < <(hygiene_generated_patterns)
 	for generated in "${generated_patterns[@]}"; do
 		[[ -n "$generated" ]] || continue
@@ -123,6 +126,18 @@ hygiene_scope_pattern_generated() {
 			[[ "$pattern_root" == "$generated_root" || "$pattern_root" == "$generated_root/"* ]]; then
 			return 0
 		fi
+		case "$generated" in
+		"**/"*)
+			generated_suffix="${generated#**/}"
+			if path_matches_pattern "$pattern" "$generated_suffix"; then
+				return 0
+			fi
+			# shellcheck disable=SC2053 # The suffix is a configured generated glob.
+			if [[ "$pattern" == */$generated_suffix ]]; then
+				return 0
+			fi
+			;;
+		esac
 	done
 	return 1
 }

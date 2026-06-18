@@ -66,12 +66,18 @@ rm -rf generated-local
 	--stream process \
 	--risk R1 \
 	--allowed "node_modules/**" \
+	--allowed "gate/forgegate/__pycache__/**" \
+	--allowed "gate/forgegate/__pycache__/tracked.pyc" \
+	--allowed "gate/**/*.pyc" \
 	--allowed "tickets/open/HYG-0002-*" \
 	--verify "true" >/dev/null
 if ./bin/palari lint HYG-0002 >"$TMP_ROOT/generated-allowed.out" 2>&1; then
 	fail "ticket lint should reject generated allowed_paths"
 fi
 grep -Fq "allowed_paths must not include generated artifact path: node_modules/**" "$TMP_ROOT/generated-allowed.out"
+grep -Fq "allowed_paths must not include generated artifact path: gate/forgegate/__pycache__/**" "$TMP_ROOT/generated-allowed.out"
+grep -Fq "allowed_paths must not include generated artifact path: gate/forgegate/__pycache__/tracked.pyc" "$TMP_ROOT/generated-allowed.out"
+grep -Fq "allowed_paths must not include generated artifact path: gate/**/*.pyc" "$TMP_ROOT/generated-allowed.out"
 git checkout -- tickets/open/HYG-0002-*.md 2>/dev/null || true
 rm -f tickets/open/HYG-0002-*.md
 

@@ -10,8 +10,8 @@ model_hint:
 claimed_by: Codex
 claimed_at: 2026-06-18T12:33:38Z
 claim_ref: refs/palari/claims/POS-0106
-claim_heartbeat_at: 2026-06-18T12:49:34Z
-claim_expires_at: 2026-06-18T12:54:34Z
+claim_heartbeat_at: 2026-06-18T13:03:18Z
+claim_expires_at: 2026-06-18T13:08:18Z
 allowed_paths:
   - README.md
   - contracts/scope-and-paths.md
