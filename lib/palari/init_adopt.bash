@@ -551,12 +551,37 @@ target_config_scalar() {
 	[[ -n "${value:-}" ]] && printf '%s\n' "$value" || printf '%s\n' "$default"
 }
 
+adoption_target_path_in_plan() {
+	local target_abs="$1" with_ci="$2" with_hooks="$3" force="$4" path="$5"
+	local planned
+	path="${path%/}"
+	while IFS= read -r planned; do
+		planned="${planned#  - }"
+		planned="${planned%/**}"
+		planned="${planned%/.gitkeep}"
+		[[ -n "$planned" ]] || continue
+		if [[ "$path" == "$planned" || "$path" == "$planned/"* ]]; then
+			return 0
+		fi
+	done < <(adoption_plan_write_paths "$target_abs" "$with_ci" "$with_hooks" "$force")
+	return 1
+}
+
 adoption_require_clean_target_worktree() {
-	local target_abs="$1"
-	local status
+	local target_abs="$1" with_ci="$2" with_hooks="$3" force="$4"
+	local status ignored_line ignored_path
 	status="$(git -C "$target_abs" status --porcelain=v1 --untracked-files=all)"
 	[[ -z "$status" ]] ||
 		die "adopt plan target worktree changed after plan; commit, stash, or remove target changes and regenerate the plan"
+	while IFS= read -r ignored_line; do
+		[[ "${ignored_line:0:2}" == "!!" ]] || continue
+		ignored_path="${ignored_line:3}"
+		ignored_path="${ignored_path%\"}"
+		ignored_path="${ignored_path#\"}"
+		if adoption_target_path_in_plan "$target_abs" "$with_ci" "$with_hooks" "$force" "$ignored_path"; then
+			die "adopt plan target worktree changed after plan; ignored target path overlaps planned adoption write: $ignored_path"
+		fi
+	done < <(git -C "$target_abs" status --porcelain=v1 --untracked-files=all --ignored=matching)
 }
 
 target_init_dirs() {
@@ -682,7 +707,7 @@ cmd_adopt_plan() {
 	if ! git -C "$target_abs" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
 		die "adopt target must be an existing git repository: $target_abs"
 	fi
-	adoption_require_clean_target_worktree "$target_abs"
+	adoption_require_clean_target_worktree "$target_abs" "$with_ci" "$with_hooks" "$force"
 	source_ref="$(adoption_source_ref)"
 	source_hash="$(adoption_source_manifest_hash)"
 	mkdir -p "$(dirname "$out")"
@@ -789,7 +814,7 @@ validate_adoption_plan() {
 	if [[ "$plan_target_head" != "unavailable" && "$current_target_head" != "unavailable" && "$plan_target_head" != "$current_target_head" ]]; then
 		die "adopt plan target_head mismatch: expected $current_target_head, got $plan_target_head"
 	fi
-	adoption_require_clean_target_worktree "$target_abs"
+	adoption_require_clean_target_worktree "$target_abs" "$with_ci" "$with_hooks" "$force"
 	plan_with_ci="$(frontmatter_value "$plan" with_ci)"
 	plan_with_hooks="$(frontmatter_value "$plan" with_hooks)"
 	plan_force="$(frontmatter_value "$plan" force)"

@@ -234,6 +234,7 @@ sed -i \
 	-e 's/^approved_at:$/approved_at: 2026-06-17T00:00:00Z/' \
 	"$TMP_ROOT/dirty-target-plan.md"
 mkdir -p "$TARGET/bin"
+printf 'bin/\n' >>"$TARGET/.git/info/exclude"
 cat >"$TARGET/bin/palari" <<'DOC'
 #!/usr/bin/env bash
 echo target-bin >&2
@@ -244,12 +245,13 @@ if (cd "$SOURCE" && ./bin/palari adopt "$TARGET" --ci --hooks --plan "$TMP_ROOT/
 	printf 'adoption: expected dirty target worktree to fail before write\n' >&2
 	exit 1
 fi
-grep -Fq "adopt plan target worktree changed after plan" "$TMP_ROOT/dirty-target-plan.out"
+grep -Fq "ignored target path overlaps planned adoption write" "$TMP_ROOT/dirty-target-plan.out"
 if grep -Fq "target-bin" "$TMP_ROOT/dirty-target-plan.out"; then
 	printf 'adoption: dirty target binary ran before target drift failure\n' >&2
 	exit 1
 fi
 rm -rf "${TARGET:?}/bin"
+: >"$TARGET/.git/info/exclude"
 
 cp "$TMP_ROOT/adoption-plan.md" "$TMP_ROOT/force-mismatch-plan.md"
 sed -i \

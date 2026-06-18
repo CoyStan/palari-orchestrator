@@ -17,7 +17,8 @@ written.
 - The plan records source, target, path manifest, exclusions, and downstream
   customization boundaries.
 - Approved adoption now fails if the source copied files/symlinks or the target
-  worktree changed after the plan was reviewed.
+  worktree changed after the plan was reviewed, including ignored target files
+  that overlap planned Palari writes.
 - README and the adoption contract now describe the governed flow.
 
 ## What I Should Know

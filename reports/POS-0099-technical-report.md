@@ -51,7 +51,8 @@ reports/evidence/POS-0099/
   before writing, so dirty source-tree edits and copied symlink changes after
   approval fail closed.
 - Adoption validates that the target worktree is still clean before a plan is
-  generated and again before any approved non-dry-run write.
+  generated and again before any approved non-dry-run write, including ignored
+  files that overlap planned adoption writes.
 - Adoption validates that the reviewed path manifest exactly matches the writes
   implied by the command flags and target config.
 - Adoption validates that approved plan flags (`with_ci`, `with_hooks`, and
@@ -101,6 +102,9 @@ reports/evidence/POS-0099/
   - adding an untracked target `bin/palari` after approval fails as target
     worktree drift before the target binary can run.
   - shellcheck now covers the adoption module directly.
+- Added repair coverage after a fresh-context re-review:
+  - an ignored target `bin/palari` hidden by `.git/info/exclude` fails as
+    target worktree drift before it can run.
 
 ## CI Evidence
 
@@ -151,6 +155,9 @@ reports/evidence/POS-0099/
   drift through untracked files without changing `target_head`, and copied
   symlinks were not included in `source_manifest_hash`. Both were repaired
   before final review.
+- Fresh-context re-review found one blocking gap: ignored target files could
+  overlap planned adoption writes without appearing in ordinary git status.
+  This was repaired before final review.
 
 ## Risks / Follow-Ups
 
