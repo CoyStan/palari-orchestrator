@@ -65,6 +65,18 @@ repo's tickets, reports, evidence bundles, human reports, memory, tests,
 humans, workflows, policies, outcomes, goals, or decisions active in the target
 repo by default.
 
+For a governance-only session, Palari writes target-owned governance
+scaffolding but does not copy the runtime into the target repo:
+
+```bash
+./bin/palari adopt /path/to/repo --governance-only
+PALARI_ROOT=/path/to/repo PALARI_LIB_DIR=/path/to/palari-orchestrator/lib/palari \
+  /path/to/palari-orchestrator/bin/palari status
+```
+
+Governance-only adoption must not install CI or hooks, because those require a
+local runtime in the target repository.
+
 ## Non-Goals
 
 - Do not publish an installer package until the repo-native copy flow is stable.

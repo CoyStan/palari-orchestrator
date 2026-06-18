@@ -10,7 +10,6 @@ palari_init_dirs() {
 		"$POLICIES_REVOKED_DIR" "$OUTCOMES_OPEN_DIR" "$OUTCOMES_RECORDED_DIR" \
 		"$DECISIONS_OPEN_DIR" "$DECISIONS_DECIDED_DIR"
 }
-
 cmd_init() {
 	local dir force="false" with_ci="false" with_hooks="false"
 	while (($# > 0)); do
@@ -62,7 +61,6 @@ cmd_init() {
 		install_template_file "adapters/hooks/lefthook.yml" "lefthook.yml" "$force"
 	fi
 }
-
 cmd_authority() {
 	local sub="${1:-show}"
 	shift || true
@@ -114,7 +112,6 @@ cmd_authority() {
 	*) die "unknown authority command: $sub" ;;
 	esac
 }
-
 ticket_evidence_present_quiet() {
 	local ticket_id="$1"
 	local dir="$ROOT/$EVIDENCE_DIR/$ticket_id"
@@ -124,7 +121,6 @@ ticket_evidence_present_quiet() {
 	done
 	return 0
 }
-
 ticket_report_lint_quiet() {
 	local ticket_id="$1"
 	local code
@@ -134,7 +130,6 @@ ticket_report_lint_quiet() {
 	set -e
 	return "$code"
 }
-
 ticket_next_action() {
 	local file="$1"
 	local id status target title
@@ -181,7 +176,6 @@ ticket_next_action() {
 	esac
 	: "$title"
 }
-
 cmd_lifecycle_audit() {
 	require_base_folders
 	local limit="" count=0 file id status title next
@@ -211,7 +205,6 @@ cmd_lifecycle_audit() {
 		printf 'next: no active tickets; create or adopt the next scoped ticket.\n'
 	fi
 }
-
 cmd_status() {
 	require_base_folders
 	local show_next="false"
@@ -264,7 +257,6 @@ cmd_status() {
 		cmd_lifecycle_audit --limit 1 | sed '1d'
 	fi
 }
-
 doctor_check_file() {
 	local rel="$1"
 	local errors_ref="$2"
@@ -275,7 +267,6 @@ doctor_check_file() {
 		printf -v "$errors_ref" '%s' "$((${!errors_ref} + 1))"
 	fi
 }
-
 doctor_check_dir() {
 	local rel="$1"
 	local errors_ref="$2"
@@ -286,29 +277,24 @@ doctor_check_dir() {
 		printf -v "$errors_ref" '%s' "$((${!errors_ref} + 1))"
 	fi
 }
-
 secure_doctor_bool() {
 	local section="$1" key="$2" default="$3"
 	[[ "$(cfg_nested "$section" "$key" "$default")" == "true" ]]
 }
-
 secure_doctor_broker_observations_available() {
 	local found
 	found="$(find "$ROOT/$EVIDENCE_DIR" -path '*/broker/*/summary.json' -type f -print -quit 2>/dev/null || true)"
 	[[ -n "$found" ]]
 }
-
 secure_doctor_accept_enforces_human_quorum() {
 	type accept_enforces_human_quorum >/dev/null 2>&1 || return 1
 	accept_enforces_human_quorum
 }
-
 cmd_secure_doctor() {
 	local gate_configured="false" gate_ready="false" broker_real="false" broker_boundary="false"
 	local policy_acceptance="false" r5_human_quorum_configured="0" r5_human_quorum_enforced="false" broker_observations="false"
 	local policy_simulation_only="true"
 	local posture="weak"
-
 	secure_doctor_bool gate enabled false && gate_configured="true"
 	if [[ "$gate_configured" == "true" ]] && gate_available; then
 		gate_ready="true"
@@ -322,11 +308,9 @@ cmd_secure_doctor() {
 	fi
 	secure_doctor_accept_enforces_human_quorum && r5_human_quorum_enforced="true"
 	secure_doctor_broker_observations_available && broker_observations="true"
-
 	if [[ "$gate_ready" == "true" && "$broker_real" == "false" && "$policy_acceptance" == "false" && "$r5_human_quorum_configured" -ge 1 && "$r5_human_quorum_enforced" == "true" && "$broker_observations" == "true" ]]; then
 		posture="stronger"
 	fi
-
 	printf 'Palari secure governance doctor\n'
 	printf 'root: %s\n' "$ROOT"
 	printf 'R5 human approval quorum configured: %s\n' "$r5_human_quorum_configured"
@@ -341,18 +325,15 @@ cmd_secure_doctor() {
 	printf 'Branch protection verified locally: false\n'
 	printf 'Posture: %s\n' "$posture"
 	cat <<'DOCTOR'
-
 Recommended modes:
 - local/demo: ForgeGate optional
 - R2+ team work: require ForgeGate policy before acceptance
 - R5: require a configured and enforced human approval quorum before real autonomous governance
-
 Local verification limits:
 - This doctor does not verify hosted branch protection or remote rulesets.
 - Do not claim branch protection is active from this local output alone.
 DOCTOR
 }
-
 cmd_doctor() {
 	if [[ "${1:-}" == "lifecycle" ]]; then
 		shift
@@ -493,13 +474,11 @@ PYEOF
 		exit 1
 	fi
 }
-
 adoption_target_abs() {
 	local target="$1"
 	[[ -d "$target" ]] || die "adopt target directory not found: $target"
 	(cd "$target" && pwd)
 }
-
 adoption_git_head_or_unavailable() {
 	local repo_abs="$1"
 	if git -C "$repo_abs" rev-parse --verify -q HEAD >/dev/null 2>&1; then
@@ -508,7 +487,6 @@ adoption_git_head_or_unavailable() {
 		printf 'unavailable\n'
 	fi
 }
-
 adoption_source_ref() {
 	if git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
 		adoption_git_head_or_unavailable "$ROOT"
@@ -516,14 +494,11 @@ adoption_source_ref() {
 		printf 'unavailable\n'
 	fi
 }
-
 adoption_source_governance_history_path() {
 	case "${1%/}" in tickets | tickets/* | reports | reports/* | memory | memory/* | tests | tests/* | humans | humans/* | workflows | workflows/* | policies | policies/* | outcomes | outcomes/* | goals | goals/* | decisions | decisions/* | handoffs | handoffs/*) return 0 ;; esac
 	return 1
 }
-
 adoption_foreign_governance_artifacts() { printf '%s\n' "tickets/proposed, tickets/open, and tickets/closed records from the source repo" "reports, evidence bundles, human reports, and planning reports from the source repo" "memory and handoff records from the source repo" "source-repo tests and self-test artifacts" "human, workflow, policy, outcome, goal, and decision records from the source repo"; }
-
 adoption_source_manifest_hash() {
 	(
 		cd "$ROOT"
@@ -547,7 +522,6 @@ adoption_source_manifest_hash() {
 			done
 	) | sha256_text
 }
-
 target_config_scalar() {
 	local target_abs="$1" key="$2" default="$3"
 	local config="$target_abs/palari.config.yaml" value
@@ -567,7 +541,6 @@ target_config_scalar() {
 	fi
 	[[ -n "${value:-}" ]] && printf '%s\n' "$value" || printf '%s\n' "$default"
 }
-
 adoption_target_path_in_plan() {
 	local target_abs="$1" with_ci="$2" with_hooks="$3" force="$4" path="$5"
 	local planned
@@ -583,7 +556,6 @@ adoption_target_path_in_plan() {
 	done < <(adoption_plan_write_paths "$target_abs" "$with_ci" "$with_hooks" "$force")
 	return 1
 }
-
 adoption_require_clean_target_worktree() {
 	local target_abs="$1" with_ci="$2" with_hooks="$3" force="$4"
 	local status ignored_line ignored_path
@@ -600,7 +572,6 @@ adoption_require_clean_target_worktree() {
 		fi
 	done < <(git -C "$target_abs" status --porcelain=v1 --untracked-files=all --ignored=matching)
 }
-
 target_init_dirs() {
 	local target_abs="$1" force="$2"
 	if [[ "$force" == "true" || ! -f "$target_abs/palari.config.yaml" ]]; then
@@ -636,7 +607,6 @@ target_init_dirs() {
 		"$(target_config_scalar "$target_abs" decisions_open_dir "decisions/open")" \
 		"$(target_config_scalar "$target_abs" decisions_decided_dir "decisions/decided")"
 }
-
 target_state_dir() {
 	local target_abs="$1" force="$2"
 	if [[ "$force" == "true" || ! -f "$target_abs/palari.config.yaml" ]]; then
@@ -645,14 +615,12 @@ target_state_dir() {
 		target_config_scalar "$target_abs" state_dir ".palari"
 	fi
 }
-
 yaml_quote() {
 	local value="${1:-}"
 	value="${value//\\/\\\\}"
 	value="${value//\"/\\\"}"
 	printf '"%s"' "$value"
 }
-
 adoption_plan_write_paths() {
 	local target_abs="$1" with_ci="$2" with_hooks="$3" force="$4" rel dir state_dir
 	for rel in "${ADOPTION_PATHS[@]}"; do
@@ -680,13 +648,11 @@ adoption_plan_write_paths() {
 		printf '  - lefthook.yml\n'
 	fi
 }
-
 adoption_plan_required_message() {
 	printf 'adopt requires approved bootstrap/adoption plan before writing target files.\n' >&2
 	printf 'run: ./bin/palari adopt plan TARGET --out ADOPTION-PLAN.md\n' >&2
 	printf 'then have a human mark status: approved and rerun adopt with --plan ADOPTION-PLAN.md\n' >&2
 }
-
 cmd_adopt_plan() {
 	local target="${1:-}" out="" with_ci="false" with_hooks="false" force="false" arg target_abs source_ref source_hash
 	shift || true
@@ -774,7 +740,6 @@ cmd_adopt_plan() {
 	} >"$out"
 	printf 'adopt plan: %s\n' "$out"
 }
-
 adoption_plan_list_items() {
 	local plan="$1" key="$2"
 	awk -v key="$key" '
@@ -786,24 +751,20 @@ adoption_plan_list_items() {
     }
   ' "$plan"
 }
-
 adoption_plan_has_list() {
 	local plan="$1" key="$2"
 	[[ -n "$(adoption_plan_list_items "$plan" "$key")" ]]
 }
-
 adoption_expected_path_manifest_hash() {
 	local target_abs="$1" with_ci="$2" with_hooks="$3" force="$4"
 	adoption_plan_write_paths "$target_abs" "$with_ci" "$with_hooks" "$force" |
 		sed 's/^[[:space:]]*-[[:space:]]*//' |
 		sha256_text
 }
-
 adoption_plan_path_manifest_hash() {
 	local plan="$1"
 	adoption_plan_list_items "$plan" path_manifest | sha256_text
 }
-
 validate_adoption_plan() {
 	local plan="$1" target_abs="$2" with_ci="$3" with_hooks="$4" force="$5"
 	local status source_path target_path source_ref plan_ref approved_by approved_at plan_with_ci plan_with_hooks plan_force
@@ -861,7 +822,6 @@ validate_adoption_plan() {
 	adoption_plan_has_list "$plan" downstream_customization_boundaries ||
 		die "adopt plan missing downstream_customization_boundaries entries"
 }
-
 copy_adoption_path() {
 	local rel="$1"
 	local target="$2"
@@ -887,7 +847,6 @@ copy_adoption_path() {
 	mkdir -p "$(dirname "$dest")"
 	cp -R "$src" "$dest"
 }
-
 copy_agent_contract() {
 	local target="$1"
 	local force="$2"
@@ -913,7 +872,6 @@ copy_agent_contract() {
 		cp "$ROOT/AGENTS.md" "$dest"
 	fi
 }
-
 cmd_adopt() {
 	local target="${1:-}"
 	shift || true
@@ -922,7 +880,7 @@ cmd_adopt() {
 		return
 	fi
 	[[ -n "$target" ]] || die "adopt requires target repository path"
-	local with_ci="false" with_hooks="false" force="false" dry_run="false" plan="" arg target_abs rel
+	local with_ci="false" with_hooks="false" force="false" dry_run="false" plan="" governance_only="false" arg target_abs rel
 	while (($# > 0)); do
 		arg="$1"
 		case "$arg" in
@@ -952,6 +910,10 @@ cmd_adopt() {
 			[[ -n "$plan" ]] || die "adopt --plan requires a path"
 			shift 2
 			;;
+		--governance-only | --session-only)
+			governance_only="true"
+			shift
+			;;
 		*) die "unknown adopt option: $arg" ;;
 		esac
 	done
@@ -960,7 +922,11 @@ cmd_adopt() {
 	if ! git -C "$target_abs" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
 		die "adopt target must be an existing git repository: $target_abs"
 	fi
-	if [[ "$dry_run" != "true" ]]; then
+	if [[ "$governance_only" == "true" ]]; then
+		[[ "$with_ci" == "false" ]] || die "adopt --governance-only cannot install CI; use full adopt when the target needs local Palari runtime"
+		[[ "$with_hooks" == "false" ]] || die "adopt --governance-only cannot install hooks; use full adopt when the target needs local Palari runtime"
+	fi
+	if [[ "$dry_run" != "true" && "$governance_only" != "true" ]]; then
 		if [[ -z "$plan" ]]; then
 			adoption_plan_required_message
 			return 2
@@ -969,6 +935,10 @@ cmd_adopt() {
 	fi
 	printf 'adopt: source %s\n' "$ROOT"
 	printf 'adopt: target %s\n' "$target_abs"
+	if [[ "$governance_only" == "true" ]]; then
+		cmd_adopt_governance_only "$target_abs" "$force" "$dry_run"
+		return 0
+	fi
 	printf 'adopt: excludes upstream governance history\n'
 	adoption_foreign_governance_artifacts | sed 's/^/adopt: exclude /'
 	for rel in "${ADOPTION_PATHS[@]}"; do

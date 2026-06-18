@@ -7,14 +7,18 @@ trap 'rm -rf "$TMP_ROOT"' EXIT
 
 SOURCE="$TMP_ROOT/source"
 TARGET="$TMP_ROOT/target"
+SESSION_TARGET="$TMP_ROOT/session-target"
 DRY_TARGET="$TMP_ROOT/dry-target"
 CUSTOM_TARGET="$TMP_ROOT/custom-target"
 EMPTY_TARGET="$TMP_ROOT/empty-target"
-mkdir -p "$SOURCE" "$TARGET" "$DRY_TARGET" "$CUSTOM_TARGET" "$EMPTY_TARGET"
+mkdir -p "$SOURCE" "$TARGET" "$SESSION_TARGET" "$DRY_TARGET" "$CUSTOM_TARGET" "$EMPTY_TARGET"
 
 (cd "$REPO_ROOT" && tar --exclude .git --exclude .palari -cf - .) | (cd "$SOURCE" && tar -xf -)
 
 chmod +x "$SOURCE/bin/palari" "$SOURCE/scripts/palari" "$SOURCE/tests/run-adoption.sh"
+grep -Fq -- "--governance-only" "$SOURCE/plugin/commands/adopt.md"
+grep -Fq "governance session" "$SOURCE/plugin/commands/adopt.md"
+grep -Fq -- "--governance-only" "$SOURCE/skills/adoption/SKILL.md"
 mkdir -p \
 	"$SOURCE/tickets/open" "$SOURCE/tickets/closed" \
 	"$SOURCE/reports/evidence/UP-0002" "$SOURCE/reports/human" "$SOURCE/reports/planning" \
@@ -105,6 +109,21 @@ git config user.email "adoption-empty@example.invalid"
 git config user.name "Adoption Empty Test"
 cd "$TARGET"
 
+cd "$SESSION_TARGET"
+git init -b main >/dev/null
+git config user.email "session@example.invalid"
+git config user.name "Session Test"
+cat >README.md <<'DOC'
+# Session Target Repo
+DOC
+cat >AGENTS.md <<'DOC'
+# Existing Session Agent Contract
+
+Keep this file too.
+DOC
+git add README.md AGENTS.md
+git commit -m "session target baseline" >/dev/null
+
 (cd "$SOURCE" && ./bin/palari adopt "$DRY_TARGET" --dry-run) >"$TMP_ROOT/dry-run.out" 2>"$TMP_ROOT/dry-run.err" || true
 grep -Fq "adopt target must be an existing git repository" "$TMP_ROOT/dry-run.err"
 test ! -e "$DRY_TARGET/bin"
@@ -123,6 +142,37 @@ grep -Fq "adopt: dry-run complete" "$TMP_ROOT/external-from-tmp.out"
 grep -Fq "adopt: source $SOURCE" "$TMP_ROOT/wrapper-from-target.out"
 grep -Fq "adopt: target $TARGET" "$TMP_ROOT/wrapper-from-target.out"
 grep -Fq "adopt: dry-run complete" "$TMP_ROOT/wrapper-from-target.out"
+
+(cd "$SOURCE" && ./bin/palari adopt "$SESSION_TARGET" --governance-only) >"$TMP_ROOT/session-adopt.out"
+grep -Fq "adopt: mode governance-only" "$TMP_ROOT/session-adopt.out"
+grep -Fq "adopt: ok governance-only" "$TMP_ROOT/session-adopt.out"
+grep -Fq "PALARI_ROOT=" "$TMP_ROOT/session-adopt.out"
+cd "$SESSION_TARGET"
+test -f palari.config.yaml
+test -f AGENTS.md
+test -f AGENTS.palari.md
+test -d tickets/proposed
+test -d tickets/open
+test -d tickets/closed
+test -d reports/evidence
+test -d goals/active
+test -d decisions/open
+test -d workflows/active
+test -d humans/active
+grep -Fq "mode: governance-only" palari.config.yaml
+grep -Fq "Do not copy upstream Palari internals" AGENTS.palari.md
+grep -Fq "# Existing Session Agent Contract" AGENTS.md
+grep -Fxq ".palari/" .gitignore
+for runtime_path in bin lib scripts templates contracts skills schemas adapters gate layouts examples research vendor tests .claude-plugin; do
+	test ! -e "$runtime_path"
+done
+PALARI_ROOT="$SESSION_TARGET" PALARI_LIB_DIR="$SOURCE/lib/palari" "$SOURCE/bin/palari" status >"$TMP_ROOT/session-status.out"
+grep -Fq "Palari Orchestration status" "$TMP_ROOT/session-status.out"
+if (cd "$SOURCE" && ./bin/palari adopt "$SESSION_TARGET" --governance-only --ci) >"$TMP_ROOT/session-ci.out" 2>"$TMP_ROOT/session-ci.err"; then
+	printf 'adoption: expected governance-only --ci to fail\n' >&2
+	exit 1
+fi
+grep -Fq "adopt --governance-only cannot install CI" "$TMP_ROOT/session-ci.err"
 
 if (cd "$SOURCE" && ./bin/palari adopt "$TARGET" --ci --hooks) >"$TMP_ROOT/unplanned-adopt.out" 2>&1; then
 	printf 'adoption: expected non-dry-run adopt without approved plan to fail\n' >&2
@@ -476,6 +526,7 @@ grep -Fq "adopt: ok" "$TMP_ROOT/adopt.out"
 grep -Fq "./bin/palari propose create APP-PROP-0001" "$TMP_ROOT/adopt.out"
 grep -Fq "./bin/palari github ruleset-command --repo OWNER/REPO" "$TMP_ROOT/adopt.out"
 
+cd "$TARGET"
 test -x bin/palari
 test -x scripts/palari
 test -f lib/palari/core.bash

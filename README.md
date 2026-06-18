@@ -372,7 +372,16 @@ For a guided first look, run `./bin/palari demo` before `./bin/palari web`.
 That path creates sample operator-console data instead of asking you to invent a
 real ticket first.
 
-Adopt it in another repo:
+Start a governance session in another repo without copying the Palari runtime:
+
+```bash
+./bin/palari adopt /path/to/repo --governance-only
+PALARI_ROOT=/path/to/repo PALARI_LIB_DIR=$PWD/lib/palari ./bin/palari status
+```
+
+This writes only target-owned governance/session scaffolding. Install the full
+portable runtime only when the target repo should own `./bin/palari` and local
+runtime modules:
 
 ```bash
 ./bin/palari adopt /path/to/repo --dry-run
@@ -406,7 +415,7 @@ check fails with instructions instead of silently running a weak gate. Use
 `palari github ci --repo-only` only for explicit maintenance checks that are not
 claiming ticket-governed agent work.
 
-`adopt` refuses non-git targets, keeps existing files by default, writes
+Full `adopt` refuses non-git targets, keeps existing files by default, writes
 `AGENTS.palari.md` instead of overwriting an existing `AGENTS.md`, runs
 `palari init`, and finishes with `palari doctor`. Non-dry-run adoption requires
 an approved bootstrap/adoption plan artifact so large repo mutations have a
@@ -416,6 +425,9 @@ governance history: source tickets, reports, evidence bundles, human reports,
 memory, self-test artifacts, humans, workflows, policies, outcomes, goals, and
 decisions remain excluded unless a future explicit import workflow says
 otherwise.
+Governance-only adoption uses the external Palari checkout for commands and
+does not install CI or hooks, because those require a local runtime in the
+target repository.
 
 ## First Ticket
 

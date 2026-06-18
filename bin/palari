@@ -89,6 +89,9 @@ source "$PALARI_LIB_DIR/roles.bash"
 palari_require_module "$PALARI_LIB_DIR/init_adopt.bash"
 # shellcheck source=lib/palari/init_adopt.bash
 source "$PALARI_LIB_DIR/init_adopt.bash"
+palari_require_module "$PALARI_LIB_DIR/adoption_session.bash"
+# shellcheck source=lib/palari/adoption_session.bash
+source "$PALARI_LIB_DIR/adoption_session.bash"
 palari_require_module "$PALARI_LIB_DIR/models.bash"
 # shellcheck source=lib/palari/models.bash
 source "$PALARI_LIB_DIR/models.bash"
@@ -167,6 +170,7 @@ commands:
   init [--ci] [--hooks]        Create configured directories and optional adapters.
   adopt plan TARGET --out FILE   Write a governed adoption plan.
   adopt TARGET --plan FILE       Copy Palari into a git repo after plan approval.
+  adopt TARGET --governance-only Create session scaffolding without copying Palari runtime.
   doctor [lifecycle]           Check install health or active ticket lifecycle.
   status [--next]              Show compact orchestration status.
   snapshot --json [--full]     Print the repo-native JSON state model.
