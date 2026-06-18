@@ -1,17 +1,17 @@
 ---
 id: POS-0107
 title: Stable Worktree Base Resolution
-status: open
+status: claimed
 risk: R3
 priority: P1
 stream: process
 serves_goal: 
 model_hint: 
-claimed_by:
-claimed_at:
-claim_ref:
-claim_heartbeat_at:
-claim_expires_at:
+claimed_by: Codex
+claimed_at: 2026-06-18T14:01:36Z
+claim_ref: refs/palari/claims/POS-0107
+claim_heartbeat_at: 2026-06-18T14:01:36Z
+claim_expires_at: 2026-06-18T14:06:36Z
 allowed_paths:
   - lib/palari/core.bash
   - lib/palari/tickets_workspace.bash
