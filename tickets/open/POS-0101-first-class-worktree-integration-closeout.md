@@ -1,7 +1,7 @@
 ---
 id: POS-0101
 title: First class worktree integration closeout
-status: claimed
+status: in-review
 risk: R3
 priority: P1
 stream: process
