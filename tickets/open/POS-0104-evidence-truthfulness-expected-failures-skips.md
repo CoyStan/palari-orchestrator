@@ -1,17 +1,17 @@
 ---
 id: POS-0104
 title: Evidence truthfulness expected failures skips
-status: open
+status: claimed
 risk: R3
 priority: P2
 stream: process
 serves_goal: 
 model_hint: 
-claimed_by:
-claimed_at:
-claim_ref:
-claim_heartbeat_at:
-claim_expires_at:
+claimed_by: Codex
+claimed_at: 2026-06-18T11:03:34Z
+claim_ref: refs/palari/claims/POS-0104
+claim_heartbeat_at: 2026-06-18T11:03:34Z
+claim_expires_at: 2026-06-18T11:08:34Z
 allowed_paths:
   - lib/palari/ci_accept.bash
   - lib/palari/evidence_quality.bash
