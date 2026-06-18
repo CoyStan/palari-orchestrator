@@ -56,7 +56,14 @@ reports/human/POS-0100-human-report.md
 
 ## CI Evidence
 
-- Pending final Palari CI/evidence run for POS-0100.
+- CI run: `./bin/palari ci POS-0100`
+- Evidence bundle: `reports/evidence/POS-0100/`
+- JUnit: `reports/evidence/POS-0100/junit.xml`
+- SARIF: `reports/evidence/POS-0100/palari.sarif`
+- Manifest: `reports/evidence/POS-0100/manifest.json`
+- CI result: passed
+- Initial strict evidence score: 85/100, `needs-review`, because the fresh
+  reviewer note is not yet present.
 
 ## Boundaries
 
