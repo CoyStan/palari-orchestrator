@@ -15,6 +15,7 @@
 
 - `bash -n lib/palari/tickets_workspace.bash lib/palari/agents_review_scope.bash lib/palari/dashboard_snapshot.bash lib/palari/adapters_snapshot.bash tests/run-retrospective-governance.sh`
 - `./tests/run-retrospective-governance.sh`
+- `./tests/run-cli-structure.sh`
 - `python3 -m py_compile adapters/snapshot/fast_snapshot.py`
 - `shellcheck -x lib/palari/agents_review_scope.bash lib/palari/dashboard_snapshot.bash lib/palari/adapters_snapshot.bash tests/run-retrospective-governance.sh`
 - `shfmt -d lib/palari/agents_review_scope.bash lib/palari/dashboard_snapshot.bash lib/palari/adapters_snapshot.bash tests/run-retrospective-governance.sh`

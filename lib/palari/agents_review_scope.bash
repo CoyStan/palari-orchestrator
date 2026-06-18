@@ -406,26 +406,18 @@ print_ticket_section_excerpt() {
 }
 
 ticket_is_retrospective() {
-	local file="$1"
-	local retrospective lifecycle
+	local file="$1" retrospective lifecycle
 	retrospective="$(frontmatter_value "$file" retrospective)"
 	lifecycle="$(frontmatter_value "$file" lifecycle)"
 	[[ "$retrospective" == "true" || "$lifecycle" == "retrospective" || "$lifecycle" == "audit-backfill" ]]
 }
 
 ticket_retrospective_json_bool() {
-	if ticket_is_retrospective "$1"; then
-		printf 'true'
-	else
-		printf 'false'
-	fi
+	if ticket_is_retrospective "$1"; then printf 'true'; else printf 'false'; fi
 }
 
 ticket_is_high_risk() {
-	case "$(frontmatter_value "$1" risk)" in
-	R3 | R4 | R5) return 0 ;;
-	esac
-	return 1
+	[[ "$(frontmatter_value "$1" risk)" =~ ^R[345]$ ]]
 }
 
 cmd_packet() {
@@ -487,10 +479,7 @@ cmd_packet() {
 	if ticket_is_retrospective "$file"; then
 		printf 'Retrospective/audit-backfill: true\n'
 		printf 'Original commits:\n'
-		while IFS= read -r value; do
-			[[ -n "$value" ]] || continue
-			printf '  - %s\n' "$value"
-		done < <(frontmatter_list_items "$file" retrospective_original_commits)
+		while IFS= read -r value; do [[ -n "$value" ]] && printf '  - %s\n' "$value"; done < <(frontmatter_list_items "$file" retrospective_original_commits)
 		printf 'Bypass reason: %s\n' "$(frontmatter_value "$file" retrospective_bypass_reason)"
 		printf 'Review warning: this audits already-landed work; it is not evidence that the work was pre-governed.\n\n'
 	fi
