@@ -1,7 +1,7 @@
 ---
 id: POS-0103
 title: Retrospective governance lifecycle
-status: claimed
+status: in-review
 risk: R3
 priority: P2
 stream: process
