@@ -149,7 +149,7 @@ ci_write_manifest() {
 		json_string "$(now_utc)"
 		printf ',\n  "status": '
 		json_string "$status"
-		printf ',\n  "tests": %s,\n  "failures": %s,\n  "skipped": %s\n' "$CI_TESTS" "$CI_FAILURES" "$CI_SKIPPED"
+		printf ',\n  "tests": %s,\n  "failures": %s,\n  "skipped": %s' "$CI_TESTS" "$CI_FAILURES" "$CI_SKIPPED"
 		evidence_truth_manifest_fields
 		printf ',\n  "artifacts": [\n'
 		printf '    {"name":"verification.log","sha256":'
