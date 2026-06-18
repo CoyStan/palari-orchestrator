@@ -1,17 +1,17 @@
 ---
 id: POS-0101
 title: First class worktree integration closeout
-status: open
+status: claimed
 risk: R3
 priority: P1
 stream: process
 serves_goal:
 model_hint:
-claimed_by:
-claimed_at:
-claim_ref:
-claim_heartbeat_at:
-claim_expires_at:
+claimed_by: Codex
+claimed_at: 2026-06-18T06:05:14Z
+claim_ref: refs/palari/claims/POS-0101
+claim_heartbeat_at: 2026-06-18T06:05:14Z
+claim_expires_at: 2026-06-18T06:10:14Z
 allowed_paths:
   - bin/palari
   - lib/palari/tickets_workspace.bash
