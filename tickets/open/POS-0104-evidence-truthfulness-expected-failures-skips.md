@@ -13,8 +13,11 @@ claim_ref: refs/palari/claims/POS-0104
 claim_heartbeat_at: 2026-06-18T11:03:34Z
 claim_expires_at: 2026-06-18T11:08:34Z
 allowed_paths:
+  - bin/palari
   - lib/palari/ci_accept.bash
   - lib/palari/evidence_quality.bash
+  - lib/palari/evidence_truthfulness.bash
+  - contracts/cli-maintainability.md
   - contracts/review-and-acceptance.md
   - README.md
   - tests/run-evidence-quality.sh
@@ -45,9 +48,10 @@ forbidden_paths:
 requires_human_confirmation: true
 requires_review: true
 verification:
-  - bash -n lib/palari/ci_accept.bash lib/palari/evidence_quality.bash tests/run-evidence-quality.sh
+  - bash -n lib/palari/ci_accept.bash lib/palari/evidence_truthfulness.bash lib/palari/evidence_quality.bash tests/run-evidence-quality.sh
   - ./tests/run-evidence-quality.sh
   - bats tests/palari_acceptance.bats
+  - ./tests/run-cli-structure.sh
 target_branch: ticket/POS-0103
 branch: ticket/POS-0104
 worktree: 
@@ -75,6 +79,8 @@ run, skipped as manual/descriptive, or deferred to a linked follow-up.
   verification is counted and visible.
 - Extend evidence scoring/readiness so skipped own-ticket verification is not
   silently treated as complete evidence.
+- Keep `ci_accept.bash` under the existing structure limit by putting new helper
+  logic in a focused evidence truthfulness module.
 - Add focused regression coverage for passing evidence, skipped/manual evidence,
   and explicitly documented discovery/documentation exceptions.
 - Document the evidence truthfulness rule in the review/acceptance contract and
@@ -95,9 +101,10 @@ run, skipped as manual/descriptive, or deferred to a linked follow-up.
 
 ## Verification
 
-- bash -n lib/palari/ci_accept.bash lib/palari/evidence_quality.bash tests/run-evidence-quality.sh
+- bash -n lib/palari/ci_accept.bash lib/palari/evidence_truthfulness.bash lib/palari/evidence_quality.bash tests/run-evidence-quality.sh
 - ./tests/run-evidence-quality.sh
 - bats tests/palari_acceptance.bats
+- ./tests/run-cli-structure.sh
 
 ## Ticket Completion Contract
 

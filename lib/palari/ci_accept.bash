@@ -26,6 +26,7 @@ ci_add_junit_case() {
 		;;
 	skip)
 		CI_SKIPPED=$((CI_SKIPPED + 1))
+		evidence_truth_note_skip "$name" "$body"
 		printf '    <testcase classname="palari" name="%s"><skipped message="%s"/></testcase>\n' "$name_xml" "$body_xml" >>"$CI_JUNIT_CASES"
 		;;
 	fail)
@@ -148,8 +149,9 @@ ci_write_manifest() {
 		json_string "$(now_utc)"
 		printf ',\n  "status": '
 		json_string "$status"
-		printf ',\n  "tests": %s,\n  "failures": %s,\n  "skipped": %s,\n' "$CI_TESTS" "$CI_FAILURES" "$CI_SKIPPED"
-		printf '  "artifacts": [\n'
+		printf ',\n  "tests": %s,\n  "failures": %s,\n  "skipped": %s\n' "$CI_TESTS" "$CI_FAILURES" "$CI_SKIPPED"
+		evidence_truth_manifest_fields
+		printf ',\n  "artifacts": [\n'
 		printf '    {"name":"verification.log","sha256":'
 		json_string "$(sha256_file "$log")"
 		printf '},\n'
@@ -188,11 +190,9 @@ evidence_dir = pathlib.Path(sys.argv[2])
 ticket_id = sys.argv[3]
 required = {"verification.log", "junit.xml", "palari.sarif"}
 
-
 def fail(message: str) -> None:
     print(f"ci: invalid evidence manifest for {ticket_id}: {message}", file=sys.stderr)
     raise SystemExit(1)
-
 
 try:
     data = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -338,6 +338,7 @@ cmd_ci() {
 	CI_SKIPPED=0
 	CI_SARIF_RUN_ID="palari/$ticket_label"
 	CI_SARIF_LOCATION="palari.config.yaml"
+	evidence_truth_init "$out_dir"
 	: >"$CI_JUNIT_CASES"
 	: >"$CI_SARIF_RESULTS"
 	{
@@ -364,6 +365,7 @@ cmd_ci() {
 			ci_write_artifacts "$junit" "$sarif"
 			ci_write_manifest "$manifest" "$ticket_label" "$base_ref" "$failed" "$log" "$junit" "$sarif"
 			rm -f "$CI_JUNIT_CASES" "$CI_SARIF_RESULTS"
+			evidence_truth_cleanup
 			printf 'ci evidence: %s\n' "${out_dir#"$ROOT"/}"
 			printf 'ci junit: %s\n' "${junit#"$ROOT"/}"
 			printf 'ci sarif: %s\n' "${sarif#"$ROOT"/}"
@@ -375,8 +377,10 @@ cmd_ci() {
 			printf 'ci: ok for %s\n' "$ticket_label"
 			return
 		fi
+		evidence_truth_note_followups "$file"
 		while IFS= read -r check; do
 			[[ -n "$check" ]] || continue
+			evidence_truth_scan_text "$check"
 			index=$((index + 1))
 			case "$check" in
 			manual* | Manual* | describe\ * | Describe\ *)
@@ -394,6 +398,7 @@ cmd_ci() {
 		ci_run_step "scope-check" scope_check_ticket_set "$base_ref" "${tickets[@]}" || failed=1
 		for current_ticket in "${tickets[@]}"; do
 			file="$(find_ticket_file "$current_ticket")" || die "ticket not found: $current_ticket"
+			evidence_truth_note_followups "$file"
 			ci_run_step "lint $current_ticket" cmd_lint "$current_ticket" || failed=1
 			if [[ "$(frontmatter_value "$file" status)" == "accepted" ]] && ci_use_existing_evidence "$current_ticket"; then
 				continue
@@ -401,6 +406,7 @@ cmd_ci() {
 			index=0
 			while IFS= read -r check; do
 				[[ -n "$check" ]] || continue
+				evidence_truth_scan_text "$check"
 				index=$((index + 1))
 				case "$check" in
 				manual* | Manual* | describe\ * | Describe\ *)
@@ -421,6 +427,7 @@ cmd_ci() {
 	ci_write_artifacts "$junit" "$sarif"
 	ci_write_manifest "$manifest" "$ticket_label" "$base_ref" "$failed" "$log" "$junit" "$sarif"
 	rm -f "$CI_JUNIT_CASES" "$CI_SARIF_RESULTS"
+	evidence_truth_cleanup
 	printf 'ci evidence: %s\n' "${out_dir#"$ROOT"/}"
 	printf 'ci junit: %s\n' "${junit#"$ROOT"/}"
 	printf 'ci sarif: %s\n' "${sarif#"$ROOT"/}"
@@ -497,14 +504,12 @@ ticket_evidence_manifest_head_valid() {
 	fi
 	return 0
 }
-
 ticket_evidence_manifest_current_valid() {
 	local ticket_id="$1"
 	local prefix="${2:-accept refused: invalid evidence manifest}"
 	local dir="$ROOT/$EVIDENCE_DIR/$ticket_id"
 	local manifest="$dir/manifest.json"
 	local expected_head="" manifest_head
-
 	if git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
 		expected_head="$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || true)"
 	fi
@@ -523,11 +528,9 @@ ticket_id = sys.argv[3]
 prefix = sys.argv[4]
 required = {"verification.log", "junit.xml", "palari.sarif"}
 
-
 def fail(message: str) -> None:
     print(f"{prefix} for {ticket_id}: {message}", file=sys.stderr)
     raise SystemExit(1)
-
 
 try:
     data = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -583,6 +586,7 @@ print(head_sha or "")
 PY
 	)" || return 1
 
+	evidence_truth_validate_manifest "$ticket_id" "$manifest" "$prefix" || return 1
 	ticket_evidence_manifest_head_valid "$ticket_id" "$manifest_head" "$expected_head" "$prefix"
 }
 
@@ -734,23 +738,19 @@ accept_human_approval_quorum_for_risk() {
 		die "invalid governance.required_human_approvals.$risk value: $raw"
 	printf '%s\n' "$raw"
 }
-
 accept_enforces_human_quorum() {
 	local quorum
 	quorum="$(accept_human_approval_quorum_for_risk R5)"
 	((quorum >= 1))
 }
-
 accept_r5_dual_human_enforcement_enabled() {
 	local quorum
 	quorum="$(accept_human_approval_quorum_for_risk R5)"
 	((quorum >= 2))
 }
-
 accept_enforces_r5_dual_human() {
 	accept_r5_dual_human_enforcement_enabled
 }
-
 accept_placeholder_human() {
 	local default_human
 	default_human="$(cfg_nested governance default_human_approver "")"

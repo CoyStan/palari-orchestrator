@@ -23,6 +23,8 @@ The large-CLI maintainability risk is considered fixed when:
 - `tickets_workspace.bash`: ticket lifecycle, worktrees, and sandboxes.
 - `agents_review_scope.bash`: executor wrapper, packets, report lint, and scope gates.
 - `ci_accept.bash`: CI evidence, manifests, and acceptance.
+- `evidence_truthfulness.bash`: skipped, expected-failure, FIXME/TODO, and follow-up metadata for evidence manifests.
+- `evidence_quality.bash`: conservative evidence readiness scoring.
 - `adapters_snapshot.bash`: skills, MCP, GitHub, snapshot, web, and memory adapters.
 
 ## Required Check

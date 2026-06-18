@@ -140,6 +140,9 @@ source "$PALARI_LIB_DIR/agents_review_scope.bash"
 palari_require_module "$PALARI_LIB_DIR/ci_accept.bash"
 # shellcheck source=lib/palari/ci_accept.bash
 source "$PALARI_LIB_DIR/ci_accept.bash"
+palari_require_module "$PALARI_LIB_DIR/evidence_truthfulness.bash"
+# shellcheck source=lib/palari/evidence_truthfulness.bash
+source "$PALARI_LIB_DIR/evidence_truthfulness.bash"
 palari_require_module "$PALARI_LIB_DIR/evidence_quality.bash"
 # shellcheck source=lib/palari/evidence_quality.bash
 source "$PALARI_LIB_DIR/evidence_quality.bash"
