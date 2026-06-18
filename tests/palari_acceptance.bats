@@ -8,6 +8,9 @@ setup() {
   (cd "$REPO_ROOT" && tar --exclude .git --exclude repomix-output.xml -cf - .) | (cd "$WORK" && tar -xf -)
   cd "$WORK"
   chmod +x bin/palari scripts/palari
+  rm -f tickets/open/*.md tickets/open/*.markdown tickets/proposed/*.md tickets/proposed/*.markdown tickets/closed/*.md tickets/closed/*.markdown
+  rm -f reports/*.md reports/*.markdown reports/planning/*.md reports/planning/*.markdown reports/human/*.md reports/human/*.markdown handoffs/*.md handoffs/*.markdown
+  rm -rf reports/evidence/*
   git init -b main >/dev/null
   git config user.email "bats@example.invalid"
   git config user.name "Bats Test"

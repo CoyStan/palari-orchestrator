@@ -27,8 +27,16 @@ Before moving a ticket to review, run the closeout readiness check from the
 ticket worktree:
 
 ```bash
+palari evidence refresh TICKET-ID --base TARGET-BRANCH
 palari worktree closeout TICKET-ID
 ```
+
+`palari evidence refresh` is the supported acceptance-preparation path for CI
+evidence. It must be run from the ticket worktree with no local dirty paths. It
+verifies the ticket branch/worktree context, refuses invalid pre-existing
+evidence that is not just stale by commit, writes fresh evidence at the current
+implementation commit, and prints the exact review and human-acceptance next
+commands. It never accepts, merges, pushes, deploys, or changes ticket status.
 
 The closeout check is read-only. It reports the ticket ID, ticket branch, target
 branch, current worktree path, branch-diff changed path count, scope status,

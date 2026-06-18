@@ -222,6 +222,8 @@ commands:
   skill list                   List shipped, adopter, and plugin skills.
   skill lint                   Validate skill frontmatter and authority claims.
   evidence score ID [--strict] Score ticket evidence completeness.
+  evidence refresh ID [--base REF]
+                              Refresh ticket CI evidence from a clean worktree.
   ci ID [--base REF]           Run ticket gates and write evidence artifacts.
   ci --repo-only               Run non-merge-gate repository lint evidence.
   gate SUBCOMMAND [ARGS]       Forge-proof accept gate; run `palari gate help`.

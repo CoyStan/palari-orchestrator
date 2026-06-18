@@ -417,7 +417,7 @@ worktree_closeout_evidence_status() {
 	fi
 
 	set +e
-	ci_existing_evidence_valid "$ticket_id" >/dev/null 2>&1
+	ticket_evidence_manifest_current_valid "$ticket_id" >/dev/null 2>&1
 	code=$?
 	set -e
 	if ((code == 0)); then

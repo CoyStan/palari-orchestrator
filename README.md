@@ -463,11 +463,18 @@ Before acceptance:
 ```bash
 palari scope-check APP-0001
 palari ci APP-0001 --base main
+palari evidence refresh APP-0001 --base main
 palari worktree closeout APP-0001
 palari ticket ready APP-0001
 palari packet APP-0001 reviewer
 palari accept APP-0001 --by founder
 ```
+
+`palari evidence refresh ID --base REF` runs from the clean ticket worktree. It
+verifies the ticket branch/worktree context, refuses dirty local changes before
+rewriting evidence, runs Palari CI at the current implementation commit, and
+prints the next review/acceptance-preparation commands. It does not accept,
+merge, push, deploy, or move ticket status.
 
 `palari worktree closeout ID` is a read-only readiness check that must be run
 from the ticket worktree. It reports the ticket branch, target branch, worktree
@@ -661,6 +668,7 @@ palari packet WEB-0002 specialist
 | `palari agent run ID --executor opencode` | Run opencode from a Palari packet and record executor evidence without accepting work. |
 | `palari memory ...` | Manage optional repo-native memory and generated search indexes. |
 | `palari ci ID --base REF` | Run scope/lint/report gates and write evidence artifacts. Fails closed without a ticket. |
+| `palari evidence refresh ID --base REF` | From a clean ticket worktree, refresh CI evidence at the current implementation HEAD and print review/acceptance-preparation next steps without accepting or merging. |
 | `palari ci --repo-only` | Run explicit non-merge-gate repository lint evidence. |
 | `palari scope-check [ID]` | Compare changed files against allowed and forbidden path rules. |
 | `palari scope-overlaps [ID]` | Detect overlapping active ticket write scopes. |
@@ -720,7 +728,7 @@ ship as adapters:
 - Mock executor: `palari agent run TICKET-ID --executor mock --scenario safe|forbidden-path|outside-scope` proves the governance loop deterministically - no AI tool, network, or credentials. The forbidden-path scenario shows an executor touching `.env`, scope-check refusing it, evidence preserved, and ticket state not advancing.
 - Codex executor: `palari agent run TICKET-ID --executor codex [--dry-run]` runs Codex through the same governed lifecycle; `palari codex doctor` checks readiness and `palari codex install` adds the prompt pack. See [adapters/codex/](adapters/codex/).
 - Local sandboxes: `palari sandbox create TICKET-ID` creates a disposable repository copy for executor experiments. Not a security boundary; scope and evidence gates remain the control layer.
-- Evidence integrity: `palari ci` writes `reports/evidence/<ticket>/verification.log`, `junit.xml`, `palari.sarif`, and `manifest.json`; `accept` validates manifest status, current commit, and artifact hashes before closing a ticket.
+- Evidence integrity: `palari ci` writes `reports/evidence/<ticket>/verification.log`, `junit.xml`, `palari.sarif`, and `manifest.json`; `palari evidence refresh` prepares that evidence from a clean ticket worktree; `accept` validates manifest status, artifact hashes, and commit freshness before closing a ticket. Same-ticket report/evidence/ticket bookkeeping commits may follow the evidence run, but source changes after evidence require a refresh.
 - Trusted merge evidence: the GitHub adapter uploads and attests `palari-evidence.tgz` on trusted repository runs. GitHub rulesets must be installed before this protects merges.
 - Concurrency: `ticket claim` records lease metadata, `ticket heartbeat` renews it, and `scope-overlaps` blocks path-scope collisions by default.
 - MCP: `palari mcp manifest` exposes a thin command manifest for optional MCP wrappers.

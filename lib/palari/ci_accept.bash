@@ -448,18 +448,70 @@ ticket_evidence_complete() {
 	return "$missing"
 }
 
-ticket_evidence_manifest_valid() {
+ticket_evidence_bookkeeping_path_allowed() {
 	local ticket_id="$1"
+	local path="$2"
+	case "$path" in
+	"$EVIDENCE_DIR/$ticket_id"/*) return 0 ;;
+	"$REPORTS_DIR/$ticket_id-"*.md | "$REPORTS_DIR/$ticket_id-"*.markdown) return 0 ;;
+	"$HUMAN_REPORTS_DIR/$ticket_id-"*.md | "$HUMAN_REPORTS_DIR/$ticket_id-"*.markdown) return 0 ;;
+	"$HANDOFFS_DIR/$ticket_id-"*.md | "$HANDOFFS_DIR/$ticket_id-"*.markdown) return 0 ;;
+	"$OPEN_DIR/$ticket_id-"*.md | "$OPEN_DIR/$ticket_id-"*.markdown) return 0 ;;
+	"$CLOSED_DIR/$ticket_id-"*.md | "$CLOSED_DIR/$ticket_id-"*.markdown) return 0 ;;
+	esac
+	return 1
+}
+
+ticket_evidence_manifest_head_valid() {
+	local ticket_id="$1"
+	local manifest_head="$2"
+	local expected_head="$3"
+	local prefix="$4"
+	local path
+	local -a unexpected_paths=()
+	[[ -n "$expected_head" ]] || return 0
+	[[ "$manifest_head" == "$expected_head" ]] && return 0
+	if [[ -z "$manifest_head" ]]; then
+		printf '%s for %s: head_sha is missing, expected current HEAD %s\n' "$prefix" "$ticket_id" "$expected_head" >&2
+		return 1
+	fi
+	if ! git -C "$ROOT" cat-file -e "$manifest_head^{commit}" 2>/dev/null; then
+		printf '%s for %s: head_sha %s is not a commit in this repository\n' "$prefix" "$ticket_id" "$manifest_head" >&2
+		return 1
+	fi
+	if ! git -C "$ROOT" merge-base --is-ancestor "$manifest_head" "$expected_head" 2>/dev/null; then
+		printf '%s for %s: head_sha %s is not an ancestor of current HEAD %s\n' "$prefix" "$ticket_id" "$manifest_head" "$expected_head" >&2
+		return 1
+	fi
+	while IFS= read -r path; do
+		[[ -n "$path" ]] || continue
+		if ! ticket_evidence_bookkeeping_path_allowed "$ticket_id" "$path"; then
+			unexpected_paths+=("$path")
+		fi
+	done < <(git -C "$ROOT" diff --name-only "$manifest_head" "$expected_head" -- .)
+	if ((${#unexpected_paths[@]} > 0)); then
+		printf '%s for %s: head_sha is %s, current HEAD is %s, and non-bookkeeping changes exist after evidence\n' \
+			"$prefix" "$ticket_id" "$manifest_head" "$expected_head" >&2
+		printf 'first non-bookkeeping path: %s\n' "${unexpected_paths[0]}" >&2
+		return 1
+	fi
+	return 0
+}
+
+ticket_evidence_manifest_current_valid() {
+	local ticket_id="$1"
+	local prefix="${2:-accept refused: invalid evidence manifest}"
 	local dir="$ROOT/$EVIDENCE_DIR/$ticket_id"
 	local manifest="$dir/manifest.json"
-	local expected_head=""
+	local expected_head="" manifest_head
 
 	if git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
 		expected_head="$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || true)"
 	fi
 	command -v python3 >/dev/null 2>&1 || die "accept requires python3 to validate evidence manifest integrity"
 
-	python3 - "$manifest" "$dir" "$ticket_id" "$expected_head" <<'PY'
+	manifest_head="$(
+		python3 - "$manifest" "$dir" "$ticket_id" "$prefix" <<'PY'
 import hashlib
 import json
 import pathlib
@@ -468,12 +520,12 @@ import sys
 manifest_path = pathlib.Path(sys.argv[1])
 evidence_dir = pathlib.Path(sys.argv[2])
 ticket_id = sys.argv[3]
-expected_head = sys.argv[4]
+prefix = sys.argv[4]
 required = {"verification.log", "junit.xml", "palari.sarif"}
 
 
 def fail(message: str) -> None:
-    print(f"accept refused: invalid evidence manifest for {ticket_id}: {message}", file=sys.stderr)
+    print(f"{prefix} for {ticket_id}: {message}", file=sys.stderr)
     raise SystemExit(1)
 
 
@@ -492,9 +544,6 @@ for key, expected in checks.items():
     actual = data.get(key)
     if actual != expected:
         fail(f"{key} is {actual!r}, expected {expected!r}")
-
-if expected_head and data.get("head_sha") != expected_head:
-    fail(f"head_sha is {data.get('head_sha')!r}, expected current HEAD {expected_head!r}")
 
 artifacts = data.get("artifacts")
 if not isinstance(artifacts, list):
@@ -526,7 +575,19 @@ for item in artifacts:
 missing = required - seen
 if missing:
     fail("missing artifact hash entries: " + ", ".join(sorted(missing)))
+
+head_sha = data.get("head_sha")
+if head_sha is not None and not isinstance(head_sha, str):
+    fail(f"head_sha must be a string, got {type(head_sha).__name__}")
+print(head_sha or "")
 PY
+	)" || return 1
+
+	ticket_evidence_manifest_head_valid "$ticket_id" "$manifest_head" "$expected_head" "$prefix"
+}
+
+ticket_evidence_manifest_valid() {
+	ticket_evidence_manifest_current_valid "$1" "accept refused: invalid evidence manifest"
 }
 
 human_file_for_actor() {
